@@ -1,0 +1,200 @@
+---
+import DefaultLayout from '@layouts/DefaultLayout.astro'
+import PageHero from '@components/PageHero.astro'
+import { Form, Input, Button, Textarea, Checkbox, Fieldset, Heading, Radio } from 'accessible-astro-components'
+import { Icon } from 'astro-icon/components'
+---
+
+<DefaultLayout title="Contact - Bishal Upadhyaya">
+  <PageHero
+    title="Get in Touch"
+    subtitle="Have a question or want to collaborate? I'd love to hear from you."
+    size="compact"
+    accent="teal"
+  />
+
+  <section class="contact-content">
+    <div class="container">
+      <div class="contact-grid">
+        <div class="form-section animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <Form name="contact" action="/thank-you" method="post">
+            <Input
+              name="firstname"
+              label="Your name"
+              required
+              data-validation="I need to know who I'm talking to!"
+              autocomplete="given-name"
+            />
+
+            <Input name="email" label="Email address" type="email" required autocomplete="email" />
+
+            <Input name="phone" label="Phone number (optional)" type="tel" />
+
+            <Textarea name="message" label="What's on your mind?" required />
+
+            <Fieldset
+              name="interests"
+              legend="What are you interested in?"
+              required
+              data-validation="Pick at least one so I know how to help"
+            >
+              <Checkbox name="ai-products" value="ai" label="AI product development" />
+              <Checkbox name="music-tech" value="music" label="Music technology" />
+              <Checkbox name="collaboration" value="collab" label="Collaboration opportunities" />
+              <Checkbox name="other" value="other" label="Something else" />
+            </Fieldset>
+
+            <Button htmlType="submit" type="primary">Send Message →</Button>
+          </Form>
+        </div>
+
+        <div class="info-section animate-in fade-in slide-in-from-bottom-4 delay-200 duration-700">
+          <div class="info-card">
+            <h2>Let's Build Something</h2>
+            <p>
+              Whether you're exploring AI integration for your product, looking for a technical collaborator, or just
+              want to chat about music discovery systems—I'm always up for interesting conversations.
+            </p>
+
+            <div class="contact-links">
+              <a href="mailto:bishal@vibeset.ai" class="contact-link">
+                <Icon aria-hidden="true" name="lucide:mail" size={20} />
+                <span>bishal@vibeset.ai</span>
+              </a>
+
+              <a href="https://github.com/bishalu" target="_blank" rel="noopener noreferrer" class="contact-link">
+                <Icon aria-hidden="true" name="lucide:github" size={20} />
+                <span>@bishalu</span>
+              </a>
+
+              <a
+                href="https://www.linkedin.com/in/bishaluc"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="contact-link"
+              >
+                <Icon aria-hidden="true" name="lucide:linkedin" size={20} />
+                <span>LinkedIn</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</DefaultLayout>
+
+<style lang="scss">
+  .contact-content {
+    padding: var(--space-xl) 0 var(--space-3xl);
+  }
+
+  .contact-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-2xl);
+    margin: 0 auto;
+    max-width: 1000px;
+
+    @media (min-width: 768px) {
+      grid-template-columns: 1.2fr 1fr;
+      gap: var(--space-3xl);
+    }
+  }
+
+  .form-section {
+    :global(.form) {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-m);
+    }
+
+    :global(label) {
+      color: var(--foreground-color);
+      font-weight: 500;
+    }
+
+    :global(input),
+    :global(textarea) {
+      transition: border-color 0.2s ease;
+      border: 1px solid var(--card-border, rgba(168, 162, 158, 0.2));
+      border-radius: 0.5rem;
+      background: var(--card-background, rgba(44, 44, 46, 0.3));
+      padding: 0.75rem 1rem;
+      color: var(--foreground-color);
+
+      &:focus {
+        outline: none;
+        border-color: var(--color-living-teal);
+      }
+    }
+
+    :global(button[type='submit']) {
+      transition: transform 0.2s ease;
+      cursor: pointer;
+      margin-top: var(--space-m);
+      border: none;
+      border-radius: 0.5rem;
+      background: var(--color-living-teal);
+      padding: 0.875rem 1.5rem;
+      color: var(--color-deep-moss);
+      font-weight: 600;
+      font-family: var(--font-heading);
+
+      &:hover {
+        transform: translateY(-2px);
+      }
+    }
+  }
+
+  .info-section {
+    @media (min-width: 768px) {
+      padding-top: var(--space-m);
+    }
+  }
+
+  .info-card {
+    h2 {
+      margin-bottom: var(--space-m);
+      color: var(--foreground-color);
+      font-weight: 600;
+      font-size: 1.5rem;
+      font-family: var(--font-heading);
+    }
+
+    p {
+      margin-bottom: var(--space-l);
+      color: var(--color-warm-gray);
+      font-size: 1.05rem;
+      line-height: 1.7;
+    }
+  }
+
+  .contact-links {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s);
+  }
+
+  .contact-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: color 0.2s ease;
+    color: var(--color-living-teal);
+    font-size: 1rem;
+    text-decoration: none;
+
+    &:hover {
+      color: var(--color-moss-green);
+    }
+
+    span {
+      border-bottom: 1px solid transparent;
+    }
+
+    &:hover span {
+      border-bottom-color: currentColor;
+    }
+  }
+</style>

@@ -1,0 +1,449 @@
+---
+import type { CollectionEntry } from 'astro:content'
+import DataLens from './DataLens'
+
+interface Props {
+  publications: CollectionEntry<'publications'>[]
+}
+
+const { publications } = Astro.props
+
+// Transform Astro content collection data to the shape expected by React component
+const publicationData = publications.map((pub) => ({
+  id: pub.id,
+  data: pub.data,
+}))
+---
+
+<div class="datalens-outer-wrapper" id="datalens">
+  <div class="glass-container">
+    <DataLens client:idle publications={publicationData} />
+  </div>
+</div>
+
+<style lang="scss" is:global>
+  /* ═══════════════════════════════════════════════════════════════════════════
+     DATA LENS STYLES
+     Optical, High-Tech, Liquid Glass Aesthetics
+     ═══════════════════════════════════════════════════════════════════════════ */
+
+  .datalens-outer-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    /* Optical Lab: Refracted light */
+    /* Optical Lab: Refracted light - REMOVED for WorldManager */
+    /* background: 
+      linear-gradient(120deg, transparent 40%, rgba(255, 255, 255, 0.4) 50%, transparent 60%),
+      linear-gradient(to bottom, transparent 0%, rgba(66, 133, 244, 0.03) 100%); */
+    padding: 2rem 1rem;
+    min-height: 100dvh;
+    scroll-snap-align: start;
+  }
+
+  .glass-container {
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    box-shadow:
+      0 20px 40px rgba(0, 0, 0, 0.05),
+      0 0 0 1px rgba(255, 255, 255, 0.5);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-glass, 24px);
+
+    // Light Frosted Glass Container - Transparent to show lightning
+    background: rgba(255, 255, 255, 0.3);
+    width: 100%;
+    max-width: 1200px;
+    min-height: 600px;
+
+    overflow: hidden;
+  }
+
+  .datalens-section {
+    display: flex;
+    position: relative;
+    justify-content: center;
+    align-items: center;
+    // Removed min-height: 100dvh as it's now contained
+    padding: 3rem 1rem; // Reduced padding
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .datalens-content {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    max-width: 1200px;
+  }
+
+  .datalens-header {
+    margin-bottom: 2.5rem; // Reduced margin
+    text-align: center;
+  }
+
+  .section-title {
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, var(--color-google-blue), var(--color-living-teal));
+    -webkit-background-clip: text;
+    font-weight: 800;
+    font-size: clamp(2rem, 5vw, 3rem); // Slightly smaller to fit box
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.02em;
+  }
+
+  .section-subtitle {
+    margin: 0 auto;
+    max-width: 600px;
+    color: var(--color-warm-gray);
+    font-size: 1rem;
+  }
+
+  /* ─── Grid Layout (Horizontal Scroll) ──────────────────────────────────── */
+  .publications-grid {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 1.5rem; // Slightly tighter gap
+    padding: 1rem 4px 2rem 4px; /* Space for hover shadows/growth */
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+
+    /* Smooth scrolling & Snapping */
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+
+    /* Mask fade on edges (optional, adds polish) */
+    mask-image: linear-gradient(to right, transparent, black 1rem, black calc(100% - 1rem), transparent);
+    scroll-padding: 0 1rem;
+    scroll-snap-type: x mandatory;
+
+    /* Hide scrollbar for cleaner "magical" look */
+    scrollbar-width: none; /* Firefox */
+    &::-webkit-scrollbar {
+      display: none; /* Chrome/Safari */
+    }
+  }
+
+  /* Ensure card wrappers don't shrink and snap correctly */
+  .publications-grid > :global(*) {
+    flex: 0 0 auto;
+    width: 320px; // Slightly smaller card width
+    max-width: 85vw; /* Responsive on mobile */
+    scroll-snap-align: center;
+
+    @media (min-width: 768px) {
+      scroll-snap-align: start;
+    }
+  }
+
+  /* ─── Flip Card Container ────────────────────────────────────────────────── */
+  .flip-card-container {
+    display: flex;
+    position: relative;
+    flex-direction: column;
+    transition:
+      box-shadow 0.3s ease,
+      transform 0.3s ease;
+    cursor: pointer;
+    box-shadow:
+      0 4px 6px rgba(0, 0, 0, 0.02),
+      0 10px 30px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 20px;
+    background: transparent; /* Container is now transparent, faces have bg */
+    height: 100%;
+    min-height: 300px;
+    overflow: visible; /* Allow 3D rotation to be visible */
+
+    &:hover {
+      transform: translateY(-4px);
+      z-index: 5;
+      box-shadow:
+        0 10px 20px rgba(66, 133, 244, 0.15),
+        0 20px 50px rgba(0, 0, 0, 0.08);
+    }
+
+    &:focus {
+      outline: 2px solid var(--color-google-blue);
+      outline-offset: 4px;
+    }
+  }
+
+  .flip-card-inner {
+    position: relative;
+    border-radius: 20px;
+    width: 100%;
+    height: 100%;
+  }
+
+  .flip-card-face {
+    display: flex;
+    position: absolute;
+    flex-direction: column;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    backdrop-filter: blur(12px) saturate(140%);
+    inset: 0;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.95);
+    overflow: hidden;
+  }
+
+  .flip-card-front {
+    z-index: 2;
+  }
+
+  .flip-card-back {
+    transform: rotateY(180deg);
+    z-index: 1;
+    /* Slightly more opaque for readability */
+    background: rgba(255, 255, 255, 0.98);
+  }
+
+  .flip-hint {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    opacity: 0.6;
+    margin-top: auto;
+    padding-top: 1rem;
+    color: var(--color-google-blue);
+    font-size: 0.75rem;
+
+    svg {
+      opacity: 0.8;
+    }
+
+    span {
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+  }
+
+  .pub-abstract-full {
+    flex-grow: 1;
+    margin-bottom: 1rem;
+    overflow-y: auto;
+    scrollbar-color: rgba(66, 133, 244, 0.3) transparent;
+
+    /* Custom scrollbar for the abstract */
+    scrollbar-width: thin;
+    color: var(--color-charcoal-text);
+    font-size: 0.85rem;
+    line-height: 1.6;
+
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+    &::-webkit-scrollbar-thumb {
+      border-radius: 4px;
+      background: rgba(66, 133, 244, 0.3);
+    }
+  }
+
+  .pub-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem; // Reduced padding
+    height: 100%;
+  }
+
+  /* Loupe Overlay */
+  .card-loupe {
+    position: absolute;
+    z-index: 2;
+    mix-blend-mode: overlay;
+    inset: 0;
+    /* Subtle chromatic aberration or edge highlight */
+    box-shadow: inset 0 0 0 1px rgba(66, 133, 244, 0.3);
+    border-radius: 20px;
+    background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 70%);
+    pointer-events: none;
+  }
+
+  .pub-header {
+    margin-bottom: 1rem;
+  }
+
+  .pub-year {
+    display: inline-block;
+    margin-bottom: 0.5rem;
+    border-radius: 6px;
+    background: rgba(66, 133, 244, 0.1);
+    padding: 0.2rem 0.5rem;
+    color: var(--color-google-blue);
+    font-size: 0.7rem;
+    font-family: var(--font-mono, 'Geist Mono', monospace);
+  }
+
+  .pub-title {
+    margin-bottom: 0.5rem;
+    color: var(--color-charcoal-text);
+    font-weight: 700;
+    font-size: 1.15rem; // Adjusted font size
+    line-height: 1.3;
+    font-family: var(--font-heading, 'Outfit', sans-serif);
+  }
+
+  .pub-journal {
+    color: var(--color-warm-gray);
+    font-style: italic;
+    font-size: 0.85rem;
+  }
+
+  .pub-authors {
+    opacity: 0.8;
+    margin-top: 0.25rem;
+    color: var(--color-warm-gray);
+    font-size: 0.8rem;
+  }
+
+  .pub-abstract {
+    display: -webkit-box;
+    flex-grow: 1; /* Push footer down */
+    opacity: 0.8;
+    margin-bottom: 1.25rem;
+    -webkit-line-clamp: 3; // Reduced line clamp
+    color: var(--color-charcoal-text);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .pub-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .tag {
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.03);
+    padding: 0.2rem 0.4rem;
+    color: var(--color-warm-gray);
+    font-weight: 500;
+    font-size: 0.7rem;
+  }
+
+  .pub-links {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .pub-link {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.2s ease;
+
+    border: 1px solid var(--color-google-blue);
+    border-radius: 8px;
+    padding: 0.4rem 0.8rem;
+    color: var(--color-google-blue);
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-decoration: none;
+
+    &:hover {
+      background: var(--color-google-blue);
+      color: white;
+    }
+  }
+
+  /* ─── Cover Layer ──────────────────────────────────────────────────────── */
+  .datalens-cover {
+    display: flex;
+    position: absolute;
+    justify-content: center;
+    align-items: center;
+    z-index: 20;
+    inset: 0;
+    pointer-events: none; /* Let clicks pass through if fully transparent/hidden */
+    /* Backdrop filter handled by Framer Motion inline styles for performance/animation */
+  }
+
+  .cover-status {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    z-index: 22;
+    color: var(--color-charcoal-text);
+  }
+
+  .lock-icon-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.8);
+    width: 64px;
+    height: 64px;
+    color: var(--color-google-blue);
+  }
+
+  .status-text {
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.8);
+    padding: 0.5rem 1rem;
+    color: var(--color-warm-gray);
+    font-weight: 600;
+    font-size: 0.9rem;
+    font-family: var(--font-mono, monospace);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .scanner-beam {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    opacity: 0.8;
+    z-index: 25;
+    box-shadow:
+      0 0 20px var(--color-google-blue),
+      0 0 40px var(--color-living-teal);
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      var(--color-google-blue),
+      var(--color-living-teal),
+      transparent
+    );
+    width: 4px;
+
+    &::after {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: -50px;
+      background: linear-gradient(to right, transparent, rgba(66, 133, 244, 0.1));
+      width: 50px; /* Trailing light */
+      content: '';
+    }
+  }
+
+  @media (max-width: 768px) {
+    .publications-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .section-title {
+      font-size: 2.5rem;
+    }
+
+    .datalens-outer-wrapper {
+      padding: 1rem;
+    }
+
+    .glass-container {
+      border-radius: 20px;
+    }
+  }
+</style>

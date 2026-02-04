@@ -1,0 +1,59 @@
+---
+interface Props {
+  text?: string
+  as?: string
+  class?: string
+}
+
+const { text = 'VIBESET', as: Element = 'span', class: className } = Astro.props
+---
+
+<Element class:list={['glow-text', className]}>
+  <span class="glow-layer blur-layer" aria-hidden="true">{text}</span>
+  <span class="glow-layer base-layer">{text}</span>
+</Element>
+
+<style>
+  .glow-text {
+    display: inline-block;
+    position: relative;
+    color: white; /* Fallback */
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .glow-layer {
+    font-family: 'Degular Display', 'Outfit', sans-serif; /* Fallback stack */
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+  }
+
+  /* The crisp text on top */
+  .base-layer {
+    position: relative;
+    z-index: 2;
+    background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0.8) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* The neon blur behind */
+  .blur-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform: scale(1.1);
+    opacity: 0.8;
+    z-index: 1;
+    filter: blur(8px);
+    background: linear-gradient(
+      90deg,
+      var(--color-vibeset-magenta, #d717e7) 0%,
+      var(--color-vibeset-cyan, #1ae8ce) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+</style>

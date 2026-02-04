@@ -1,0 +1,220 @@
+---
+import Logo from './Logo.astro'
+import { Heading, Link } from 'accessible-astro-components'
+import { Icon } from 'astro-icon/components'
+import { ShinyButton } from '@components/ui/ShinyButton'
+
+/**
+ * Footer Component
+ *
+ * @description Personal portfolio footer with navigation and social links
+ */
+const currentYear = new Date().getFullYear()
+---
+
+<footer>
+  <!-- Connect CTA Section -->
+  <section class="connect-cta">
+    <div class="container">
+      <div class="cta-content">
+        <Heading level="h2" class="cta-title">Let's Build Something Together</Heading>
+        <p class="cta-description">
+          Interested in collaboration, have a project in mind, or just want to chat about AI systems?
+        </p>
+        <div class="cta-actions">
+          <ShinyButton client:visible href="mailto:bishalup@outlook.com" className="inline-flex items-center gap-2">
+            Get in Touch
+            <Icon aria-hidden="true" name="lucide:mail" size="1.25rem" />
+          </ShinyButton>
+          <Link href="https://www.linkedin.com/in/bishaluc" isExternal class="social-link" aria-label="Connect on LinkedIn">
+            <Icon name="lucide:linkedin" size="1.5rem" />
+          </Link>
+          <Link href="https://github.com/bishalup" isExternal class="social-link" aria-label="View GitHub profile">
+            <Icon name="lucide:github" size="1.5rem" />
+          </Link>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer Navigation -->
+  <section class="footer-nav py-16">
+    <Heading level="h2" class="sr-only">Footer Navigation</Heading>
+    <div class="container grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+      <div class="flex flex-col gap-4">
+        <Heading level="h3" size="h6">Navigate</Heading>
+        <ul class="flex flex-col gap-2">
+          <li><Link href="/#work">Work</Link></li>
+          <li><Link href="/#research">Research</Link></li>
+          <li><Link href="/accessibility-statement">Accessibility</Link></li>
+        </ul>
+      </div>
+      <div class="flex flex-col gap-4">
+        <Heading level="h3" size="h6">Connect</Heading>
+        <ul class="flex flex-col gap-2">
+          <li><Link isExternal href="https://www.linkedin.com/in/bishaluc">LinkedIn</Link></li>
+          <li><Link isExternal href="https://github.com/bishalup">GitHub</Link></li>
+          <li><Link href="mailto:bishalup@outlook.com">Email</Link></li>
+        </ul>
+      </div>
+      <div class="flex flex-col gap-4">
+        <Logo loading="lazy" />
+        <p class="tagline">
+          I build AI systems with vibes.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Copyright -->
+  <section class="copyright py-8">
+    <div class="container flex flex-col gap-4 md:flex-row md:justify-between md:items-center">
+      <p>&copy; {currentYear} Bishal Upadhyaya. All rights reserved.</p>
+      <p class="built-with">
+        Built with <Icon name="lucide:heart" size="1rem" class="heart-icon" aria-label="love" /> and <Link href="https://astro.build/">Astro</Link>
+      </p>
+    </div>
+  </section>
+</footer>
+
+<style lang="scss">
+  footer {
+    background: var(--card-background, rgba(44, 44, 46, 0.3));
+  }
+
+  section {
+    border-top: 1px solid var(--border-color-subtle);
+  }
+
+  /* Connect CTA */
+  .connect-cta {
+    padding: var(--space-3xl) 0;
+    background: linear-gradient(
+      135deg,
+      rgba(95, 179, 161, 0.08) 0%,
+      rgba(108, 134, 109, 0.08) 100%
+    );
+    border-top: none;
+  }
+
+  .cta-content {
+    max-width: 600px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .cta-title {
+    font-family: var(--font-heading);
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    font-weight: 700;
+    color: var(--foreground-color);
+    margin-bottom: var(--space-s);
+  }
+
+  .cta-description {
+    font-size: 1.125rem;
+    color: var(--color-warm-gray);
+    line-height: 1.6;
+    margin-bottom: var(--space-m);
+  }
+
+  .cta-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-m);
+    flex-wrap: wrap;
+  }
+
+  .social-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--card-background, rgba(44, 44, 46, 0.5));
+    border: 1px solid var(--card-border, rgba(168, 162, 158, 0.15));
+    color: var(--foreground-color);
+    transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      background: var(--color-living-teal);
+      border-color: var(--color-living-teal);
+      color: var(--color-deep-moss);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-living-teal);
+      outline-offset: 2px;
+    }
+  }
+
+  /* Footer Navigation */
+  .footer-nav {
+    h3 {
+      color: var(--foreground-color);
+      font-weight: 600;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    a {
+      color: var(--color-warm-gray);
+      transition: color 0.2s ease;
+
+      &:hover {
+        color: var(--color-living-teal);
+      }
+    }
+  }
+
+  .tagline {
+    font-size: 0.9375rem;
+    color: var(--color-warm-gray);
+    line-height: 1.6;
+  }
+
+  /* Copyright */
+  .copyright {
+    font-size: 0.875rem;
+    color: var(--color-warm-gray);
+
+    a {
+      color: var(--color-living-teal);
+    }
+  }
+
+  .built-with {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .heart-icon {
+    color: var(--color-sunset-coral);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+  }
+
+  @media (max-width: 768px) {
+    .cta-actions {
+      flex-direction: column;
+      gap: var(--space-s);
+    }
+
+    .social-link {
+      width: 44px;
+      height: 44px;
+    }
+  }
+</style>

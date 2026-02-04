@@ -1,0 +1,562 @@
+---
+/**
+ * VibesetSwitchboardWrapper — Astro wrapper for React Switchboard component
+ * Blends vibeset.ai colors (indigo, cyan, lime) with portfolio theme
+ * Uses client:visible for deferred hydration
+ */
+import type { CollectionEntry } from 'astro:content'
+import VibesetSwitchboard from './VibesetSwitchboard'
+
+interface Props {
+  studios: CollectionEntry<'studios'>[]
+}
+
+const { studios } = Astro.props
+
+// Transform to the shape expected by React component
+const studioData = studios.map((studio) => ({
+  id: studio.id,
+  data: studio.data,
+}))
+---
+
+<div class="switchboard-wrapper" id="vibeset">
+  <div class="glass-container">
+    <VibesetSwitchboard client:idle studios={studioData} />
+  </div>
+</div>
+
+<style lang="scss">
+  /* ═══════════════════════════════════════════════════════════════════════════
+     VIBESET SWITCHBOARD — Master-Detail Redesign
+     Matches vibeset.ai's aesthetic: deep darks, electric purples, neon accents
+     ═══════════════════════════════════════════════════════════════════════════ */
+
+  /* vibeset.ai Color Palette */
+  :root {
+    --vibeset-acid-jazz: #6938ef; /* Primary purple */
+    --vibeset-valence: #1ae8ce; /* Accent teal (CTA) */
+    --vibeset-dance: #d717e7; /* Magenta/pink */
+    --vibeset-hard: #1e2330; /* Deep dark (cards) */
+    --vibeset-hard-700: #141720; /* Page background */
+    --vibeset-off-white: #fdf5e3; /* Primary text */
+    --vibeset-nrg: #d2e823; /* Status green (live) */
+    --vibeset-peaks: #32d583; /* Secondary green */
+
+    /* Gradients */
+    --vibeset-gradient-primary: linear-gradient(135deg, #6938ef, #d717e7);
+    --vibeset-gradient-glow: linear-gradient(135deg, rgba(105, 56, 239, 0.3), rgba(215, 23, 231, 0.2));
+  }
+
+  .switchboard-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem 1rem;
+    width: 100%;
+    min-height: 100dvh;
+    scroll-snap-align: start;
+  }
+
+  .glass-container {
+    display: flex;
+    position: relative;
+    flex-direction: column;
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.4),
+      0 0 0 1px rgba(255, 255, 255, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-glass, 24px);
+
+    // Dark Premium Container
+    background: linear-gradient(135deg, rgba(20, 23, 32, 0.95), rgba(30, 35, 48, 0.9));
+    width: 100%;
+    max-width: 1100px;
+    // Responsive height
+    min-height: 85vh;
+    max-height: 900px;
+    overflow: hidden;
+
+    &::before {
+      position: absolute;
+      opacity: 0.6;
+      -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+      mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+      mask-composite: exclude;
+      -webkit-mask-composite: xor;
+      inset: -1px;
+      border-radius: inherit;
+      background: linear-gradient(135deg, rgba(105, 56, 239, 0.4), rgba(215, 23, 231, 0.3), rgba(26, 232, 206, 0.2));
+      padding: 1px;
+      pointer-events: none;
+      content: '';
+    }
+  }
+
+  :global(.vibeset-switchboard) {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     COVER STATE
+     ═══════════════════════════════════════════════════════════════════════════ */
+  :global(.switchboard-cover) {
+    display: flex;
+    position: relative;
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    color: var(--vibeset-off-white);
+    text-align: center;
+  }
+
+  :global(.cover-glow) {
+    position: absolute;
+    opacity: 0.5;
+    filter: blur(80px);
+    inset: -20%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(105, 56, 239, 0.3) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  :global(.cover-content) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 2;
+  }
+
+  :global(.retina-scan-container) {
+    position: relative;
+    margin-bottom: 2rem;
+    width: 80px;
+    height: 80px;
+  }
+
+  :global(.retina-scan-ring) {
+    transform: rotate(-90deg);
+    width: 100%;
+    height: 100%;
+  }
+
+  :global(.ring-track) {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.1);
+    stroke-width: 4;
+  }
+
+  :global(.ring-indicator) {
+    filter: drop-shadow(0 0 8px var(--vibeset-valence));
+    fill: none;
+    stroke: var(--vibeset-valence);
+    stroke-linecap: round;
+    stroke-width: 4;
+  }
+
+  :global(.cover-title) {
+    background: var(--vibeset-gradient-primary);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.5rem;
+    font-weight: 800;
+    font-size: 3rem;
+  }
+
+  :global(.cover-tagline) {
+    color: rgba(253, 245, 227, 0.6);
+    font-size: 1.125rem;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     MAIN INTERFACE — Master-Detail Layout
+     ═══════════════════════════════════════════════════════════════════════════ */
+  :global(.switchboard-interface) {
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem 0 0;
+    height: 100%;
+    min-height: inherit;
+    overflow: hidden;
+  }
+
+  /* ─── 1. THE REEL (Horizontal Gallery) ─── */
+  :global(.reel-container) {
+    display: flex;
+    flex-direction: column;
+    margin-top: 1rem; /* Added spacing since label is gone */
+    margin-bottom: 2rem;
+    padding-left: 2rem; /* Initial offset so snap works well */
+  }
+
+  :global(.interface-label) {
+    display: none; /* Safely hide if present in DOM */
+  }
+
+  :global(.gallery-track) {
+    display: flex;
+    gap: 1rem;
+    padding-right: 2rem; /* End padding */
+    padding-bottom: 1rem; /* Reduced bottom padding */
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+
+    /* Hide Scrollbar */
+    scrollbar-width: none;
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  :global(.studio-poster) {
+    /* Visuals */
+    display: flex;
+    position: relative;
+    flex: 0 0 128px; /* 10% smaller than 140px */
+    flex-direction: column;
+    justify-content: flex-end;
+    transition:
+      transform 0.3s ease,
+      border-color 0.3s ease;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    background: rgba(30, 35, 48, 0.4);
+    padding: 0; /* Reset button */
+    height: 128px; /* Square aspect ratio */
+    overflow: hidden;
+    scroll-snap-align: start;
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.3);
+      // Transform handled by Framer Motion largely, but specific CSS fallback:
+      // transform: scale(1.02);
+    }
+
+    &.selected {
+      border-color: transparent; /* Glow handles border */
+      // Slightly larger in layout if desired? usually scale handles it
+    }
+  }
+
+  :global(.poster-visual) {
+    display: flex;
+    position: absolute;
+    justify-content: center;
+    align-items: center;
+    inset: 0;
+    background: #141720;
+  }
+
+  :global(.poster-gradient) {
+    position: absolute;
+    opacity: 0.6;
+    transition: opacity 0.3s ease;
+    inset: 0;
+  }
+
+  :global(.studio-poster:hover .poster-gradient) {
+    opacity: 0.8;
+  }
+
+  :global(.poster-icon) {
+    z-index: 2;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+    transition: transform 0.3s ease;
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+  }
+
+  :global(.studio-poster:hover .poster-icon) {
+    transform: scale(1.1);
+  }
+
+  :global(.poster-info) {
+    display: flex;
+    position: relative;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 2;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+    padding: 1rem;
+    width: 100%;
+  }
+
+  :global(.poster-name) {
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.9rem;
+    font-family: var(--font-heading, 'Outfit', sans-serif);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  }
+
+  :global(.poster-glow) {
+    position: absolute;
+    z-index: 3;
+    inset: 0;
+    box-shadow: 0 0 16px rgba(105, 56, 239, 0.4);
+    border: 2px solid var(--vibeset-acid-jazz);
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  /* ─── 2. THE CONSOLE (Detail View) ─── */
+  :global(.console-display) {
+    display: flex;
+    position: relative;
+    flex: 1;
+    flex-direction: column;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(20, 23, 32, 0.6); /* Slightly darker for contrast */
+    overflow: hidden; /* For transitions */
+  }
+
+  :global(.console-content) {
+    display: flex;
+    flex-direction: column;
+    padding: 2rem 3rem;
+    height: 100%;
+    overflow-y: auto; /* Allow internal scroll if height constrained */
+  }
+
+  :global(.console-header-row) {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr; /* Wider left column for "healthy" preview area */
+    align-items: center;
+    gap: 2rem; /* Exact match to Content Grid */
+    margin-bottom: 1.5rem;
+  }
+
+  :global(.mobile-scroll-hint) {
+    display: flex;
+    position: absolute;
+    top: 50%;
+    right: 0;
+    justify-content: center;
+    align-items: center;
+    transform: translateY(-50%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    background: linear-gradient(to left, rgba(0, 0, 0, 0.8), transparent);
+    width: 40px;
+    height: 100%;
+    pointer-events: none;
+    color: rgba(255, 255, 255, 0.5);
+
+    @media (max-width: 768px) {
+      opacity: 1;
+    }
+  }
+
+  :global(.console-studio-name) {
+    margin: 0;
+    background: linear-gradient(90deg, #fff, rgba(255, 255, 255, 0.7));
+    -webkit-background-clip: text;
+    color: var(--vibeset-off-white);
+    font-weight: 700;
+    font-size: 2.25rem;
+    letter-spacing: -0.02em;
+    -webkit-text-fill-color: transparent;
+  }
+
+  :global(.console-tagline) {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--vibeset-valence);
+    font-weight: 500;
+    font-size: 1rem;
+  }
+
+  :global(.console-divider) {
+    margin-bottom: 2rem;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.1), transparent);
+    width: 100%;
+    height: 1px;
+  }
+
+  /* ─── HUD QUADRANT FRAMES ─── */
+  /* Updated to FEATURES / TECHNICALS */
+  :global(.hud-quadrant) {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+
+    /* Subtle glow on border */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px; /* Slightly techier/square than generic rounded */
+    padding: 1.25rem;
+    width: 100%;
+    height: 100%; /* Ensure full height fill */
+    min-inline-size: min-content; /* Reset default fieldset width behavior */
+  }
+
+  :global(.hud-quadrant legend) {
+    padding: 0 0.5rem;
+    color: rgba(253, 245, 227, 0.6);
+    font-weight: 600;
+    font-size: 0.7rem;
+    font-family: monospace; /* Tech vibe */
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  :global(.console-grid) {
+    display: grid;
+    /* Strict alignment: Matches the visual split of the header (Preview | Features) */
+    grid-template-columns: 1fr 1fr;
+    flex: 1;
+    gap: 2rem; /* Matches the margin-right: 2rem from the header logic */
+    margin-top: 1.5rem; /* Add spacing between divider and grid */
+  }
+
+  :global(.console-description) {
+    margin-top: 0; /* Align top explicitly */
+    margin-bottom: 2rem;
+    max-width: 100%; /* Use full width of the column */
+    color: rgba(253, 245, 227, 0.8);
+    font-size: 1.05rem;
+    line-height: 1.7;
+  }
+
+  :global(.section-label) {
+    margin-bottom: 1rem;
+    color: rgba(253, 245, 227, 0.4);
+    font-weight: 700;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  :global(.console-list) {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  :global(.console-list li) {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: rgba(253, 245, 227, 0.9);
+    font-size: 0.9rem;
+  }
+
+  :global(.check-icon) {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    color: var(--vibeset-valence);
+  }
+
+  :global(.tech-tags) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  :global(.tech-tag) {
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 0.25rem 0.6rem;
+    color: rgba(253, 245, 227, 0.7);
+    font-size: 0.75rem;
+    font-family: monospace;
+  }
+
+  :global(.console-action-area) {
+    margin-top: 2rem;
+  }
+
+  :global(.action-placeholder) {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    width: 100%;
+    height: 120px;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 0.85rem;
+  }
+
+  :global(.console-footer) {
+    margin-top: auto;
+    padding-top: 2rem;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 0.8rem;
+  }
+
+  :global(.brand-text) {
+    color: var(--vibeset-acid-jazz);
+    font-weight: 700;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     RESPONSIVE
+     ═══════════════════════════════════════════════════════════════════════════ */
+  @media (max-width: 768px) {
+    .glass-container {
+      height: auto;
+      min-height: auto;
+    }
+
+    :global(.reel-container) {
+      padding-left: 1rem;
+    }
+
+    :global(.gallery-track) {
+      gap: 1rem;
+      padding-right: 1rem;
+    }
+
+    :global(.studio-poster) {
+      flex: 0 0 130px; /* Smaller posters */
+      height: 195px;
+    }
+
+    /* Reveal "next" card hint */
+    :global(.gallery-track::after) {
+      display: block;
+      padding-right: 1rem;
+      content: '';
+    }
+
+    :global(.console-content) {
+      padding: 1.5rem;
+    }
+
+    :global(.console-grid) {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+
+    :global(.console-list) {
+      grid-template-columns: 1fr;
+    }
+
+    :global(.console-studio-name) {
+      font-size: 1.75rem;
+    }
+  }
+</style>

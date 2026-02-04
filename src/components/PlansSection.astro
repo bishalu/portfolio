@@ -1,0 +1,317 @@
+---
+/**
+ * PlansSection — "Work With Me"
+ * A 3-column pricing/engagement model section with liquid glass aesthetics.
+ */
+import { Icon } from 'astro-icon/components'
+---
+
+<section class="plans-section" id="work-with-me">
+  <div class="plans-container px-4 md:px-8">
+    <div class="section-header relative z-10 mb-16 text-center">
+      <h2 class="section-title">Work With Me</h2>
+      <p class="section-subtitle">Choose your level of engagement</p>
+    </div>
+
+    <div class="relative z-10 grid grid-cols-1 gap-8 md:grid-cols-3">
+      <!-- Plan 1: Free Consultation -->
+      <div class="plan-card glass-panel">
+        <div class="card-header">
+          <h3 class="plan-title">Consultation</h3>
+          <div class="plan-price">Free</div>
+          <p class="plan-description">
+            A quick chat to explore fit. Let's see if there's synergy between your vision and my capabilities.
+          </p>
+        </div>
+
+        <ul class="plan-features">
+          <li>
+            <Icon name="lucide:message-circle" class="feature-icon" />
+            <span>Idea exploration</span>
+          </li>
+          <li>
+            <Icon name="lucide:check-circle-2" class="feature-icon" />
+            <span>No strings attached</span>
+          </li>
+        </ul>
+
+        <div class="card-footer">
+          <a href="/contact" class="cta-button secondary">Book a Chat</a>
+        </div>
+      </div>
+
+      <!-- Plan 2: Retainer (Popular) -->
+      <div class="plan-card glass-panel popular">
+        <div class="popular-badge">Popular</div>
+        <div class="glow-effect"></div>
+
+        <div class="card-header">
+          <h3 class="plan-title text-gradient">Retainer</h3>
+          <div class="plan-price">Monthly</div>
+          <p class="plan-description">
+            Ongoing AI advisory. I become an extension of your team, available for strategic and technical guidance.
+          </p>
+        </div>
+
+        <ul class="plan-features">
+          <li>
+            <Icon name="lucide:clock" class="feature-icon text-accent" />
+            <span>Monthly hours</span>
+          </li>
+          <li>
+            <Icon name="lucide:zap" class="feature-icon text-accent" />
+            <span>Priority async access</span>
+          </li>
+          <li>
+            <Icon name="lucide:layout-template" class="feature-icon text-accent" />
+            <span>Architecture reviews</span>
+          </li>
+          <li>
+            <Icon name="lucide:code-2" class="feature-icon text-accent" />
+            <span>Prototype builds</span>
+          </li>
+        </ul>
+
+        <div class="card-footer">
+          <a href="/contact" class="cta-button primary">Get Started</a>
+        </div>
+      </div>
+
+      <!-- Plan 3: Custom Project -->
+      <div class="plan-card glass-panel">
+        <div class="card-header">
+          <h3 class="plan-title">Project</h3>
+          <div class="plan-price">Custom</div>
+          <p class="plan-description">
+            Full-scope build. From concept to deployment, I own the AI system you need to ship.
+          </p>
+        </div>
+
+        <ul class="plan-features">
+          <li>
+            <Icon name="lucide:target" class="feature-icon" />
+            <span>Scoped deliverable</span>
+          </li>
+          <li>
+            <Icon name="lucide:briefcase" class="feature-icon" />
+            <span>End-to-end ownership</span>
+          </li>
+          <li>
+            <Icon name="lucide:file-text" class="feature-icon" />
+            <span>Handoff & documentation</span>
+          </li>
+        </ul>
+
+        <div class="card-footer">
+          <a href="/contact" class="cta-button secondary">Let's Scope</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style lang="scss">
+  .plans-section {
+    position: relative;
+    padding: 6rem 0;
+    overflow: hidden;
+
+    /* Background elements for depth */
+    &::before {
+      position: absolute;
+      top: 20%;
+      left: 10%;
+      z-index: 0;
+      filter: blur(60px);
+      background: radial-gradient(circle, rgba(66, 133, 244, 0.08) 0%, transparent 70%);
+      width: 40vw;
+      height: 40vw;
+      content: '';
+    }
+
+    &::after {
+      position: absolute;
+      right: 5%;
+      bottom: 10%;
+      z-index: 0;
+      filter: blur(60px);
+      background: radial-gradient(circle, rgba(0, 212, 170, 0.08) 0%, transparent 70%);
+      width: 30vw;
+      height: 30vw;
+      content: '';
+    }
+  }
+
+  .plans-container {
+    margin: 0 auto;
+    max-width: 1200px;
+  }
+
+  .section-title {
+    margin-bottom: 0.5rem;
+    color: var(--color-charcoal-text);
+    font-weight: 700;
+    font-size: clamp(2.5rem, 5vw, 3.5rem);
+    font-family: var(--font-heading);
+  }
+
+  .section-subtitle {
+    color: var(--color-warm-gray);
+    font-size: 1.25rem;
+  }
+
+  /* Glass Card Styles */
+  .glass-panel {
+    display: flex;
+    position: relative;
+    flex-direction: column;
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    transition:
+      transform 0.3s ease,
+      box-shadow 0.3s ease,
+      background 0.3s ease;
+    box-shadow:
+      0 4px 6px rgba(0, 0, 0, 0.02),
+      0 10px 15px rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 24px;
+    background: var(--glass-bg, rgba(255, 255, 255, 0.65));
+    padding: 2.5rem;
+
+    &:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+      border-color: rgba(255, 255, 255, 0.8);
+      background: var(--glass-bg-strong, rgba(255, 255, 255, 0.85));
+    }
+  }
+
+  /* Popular Card Special Styles */
+  .popular {
+    box-shadow: 0 10px 30px rgba(66, 133, 244, 0.1);
+    border: 1px solid rgba(66, 133, 244, 0.3);
+
+    &:hover {
+      box-shadow: 0 25px 50px rgba(66, 133, 244, 0.15);
+      border-color: rgba(66, 133, 244, 0.5);
+    }
+  }
+
+  .popular-badge {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    box-shadow: 0 4px 10px rgba(66, 133, 244, 0.3);
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--color-google-blue), var(--color-living-teal));
+    padding: 0.25rem 1rem;
+    color: white;
+    font-weight: 600;
+    font-size: 0.875rem;
+    letter-spacing: 0.025em;
+  }
+
+  .card-header {
+    margin-bottom: 2rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    padding-bottom: 1.5rem;
+  }
+
+  .plan-title {
+    margin-bottom: 0.25rem;
+    color: var(--color-charcoal-text);
+    font-weight: 700;
+    font-size: 1.5rem;
+  }
+
+  .plan-price {
+    margin-bottom: 1rem;
+    color: var(--color-warm-gray);
+    font-weight: 500;
+    font-size: 1.125rem;
+  }
+
+  .plan-description {
+    opacity: 0.9;
+    color: var(--color-charcoal-text);
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  .plan-features {
+    flex-grow: 1; /* Pushes footer down */
+    margin: 0 0 2.5rem 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+      color: var(--color-charcoal-text);
+      font-size: 0.95rem;
+      line-height: 1.4;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+
+  .feature-icon {
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+    margin-right: 0.75rem;
+    width: 1.25rem;
+    height: 1.25rem;
+    color: var(--color-warm-gray);
+  }
+
+  .text-accent {
+    color: var(--color-google-blue);
+  }
+
+  .cta-button {
+    display: block;
+    transition: all 0.2s ease;
+    border-radius: 12px;
+    padding: 0.875rem 1rem;
+    width: 100%;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+
+    &.primary {
+      box-shadow: 0 4px 12px rgba(66, 133, 244, 0.25);
+      background: linear-gradient(135deg, var(--color-google-blue), var(--color-living-teal));
+      color: white;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(66, 133, 244, 0.35);
+      }
+    }
+
+    &.secondary {
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      background: white;
+      color: var(--color-charcoal-text);
+
+      &:hover {
+        transform: translateY(-2px);
+        border-color: rgba(0, 0, 0, 0.2);
+        background: #f9fafb;
+      }
+    }
+  }
+
+  .text-gradient {
+    background: linear-gradient(135deg, var(--color-google-blue) 0%, var(--color-living-teal) 60%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+</style>

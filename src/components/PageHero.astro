@@ -1,0 +1,256 @@
+---
+/**
+ * PageHero Component
+ * 
+ * A unified, magical hero for all pages.
+ * Simple. Bold. Non-corporate.
+ * 
+ * Features:
+ * - Animated gradient blobs (respects prefers-reduced-motion)
+ * - Configurable size and accent colors
+ * - Optional slot for interactive content
+ */
+
+interface Props {
+  /** Big, bold page title */
+  title: string
+  /** One-liner description */
+  subtitle?: string
+  /** Small label above title (e.g., "VibeSet") */
+  eyebrow?: string
+  /** Height variant */
+  size?: 'full' | 'medium' | 'compact'
+  /** Blob color theme */
+  accent?: 'teal' | 'coral' | 'purple' | 'mixed'
+}
+
+const { 
+  title, 
+  subtitle, 
+  eyebrow, 
+  size = 'medium',
+  accent = 'teal'
+} = Astro.props
+
+// Size classes
+const sizeClasses = {
+  full: 'hero--full',
+  medium: 'hero--medium', 
+  compact: 'hero--compact'
+}
+
+// Accent classes for blob colors
+const accentClasses = {
+  teal: 'hero--accent-teal',
+  coral: 'hero--accent-coral',
+  purple: 'hero--accent-purple',
+  mixed: 'hero--accent-mixed'
+}
+---
+
+<section class:list={['page-hero', sizeClasses[size], accentClasses[accent]]}>
+  <div class="container">
+    <div class="hero-content animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {eyebrow && <span class="eyebrow">{eyebrow}</span>}
+      <h1 class="hero-title">{title}</h1>
+      {subtitle && <p class="hero-subtitle">{subtitle}</p>}
+      
+      <!-- Optional slot for interactive content -->
+      <slot />
+    </div>
+  </div>
+  
+  <!-- Ambient gradient blobs -->
+  <div class="hero-blobs" aria-hidden="true">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+</section>
+
+<style lang="scss">
+  .page-hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    text-align: center;
+    
+    // Size variants
+    &.hero--full {
+      min-height: 100vh;
+      padding: var(--space-2xl) 0;
+    }
+    
+    &.hero--medium {
+      min-height: 45vh;
+      padding: var(--space-2xl) 0 var(--space-xl);
+    }
+    
+    &.hero--compact {
+      min-height: 30vh;
+      padding: var(--space-xl) 0;
+    }
+  }
+  
+  .hero-content {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+  
+  .eyebrow {
+    display: inline-block;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--color-living-teal);
+    margin-bottom: var(--space-s);
+  }
+  
+  .hero-title {
+    font-family: var(--font-heading);
+    font-size: clamp(2.5rem, 8vw, 5rem);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    color: var(--foreground-color);
+    margin: 0 0 var(--space-m);
+  }
+  
+  .hero-subtitle {
+    font-size: clamp(1rem, 2vw, 1.25rem);
+    color: var(--color-warm-gray);
+    line-height: 1.6;
+    max-width: 550px;
+    margin: 0 auto;
+    
+    :global(strong) {
+      color: var(--foreground-color);
+    }
+  }
+  
+  // Ambient blobs
+  .hero-blobs {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 0;
+  }
+  
+  .blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(90px);
+    opacity: 0.2;
+  }
+  
+  .blob-1 {
+    width: 350px;
+    height: 350px;
+    top: -120px;
+    right: -80px;
+  }
+  
+  .blob-2 {
+    width: 280px;
+    height: 280px;
+    bottom: -80px;
+    left: 10%;
+  }
+  
+  .blob-3 {
+    width: 200px;
+    height: 200px;
+    top: 40%;
+    left: -60px;
+  }
+  
+  // Accent color themes
+  .hero--accent-teal {
+    .eyebrow { color: var(--color-living-teal); }
+    .blob-1 { background: var(--color-living-teal); }
+    .blob-2 { background: var(--color-moss-green); opacity: 0.15; }
+    .blob-3 { background: var(--color-sunset-coral); opacity: 0.12; }
+  }
+  
+  .hero--accent-coral {
+    .eyebrow { color: var(--color-sunset-coral); }
+    .blob-1 { background: var(--color-sunset-coral); }
+    .blob-2 { background: var(--color-living-teal); opacity: 0.15; }
+    .blob-3 { background: #9B59B6; opacity: 0.12; }
+  }
+  
+  .hero--accent-purple {
+    .eyebrow { color: #9B59B6; }
+    .blob-1 { background: #9B59B6; }
+    .blob-2 { background: var(--color-living-teal); opacity: 0.15; }
+    .blob-3 { background: var(--color-sunset-coral); opacity: 0.12; }
+  }
+  
+  .hero--accent-mixed {
+    .eyebrow { color: var(--color-living-teal); }
+    .blob-1 { background: var(--color-living-teal); }
+    .blob-2 { background: var(--color-sunset-coral); opacity: 0.18; }
+    .blob-3 { background: #9B59B6; opacity: 0.15; }
+  }
+  
+  // Blob animations - respects prefers-reduced-motion
+  @media (prefers-reduced-motion: no-preference) {
+    .blob {
+      animation: blob-morph 14s ease-in-out infinite;
+    }
+    .blob-2 { animation-delay: -5s; }
+    .blob-3 { animation-delay: -10s; }
+    
+    @keyframes blob-morph {
+      0%, 100% {
+        border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+        transform: translate(0, 0) scale(1);
+      }
+      33% {
+        border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
+        transform: translate(8px, -8px) scale(1.03);
+      }
+      66% {
+        border-radius: 50% 60% 30% 60% / 30% 60% 70% 40%;
+        transform: translate(-8px, 8px) scale(0.97);
+      }
+    }
+  }
+  
+  // Responsive adjustments
+  @media (max-width: 768px) {
+    .page-hero {
+      &.hero--medium {
+        min-height: auto;
+        padding: var(--space-xl) 0;
+      }
+      
+      &.hero--compact {
+        min-height: auto;
+        padding: var(--space-l) 0;
+      }
+    }
+    
+    .blob-1 {
+      width: 250px;
+      height: 250px;
+    }
+    
+    .blob-2 {
+      width: 180px;
+      height: 180px;
+    }
+    
+    .blob-3 {
+      width: 140px;
+      height: 140px;
+    }
+  }
+</style>

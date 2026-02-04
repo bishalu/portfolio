@@ -1,0 +1,63 @@
+---
+/**
+ * StudioGrid Component
+ * Responsive grid layout for StudioCards with staggered entrance
+ */
+import StudioCard from './StudioCard.astro';
+
+export interface Props {
+  studios: Array<{
+    id: string; // File-based ID for routing
+    data: {
+      id: string;
+      name: string;
+      tagline: string;
+      description: string;
+      accent: string;
+      icon?: string;
+      status?: 'live' | 'beta' | 'coming-soon';
+    };
+  }>;
+}
+
+const { studios } = Astro.props;
+---
+
+<div class="studio-grid" role="list">
+  {studios.map((studio, index) => (
+    <div role="listitem">
+      <StudioCard
+        id={studio.id}
+        name={studio.data.name}
+        tagline={studio.data.tagline}
+        description={studio.data.description}
+        accent={studio.data.accent}
+        icon={studio.data.icon}
+        status={studio.data.status}
+        index={index}
+      />
+    </div>
+  ))}
+</div>
+
+<style lang="scss">
+  .studio-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    
+    @media (min-width: 768px) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    
+    @media (min-width: 1024px) {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+  
+  [role="listitem"] {
+    display: contents;
+  }
+</style>

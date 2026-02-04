@@ -1,0 +1,77 @@
+---
+import DefaultLayout from '@layouts/DefaultLayout.astro'
+import PageHero from '@components/PageHero.astro'
+import PublicationCard from '@components/PublicationCard.astro'
+import { getCollection } from 'astro:content'
+
+// Fetch publications (filter out placeholder)
+const allPublications = await getCollection('publications', ({ id }) => {
+  return !id.startsWith('_')
+})
+---
+
+<DefaultLayout title="Bishal Upadhyaya - AI Systems Architect">
+  <Hero />
+
+  <section class="my-64">
+    <div class="container">
+      <h2 class="mb-16 text-6xl">My Work</h2>
+    </div>
+  </section>
+
+  <VibesetSwitchboardWrapper />
+
+  <section class="my-64">
+    <div class="container">
+      <div class="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-3">
+        <Feature icon="mdi:tailwind" title="Tailwind CSS">
+          Use the power of Tailwind to style your projects faster and easier.
+        </Feature>
+        <Feature icon="mdi:wheelchair-accessibility" title="a11y Components">
+          17+ accessible components included, all compliant with WCAG 2.1 standards.
+        </Feature>
+        <Feature icon="mdi:looks" title="Prettier">
+          Less time formatting, more time coding. Prettier includes plugins for Astro and Tailwind.
+        </Feature>
+        <Feature icon="mdi:eslint" title="ESLint">
+          Lint your code with strict a11y settings to ensure your site is accessible.
+        </Feature>
+        <Feature icon="mdi:book-open-page-variant" title="Blog">
+          Built-in blog utilizing Astro's Content Collections for easy content management.
+        </Feature>
+        <Feature icon="mdi:language-markdown" title="Markdown & MDX">
+          Write content using Markdown or MDX with support for syntax highlighting.
+        </Feature>
+        <Feature icon="mdi:theme-light-dark" title="Dark Mode">
+          Fully integrated dark mode with automatic system preference detection.
+        </Feature>
+        <Feature icon="mdi:cog" title="Design System">
+          Includes a complete design system with accessible colors and typography.
+        </Feature>
+        <Feature icon="mdi:lighthouse" title="Lightouse Scores">
+          Excellent Lighthouse scores across the board for performance and accessibility.
+        </Feature>
+      </div>
+    </div>
+  </section>
+
+  <ContentMedia imgSrc="/accessible-components.webp">
+    <h2>Accessible Components</h2>
+    <p class="text-2xl">
+      This theme provides 17+ accessible components to help you build your site faster and better. All components are
+      compliant with WCAG 2.1 standards.
+    </p>
+  </ContentMedia>
+
+  <section class="mt-64 mb-32">
+    <div class="container">
+      <h2 class="mb-16 text-6xl">Counters</h2>
+      <div class="grid grid-cols-1 gap-12 sm:grid-cols-2 md:grid-cols-4">
+        <Counter count="520" title="Stars" sub="On GitHub" />
+        <Counter count="17" title="Accessible" sub="Components" />
+        <Counter count="500" title="Commits" sub="Merged" />
+        <Counter count="18+" title="Months" sub="Since launch" />
+      </div>
+    </div>
+  </section>
+</DefaultLayout>

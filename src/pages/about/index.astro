@@ -1,0 +1,146 @@
+---
+import DefaultLayout from '@layouts/DefaultLayout.astro'
+import PageHero from '@components/PageHero.astro'
+---
+
+<DefaultLayout title="About - Bishal Upadhyaya">
+  <PageHero 
+    title="About Me"
+    subtitle="I build vibes within AI systems. Here's the story."
+    size="medium"
+    accent="teal"
+  />
+  
+  <section class="about-content">
+    <div class="container">
+      <div class="content-wrapper animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+        <div class="intro">
+          <p class="lead">
+            I'm Bishal Upadhyaya, an AI systems architect focused on building intelligent products that understand context, match moods, and deliver real value.
+          </p>
+        </div>
+
+        <div class="section">
+          <h2>What I Do</h2>
+          <p>
+            I work at the intersection of machine learning, product design, and user experience. My focus is on building AI systems that feel intuitive and human—not just technically impressive.
+          </p>
+          <ul>
+            <li><strong>LLM Integration:</strong> Building applications with GPT-4, Mistral, and Gemini</li>
+            <li><strong>Music AI:</strong> Audio fingerprinting, mood matching, discovery systems</li>
+            <li><strong>Full-Stack Shipping:</strong> From prototype to production</li>
+          </ul>
+        </div>
+
+        <div class="section">
+          <h2>Current Focus</h2>
+          <p>
+            Right now, I'm building <a href="/vibeset/" class="inline-link">Vibeset</a>—an AI-powered music discovery platform that matches tracks to astrological vibes and moods.
+          </p>
+        </div>
+
+        <div class="cta">
+          <a href="/contact/" class="contact-button">Get in touch →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</DefaultLayout>
+
+<style lang="scss">
+  .about-content {
+    padding: var(--space-xl) 0 var(--space-3xl);
+  }
+
+  .content-wrapper {
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  .intro {
+    margin-bottom: var(--space-xl);
+  }
+
+  .lead {
+    font-size: 1.35rem;
+    font-weight: 500;
+    color: var(--foreground-color);
+    line-height: 1.5;
+  }
+
+  .section {
+    margin-bottom: var(--space-xl);
+
+    h2 {
+      font-family: var(--font-heading);
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--foreground-color);
+      margin-bottom: var(--space-m);
+    }
+
+    p {
+      font-size: 1.1rem;
+      line-height: 1.7;
+      color: var(--color-warm-gray);
+      margin-bottom: var(--space-m);
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+
+      li {
+        font-size: 1.05rem;
+        line-height: 1.7;
+        color: var(--color-warm-gray);
+        margin-bottom: var(--space-s);
+        padding-left: var(--space-m);
+        position: relative;
+
+        &::before {
+          content: "→";
+          position: absolute;
+          left: 0;
+          color: var(--color-living-teal);
+        }
+
+        strong {
+          color: var(--foreground-color);
+        }
+      }
+    }
+  }
+
+  .inline-link {
+    color: var(--color-living-teal);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+
+    &:hover {
+      color: var(--color-moss-green);
+    }
+  }
+
+  .cta {
+    margin-top: var(--space-xl);
+  }
+
+  .contact-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: var(--color-living-teal);
+    color: var(--color-deep-moss);
+    font-family: var(--font-heading);
+    font-weight: 600;
+    border-radius: 0.5rem;
+    text-decoration: none;
+    transition: transform 0.2s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+    }
+  }
+</style>

@@ -1,0 +1,400 @@
+---
+/* Trigger rebuild */
+/**
+ * Hero Component - Bishal Upadhyaya
+ * "I build vibes within AI systems"
+ * With integrated IdeaExplorer - visible immediately
+ */
+import HeroWorldWrapper from '@components/HeroWorldWrapper'
+---
+
+<section class="hero" id="hero">
+  <div class="container">
+    <HeroWorldWrapper client:load>
+      <div class="hero-content">
+        <h1 class="hero-title animate-blur-in duration-700">
+          <span class="name">Bishal Upadhyaya</span>
+        </h1>
+        <p class="hero-tagline animate-blur-in delay-150 duration-700">
+          I build AI systems with <span class="text-gradient-organic">vibes</span>
+        </p>
+        <p class="hero-subtitle animate-blur-in delay-300 duration-700">
+          Shipping intelligent products that understand context, match moods, and deliver real value.
+        </p>
+
+        <!-- Idea Explorer - right in the hero -->
+        <div class="idea-input animate-blur-in delay-500 duration-700">
+          <form class="idea-form" id="idea-form">
+            <div class="input-wrapper">
+              <input
+                type="text"
+                id="idea-input"
+                placeholder="What do you want to build?"
+                autocomplete="off"
+                aria-label="Describe your idea"
+              />
+              <button type="submit" class="explore-btn" id="explore-btn"> Explore ✨ </button>
+            </div>
+          </form>
+          <div class="chips">
+            <button class="chip" data-idea="An AI that discovers music based on my mood">Music AI</button>
+            <button class="chip" data-idea="A recommendation engine for my content">Recs</button>
+            <button class="chip" data-idea="A personalized AI assistant">Assistant</button>
+          </div>
+        </div>
+
+        <!-- Response area (appears after submit) -->
+        <div class="response-area animate-blur-in duration-500" id="response-area" hidden>
+          <div class="response-content" id="response-content"></div>
+          <div class="response-links" id="response-links"></div>
+        </div>
+      </div>
+    </HeroWorldWrapper>
+  </div>
+</section>
+
+<script>
+  document.addEventListener('astro:page-load', () => {
+    const form = document.getElementById('idea-form') as HTMLFormElement | null
+    const input = document.getElementById('idea-input') as HTMLInputElement | null
+    const btn = document.getElementById('explore-btn') as HTMLButtonElement | null
+    const responseArea = document.getElementById('response-area') as HTMLDivElement | null
+    const responseContent = document.getElementById('response-content') as HTMLDivElement | null
+    const responseLinks = document.getElementById('response-links') as HTMLDivElement | null
+    const chips = document.querySelectorAll('.chip')
+
+    if (!form || !input || !btn || !responseArea || !responseContent || !responseLinks) return
+
+    // Chip clicks
+    chips.forEach((chip) => {
+      chip.addEventListener('click', () => {
+        const idea = (chip as HTMLElement).dataset.idea
+        if (idea) {
+          input.value = idea
+          input.focus()
+        }
+      })
+    })
+
+    // Form submit
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault()
+      const idea = input.value.trim()
+      if (!idea) return
+
+      btn.disabled = true
+      btn.textContent = '...'
+      responseArea.hidden = true
+
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: idea }),
+        })
+        const data = await res.json()
+
+        responseContent.innerHTML = `<p>${data.reply || "Let's explore this together!"}</p>`
+        responseLinks.innerHTML = `
+          <a href="/vibeset/" class="link">🎵 See Vibeset</a>
+          <a href="/contact/" class="link primary">💬 Let's talk</a>
+        `
+        responseArea.hidden = false
+      } catch {
+        responseContent.innerHTML = `<p>I'm setting things up. <a href="/contact/">Let's connect</a> to explore this!</p>`
+        responseLinks.innerHTML = ''
+        responseArea.hidden = false
+      } finally {
+        btn.disabled = false
+        btn.textContent = 'Explore ✨'
+      }
+    })
+  })
+</script>
+
+<style lang="scss">
+  .hero {
+    display: flex;
+    position: relative;
+    align-items: center;
+
+    /* Ethereal Gateway Background */
+    /* Ethereal Gateway Background - REMOVED for WorldManager */
+    /* background:
+      radial-gradient(circle at 15% 15%, rgba(66, 133, 244, 0.08) 0%, transparent 40%),
+      radial-gradient(circle at 85% 85%, rgba(0, 212, 170, 0.08) 0%, transparent 40%); */
+    padding: var(--space-xl) 0;
+    min-height: 100dvh;
+    overflow: hidden;
+    scroll-snap-align: start;
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 1;
+    margin: 0 auto;
+    width: 100%;
+    max-width: 700px;
+    text-align: center;
+  }
+
+  .hero-title {
+    margin-bottom: var(--space-s);
+  }
+
+  .name {
+    display: block;
+    color: var(--foreground-color);
+    font-weight: 800;
+    font-size: clamp(2.5rem, 7vw, 5rem);
+    line-height: 1.1;
+    font-family: var(--font-heading);
+    letter-spacing: -0.02em;
+  }
+
+  .hero-tagline {
+    margin-bottom: var(--space-s);
+    color: var(--foreground-color);
+    font-weight: 500;
+    font-size: clamp(1.25rem, 3.5vw, 2rem);
+    line-height: 1.3;
+    font-family: var(--font-heading);
+  }
+
+  .text-gradient-organic {
+    background: linear-gradient(
+      135deg,
+      var(--color-google-blue) 0%,
+      var(--color-living-teal) 35%,
+      var(--color-google-green) 65%,
+      var(--color-google-yellow) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .hero-subtitle {
+    margin-bottom: var(--space-l);
+    color: var(--color-warm-gray);
+    font-size: clamp(0.95rem, 1.5vw, 1.1rem);
+    line-height: 1.6;
+  }
+
+  /* Idea Input */
+  .idea-input {
+    margin-bottom: var(--space-m);
+  }
+
+  .input-wrapper {
+    display: flex;
+    position: relative;
+    gap: 0;
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    box-shadow:
+      var(--shadow-prismatic),
+      0 0 0 2px rgba(0, 212, 170, 0.2);
+    border-radius: var(--radius-glass);
+    background: var(--glass-bg-strong);
+    padding: 4px;
+  }
+
+  /* Rainbow shimmer on focus-within */
+  .input-wrapper:focus-within {
+    box-shadow:
+      var(--shadow-prismatic),
+      0 0 20px rgba(66, 133, 244, 0.3),
+      0 0 40px rgba(0, 212, 170, 0.2);
+  }
+
+  input {
+    flex: 1;
+    border: none;
+    border-radius: calc(var(--radius-glass) - 4px) 0 0 calc(var(--radius-glass) - 4px);
+    background: transparent;
+    padding: 1rem 1.25rem;
+    color: var(--foreground-color);
+    font-size: 1rem;
+
+    &::placeholder {
+      color: var(--color-warm-gray);
+    }
+
+    &:focus {
+      outline: none;
+    }
+  }
+
+  .explore-btn {
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: none;
+    border-radius: 0 calc(var(--radius-glass) - 4px) calc(var(--radius-glass) - 4px) 0;
+    background: linear-gradient(135deg, var(--color-google-blue), var(--color-living-teal));
+    padding: 1rem 1.5rem;
+    color: white;
+    font-weight: 600;
+    font-size: 0.95rem;
+    font-family: var(--font-heading);
+    white-space: nowrap;
+
+    &:hover:not(:disabled) {
+      transform: translateX(2px);
+      background: linear-gradient(135deg, var(--color-living-teal), var(--color-google-green));
+    }
+
+    &:disabled {
+      opacity: 0.7;
+    }
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+
+  .chip {
+    backdrop-filter: blur(8px);
+    transition: all 0.2s ease;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 212, 170, 0.25);
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.6);
+    padding: 0.5rem 1rem;
+    color: var(--color-charcoal-text);
+    font-size: 0.85rem;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 212, 170, 0.15);
+      border-color: var(--color-living-teal);
+      background: rgba(0, 212, 170, 0.15);
+    }
+  }
+
+  /* Response */
+  .response-area {
+    backdrop-filter: blur(12px);
+    margin-top: var(--space-m);
+    border: 1px solid var(--card-border, rgba(168, 162, 158, 0.15));
+    border-radius: 1rem;
+    background: var(--card-background, rgba(44, 44, 46, 0.5));
+    padding: var(--space-m);
+    text-align: left;
+  }
+
+  .response-content {
+    margin-bottom: var(--space-s);
+    color: var(--foreground-color);
+    font-size: 1rem;
+    line-height: 1.6;
+
+    :global(p) {
+      margin: 0;
+    }
+    :global(a) {
+      color: var(--color-living-teal);
+      text-decoration: underline;
+    }
+  }
+
+  .response-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  :global(.link) {
+    border: 1px solid rgba(95, 179, 161, 0.3);
+    border-radius: 0.5rem;
+    background: rgba(95, 179, 161, 0.1);
+    padding: 0.4rem 0.8rem;
+    color: var(--color-living-teal);
+    font-size: 0.85rem;
+    text-decoration: none;
+
+    &:hover {
+      background: rgba(95, 179, 161, 0.2);
+    }
+  }
+
+  :global(.link.primary) {
+    border-color: var(--color-living-teal);
+    background: var(--color-living-teal);
+    color: var(--color-deep-moss);
+  }
+
+  /* 🪄 ENHANCED HERO CONTENT - Glowing reveal */
+  .hero-content {
+    /* animation: magic-reveal 1s ease-out forwards; */
+  }
+
+  @keyframes magic-reveal {
+    0% {
+      transform: translateY(30px) scale(0.95);
+      opacity: 0;
+      filter: blur(10px) brightness(2);
+    }
+    50% {
+      filter: blur(2px) brightness(1.3);
+    }
+    100% {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+      filter: blur(0) brightness(1);
+    }
+  }
+
+  /* Glowing edge effect on title */
+  .hero-title {
+    /* animation: glow-pulse 3s ease-in-out infinite; */
+    /* animation-delay: 1s; */
+  }
+
+  @keyframes glow-pulse {
+    0%,
+    100% {
+      text-shadow: 0 0 0 transparent;
+    }
+    50% {
+      text-shadow:
+        0 0 20px rgba(0, 212, 170, 0.3),
+        0 0 40px rgba(66, 133, 244, 0.2);
+    }
+  }
+
+  /* Shimmer effect on the gradient text */
+  .text-gradient-organic {
+    animation: shimmer-gradient 4s ease-in-out infinite;
+    background-size: 200% 200%;
+  }
+
+  @keyframes shimmer-gradient {
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .input-wrapper {
+      flex-direction: column;
+    }
+
+    input {
+      border-radius: calc(0.75rem - 2px) calc(0.75rem - 2px) 0 0;
+    }
+
+    .explore-btn {
+      border-radius: 0 0 calc(0.75rem - 2px) calc(0.75rem - 2px);
+    }
+  }
+</style>

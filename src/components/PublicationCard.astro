@@ -1,0 +1,169 @@
+---
+/**
+ * PublicationCard Component
+ * Display research paper/publication with clean academic styling
+ */
+interface Props {
+  title: string
+  abstract: string
+  year: number
+  journal?: string
+  doi?: string
+  pdf?: string
+  coauthors?: string[]
+  tags?: string[]
+}
+
+const { 
+  title, 
+  abstract, 
+  year, 
+  journal, 
+  doi, 
+  pdf, 
+  coauthors = [],
+  tags = []
+} = Astro.props
+
+// Format authors for display
+const authorDisplay = coauthors.length > 0 
+  ? `with ${coauthors.join(', ')}` 
+  : ''
+---
+
+<article class="publication-card">
+  <header class="pub-header">
+    <span class="pub-year">{year}</span>
+    <h3 class="pub-title">{title}</h3>
+    {journal && <p class="pub-journal">{journal}</p>}
+    {coauthors.length > 0 && <p class="pub-authors">{authorDisplay}</p>}
+  </header>
+  
+  <p class="pub-abstract">{abstract}</p>
+  
+  {tags.length > 0 && (
+    <div class="pub-tags">
+      {tags.map(tag => (
+        <span class="tag">{tag}</span>
+      ))}
+    </div>
+  )}
+  
+  <footer class="pub-links">
+    {doi && (
+      <a href={`https://doi.org/${doi}`} class="pub-link" target="_blank" rel="noopener noreferrer">
+        <span>DOI</span>
+      </a>
+    )}
+    {pdf && (
+      <a href={pdf} class="pub-link" target="_blank" rel="noopener noreferrer">
+        <span>PDF</span>
+      </a>
+    )}
+  </footer>
+</article>
+
+<style lang="scss">
+  .publication-card {
+    background: var(--card-background, rgba(44, 44, 46, 0.5));
+    border: 1px solid var(--card-border, rgba(168, 162, 158, 0.15));
+    border-radius: 1rem;
+    padding: 1.5rem;
+    transition: border-color 0.2s ease;
+
+    &:hover {
+      border-color: var(--color-moss-green);
+    }
+  }
+
+  .pub-header {
+    margin-bottom: 1rem;
+  }
+
+  .pub-year {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-moss-green);
+    background: rgba(126, 161, 114, 0.15);
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .pub-title {
+    font-family: var(--font-heading);
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--foreground-color);
+    line-height: 1.4;
+    margin-bottom: 0.25rem;
+  }
+
+  .pub-journal {
+    font-size: 0.9rem;
+    color: var(--color-warm-gray);
+    font-style: italic;
+  }
+
+  .pub-authors {
+    font-size: 0.85rem;
+    color: var(--color-warm-gray);
+    margin-top: 0.25rem;
+  }
+
+  .pub-abstract {
+    font-size: 0.9rem;
+    color: var(--color-warm-gray);
+    line-height: 1.6;
+    margin-bottom: 1rem;
+    
+    // Clamp to 4 lines
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .pub-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .tag {
+    font-size: 0.7rem;
+    padding: 0.125rem 0.375rem;
+    background: rgba(126, 161, 114, 0.1);
+    color: var(--color-moss-green);
+    border-radius: 0.25rem;
+    font-family: var(--font-mono);
+  }
+
+  .pub-links {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .pub-link {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--color-living-teal);
+    text-decoration: none;
+    padding: 0.25rem 0.75rem;
+    border: 1px solid var(--color-living-teal);
+    border-radius: 0.25rem;
+    transition: background 0.2s ease, color 0.2s ease;
+
+    &:hover {
+      background: var(--color-living-teal);
+      color: var(--color-deep-moss);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-living-teal);
+      outline-offset: 2px;
+    }
+  }
+</style>

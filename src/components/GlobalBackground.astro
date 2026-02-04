@@ -1,0 +1,134 @@
+---
+import LightningCanvas from '@components/LightningCanvas.astro'
+---
+
+<div class="global-bg" aria-hidden="true">
+  <div class="floating-orb orb-red"></div>
+  <div class="floating-orb orb-yellow"></div>
+  <div class="floating-orb orb-green"></div>
+  <div class="floating-orb orb-blue"></div>
+
+  <!-- 🌟 Magical portal burst (Harry Potter/Hearthstone style) -->
+  <div class="magic-portal"></div>
+
+  <!-- ⚡ Realistic Lightning Effect -->
+  <LightningCanvas />
+</div>
+
+<style lang="scss">
+  .global-bg {
+    position: fixed;
+    z-index: -1;
+    inset: 0;
+    background-color: var(--background-color);
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .floating-orb {
+    position: absolute;
+    opacity: 0.35;
+    filter: blur(80px);
+    border-radius: 50%;
+  }
+
+  .orb-red {
+    top: -80px;
+    right: 10%;
+    background: var(--color-google-red);
+    width: 300px;
+    height: 300px;
+  }
+
+  .orb-yellow {
+    top: 20%;
+    left: -50px;
+    background: var(--color-google-yellow);
+    width: 250px;
+    height: 250px;
+  }
+
+  .orb-green {
+    right: -60px;
+    bottom: 10%;
+    background: var(--color-google-green);
+    width: 280px;
+    height: 280px;
+  }
+
+  .orb-blue {
+    bottom: -100px;
+    left: 30%;
+    background: var(--color-google-blue);
+    width: 320px;
+    height: 320px;
+  }
+
+  /* 🌟 MAGIC PORTAL - Subtle ambient glow */
+  .magic-portal {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0.4;
+    animation: portal-ambient 6s ease-in-out infinite;
+    box-shadow:
+      0 0 60px rgba(0, 212, 170, 0.3),
+      0 0 120px rgba(66, 133, 244, 0.2);
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      transparent 30%,
+      rgba(0, 212, 170, 0.15) 50%,
+      rgba(66, 133, 244, 0.1) 70%,
+      transparent 90%
+    );
+    width: 300px;
+    height: 300px;
+    pointer-events: none;
+  }
+
+  @keyframes portal-ambient {
+    0%,
+    100% {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 0.3;
+    }
+    50% {
+      transform: translate(-50%, -50%) scale(1.1);
+      opacity: 0.5;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .floating-orb {
+      animation: float-drift 20s ease-in-out infinite;
+    }
+
+    .orb-yellow {
+      animation-delay: -5s;
+    }
+    .orb-green {
+      animation-delay: -10s;
+    }
+    .orb-blue {
+      animation-delay: -15s;
+    }
+
+    @keyframes float-drift {
+      0%,
+      100% {
+        transform: translate(0, 0) scale(1);
+      }
+      25% {
+        transform: translate(20px, -15px) scale(1.05);
+      }
+      50% {
+        transform: translate(-10px, 20px) scale(0.95);
+      }
+      75% {
+        transform: translate(15px, 10px) scale(1.02);
+      }
+    }
+  }
+</style>

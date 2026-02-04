@@ -1,0 +1,102 @@
+---
+/**
+ * Studios Overview Page
+ * The arsenal. Every tool in VibeSet's workshop.
+ */
+import DefaultLayout from '@layouts/DefaultLayout.astro'
+import PageHero from '@components/PageHero.astro'
+import { getCollection } from 'astro:content'
+import { StudioBento } from '@components/StudioBento'
+
+// Fetch all studios
+const allStudios = await getCollection('studios')
+
+// Sort: db-search and live-search first (the search engines), then rest alphabetically
+const sortOrder = [
+  'db-search',
+  'live-search',
+  'logic-flow',
+  'audio-fingerprint',
+  'optic-to-audio',
+  'set-extender',
+  'video-sync',
+]
+const studios = allStudios.sort((a, b) => {
+  const aIndex = sortOrder.indexOf(a.id)
+  const bIndex = sortOrder.indexOf(b.id)
+  return aIndex - bIndex
+})
+---
+
+<DefaultLayout title="VibeSet Studios - The Arsenal">
+  <PageHero
+    eyebrow="VibeSet"
+    title="The Studios"
+    subtitle="Seven specialized AI modules. Each one solves a different problem in music discovery. <strong>This is the arsenal.</strong>"
+    size="medium"
+    accent="mixed"
+  />
+
+  <section class="studios-page">
+    <div class="container">
+      <div class="studios-content">
+        <StudioBento client:load studios={studios} />
+      </div>
+
+      <footer class="page-footer animate-in fade-in delay-700 duration-700">
+        <p class="footer-text">
+          Each studio runs on custom AI. Some use off-the-shelf LLMs.
+          <span class="highlight">Some are models I trained myself.</span>
+        </p>
+        <a href="/vibeset/" class="back-link">← Back to Vibeset</a>
+      </footer>
+    </div>
+  </section>
+</DefaultLayout>
+
+<style lang="scss">
+  .studios-page {
+    padding: 0 0 var(--space-3xl);
+  }
+
+  .studios-content {
+    margin-bottom: var(--space-3xl);
+  }
+
+  .page-footer {
+    border-top: 1px solid rgba(168, 162, 158, 0.15);
+    padding-top: var(--space-xl);
+    text-align: center;
+  }
+
+  .footer-text {
+    margin-bottom: var(--space-m);
+    color: var(--color-warm-gray);
+    font-size: 1rem;
+
+    .highlight {
+      color: var(--color-sunset-coral);
+      font-weight: 600;
+    }
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    transition: color 0.2s ease;
+    color: var(--color-living-teal);
+    font-weight: 600;
+    font-size: 0.9rem;
+    font-family: var(--font-heading);
+    text-decoration: none;
+
+    &:hover {
+      color: var(--color-moss-green);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-living-teal);
+      outline-offset: 4px;
+    }
+  }
+</style>

@@ -1,0 +1,61 @@
+---
+/**
+ * VibesetShowcase Component — Neon Console Edition
+ * Integrates the React-based interactive console.
+ */
+
+import { getCollection } from 'astro:content'
+import { VibesetConsole } from './VibesetConsole'
+
+// Fetch studios
+const studios = await getCollection('studios')
+// Sort by order/id if needed, or keeping default
+const sortedStudios = studios.sort((a, b) => (a.data.order ?? 0) - (b.data.order ?? 0))
+---
+
+<section class="vibeset-section relative flex w-full items-center justify-center overflow-hidden py-24" id="vibeset">
+  {
+    /* 
+    Background Grid - Pure CSS/SVG for performance 
+    A subtle dark grid that fades at edges
+  */
+  }
+  <div class="pointer-events-none absolute inset-0 z-0">
+    <div class="absolute inset-0 bg-[#141720]"></div>
+    <div
+      class="absolute inset-0 opacity-[0.03]"
+      style={{
+        backgroundImage:
+          'linear-gradient(#99FE00 1px, transparent 1px), linear-gradient(90deg, #99FE00 1px, transparent 1px)',
+        backgroundSize: '40px 40px',
+      }}
+    >
+    </div>
+    {/* Vignette */}
+    <div class="bg-radial-gradient absolute inset-0 from-transparent to-[#141720]"></div>
+  </div>
+
+  {/* Client-Side Interactive Console */}
+  <div class="relative z-10 w-full max-w-[1400px] px-4">
+    <VibesetConsole client:visible studios={sortedStudios} />
+  </div>
+</section>
+
+<style>
+  .vibeset-section {
+    background-color: #141720; /* Vibeset Dark Navy */
+    min-height: 90vh;
+  }
+
+  /* Custom Scrollbar for this section if needed */
+  .vibeset-section ::-webkit-scrollbar {
+    width: 6px;
+  }
+  .vibeset-section ::-webkit-scrollbar-track {
+    background: #141720;
+  }
+  .vibeset-section ::-webkit-scrollbar-thumb {
+    border-radius: 3px;
+    background: #333;
+  }
+</style>

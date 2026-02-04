@@ -1,0 +1,73 @@
+---
+import { Heading, Link } from 'accessible-astro-components'
+import { Icon } from 'astro-icon/components'
+
+/**
+ * CallToAction Component
+ *
+ * @description A prominent call-to-action section with customizable content
+ */
+interface Props {
+  /**
+   * The title text to display
+   */
+  title?: string
+  /**
+   * Optional description text
+   */
+  description?: string
+  /**
+   * The URL the button should link to
+   */
+  link?: string
+  /**
+   * The text to display on the button
+   */
+  linkText?: string
+  /**
+   * Icon name from Lucide icons
+   */
+  icon?: string
+}
+
+const {
+  title = "Let's Connect",
+  description,
+  link = 'mailto:bishalup@outlook.com',
+  linkText = 'Get in Touch',
+  icon = 'lucide:mail',
+} = Astro.props
+---
+
+<div class="container">
+  <div class="call-to-action mt-24 mb-32 flex flex-col items-center gap-8 rounded-xl px-12 py-20 md:px-24">
+    <Heading level="h2" class="text-center text-3xl md:text-5xl">{title}</Heading>
+    {description && <p class="description text-center">{description}</p>}
+    <Link href={link} isButton size="lg" animateOnHover animationType="nudge">
+      {linkText}
+      <Icon aria-hidden="true" name={icon} size="1.5rem" />
+    </Link>
+  </div>
+</div>
+
+<style lang="scss">
+  @use '../assets/scss/base/mixins' as *;
+
+  .call-to-action {
+    position: relative;
+    background: linear-gradient(
+      135deg,
+      rgba(95, 179, 161, 0.15) 0%,
+      rgba(108, 134, 109, 0.15) 100%
+    );
+    border: 1px solid var(--card-border, rgba(168, 162, 158, 0.15));
+    color: var(--foreground-color);
+  }
+
+  .description {
+    font-size: 1.125rem;
+    color: var(--color-warm-gray);
+    max-width: 500px;
+    line-height: 1.6;
+  }
+</style>

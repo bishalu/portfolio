@@ -1,0 +1,126 @@
+---
+/**
+ * MagicDiscoverButton — Sleek Reveal Trigger
+ * A clean, polished button with subtle glow effects
+ *
+ * Refined version: CSS-only animations, no canvas, fast and lightweight
+ */
+---
+
+<button id="discover-button" class="discover-button" aria-label="Discover the Vibeset toolkit">
+  <span class="button-text">Discover</span>
+  <span class="button-arrow" aria-hidden="true">→</span>
+  <div class="glow-ring" aria-hidden="true"></div>
+</button>
+
+<style lang="scss">
+  .discover-button {
+    --btn-bg: var(--glass-bg-strong, rgba(255, 255, 255, 0.85));
+    --btn-border: rgba(0, 212, 170, 0.3);
+    --btn-glow: rgba(0, 212, 170, 0.25);
+    display: inline-flex;
+
+    position: relative;
+    align-items: center;
+    gap: 0.5rem;
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+    cursor: pointer;
+
+    box-shadow:
+      0 2px 12px var(--btn-glow),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    border: 1px solid var(--btn-border);
+    border-radius: 9999px;
+    background: var(--btn-bg);
+
+    padding: 0.875rem 2rem;
+
+    color: var(--color-charcoal-text, #1f2937);
+    font-weight: 600;
+    font-size: 1rem;
+    font-family: var(--font-heading, 'Outfit', sans-serif);
+    letter-spacing: -0.01em;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow:
+        0 4px 20px rgba(0, 212, 170, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+      border-color: var(--color-living-teal, #00d4aa);
+    }
+
+    &:hover .button-arrow {
+      transform: translateX(4px);
+    }
+
+    &:active {
+      transform: translateY(0) scale(0.98);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-living-teal, #00d4aa);
+      outline-offset: 3px;
+    }
+  }
+
+  .button-text {
+    position: relative;
+    z-index: 1;
+  }
+
+  .button-arrow {
+    position: relative;
+    z-index: 1;
+    transition: transform 0.25s ease;
+    font-size: 1.1rem;
+  }
+
+  /* Subtle ambient glow ring */
+  .glow-ring {
+    position: absolute;
+    opacity: 0;
+    z-index: -1;
+    filter: blur(8px);
+    transition: opacity 0.3s ease;
+    inset: -4px;
+    border-radius: 9999px;
+    background: linear-gradient(135deg, rgba(0, 212, 170, 0.15), rgba(66, 133, 244, 0.1), rgba(52, 168, 83, 0.1));
+    pointer-events: none;
+  }
+
+  .discover-button:hover .glow-ring {
+    opacity: 1;
+  }
+
+  /* Reduced motion: no transforms */
+  @media (prefers-reduced-motion: reduce) {
+    .discover-button,
+    .button-arrow {
+      transition: none;
+    }
+
+    .discover-button:hover {
+      transform: none;
+    }
+
+    .discover-button:hover .button-arrow {
+      transform: none;
+    }
+  }
+</style>
+
+<script>
+  document.addEventListener('astro:page-load', () => {
+    const button = document.getElementById('discover-button') as HTMLButtonElement | null
+    if (!button) return
+
+    button.addEventListener('click', () => {
+      // Dispatch custom event for the parent component
+      const event = new CustomEvent('magic-discover-clicked', { bubbles: true })
+      button.dispatchEvent(event)
+    })
+  })
+</script>

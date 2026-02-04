@@ -1,0 +1,240 @@
+---
+/**
+ * ProjectCard Component
+ * Display project with glassmorphism, category accent, and featured variant
+ */
+interface Props {
+  title: string
+  description: string
+  image?: string
+  link?: string
+  featured?: boolean
+  category?: 'perception' | 'memory' | 'logic' | 'action'
+  tags?: string[]
+}
+
+const { 
+  title, 
+  description, 
+  image, 
+  link = '#', 
+  featured = false, 
+  category = 'logic',
+  tags = []
+} = Astro.props
+
+// Category accent colors (subtle left border)
+const categoryAccents = {
+  perception: 'var(--color-living-teal)',
+  memory: 'var(--color-moss-green)',
+  logic: 'var(--color-sunset-coral)',
+  action: 'var(--color-cream)'
+}
+
+const accentColor = categoryAccents[category]
+---
+
+<a 
+  href={link} 
+  class:list={['project-card', 'animate-in', 'fade-in', 'zoom-in-95', 'duration-500', { featured }]}
+  style={`--accent-color: ${accentColor}`}
+  aria-label={`${title} - ${category} project`}
+>
+  {featured && <span class="featured-badge">Featured</span>}
+  
+  {image && (
+    <div class="card-image">
+      <img src={image} alt="" loading="lazy" decoding="async" />
+      <div class="image-ring" aria-hidden="true"></div>
+    </div>
+  )}
+  
+  <div class="card-content">
+    <h3 class="card-title">{title}</h3>
+    <p class="card-description">{description}</p>
+    
+    {tags.length > 0 && (
+      <div class="card-tags">
+        {tags.slice(0, 4).map(tag => (
+          <span class="tag">{tag}</span>
+        ))}
+      </div>
+    )}
+    
+    <span class="card-cta">
+      Explore <span class="arrow">→</span>
+    </span>
+  </div>
+</a>
+
+<style lang="scss">
+  .project-card {
+    display: block;
+    position: relative;
+    background: var(--card-background, rgba(44, 44, 46, 0.7));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--card-border, rgba(168, 162, 158, 0.2));
+    border-left: 3px solid var(--accent-color);
+    border-radius: 1.25rem;
+    overflow: hidden;
+    text-decoration: none;
+    color: var(--foreground-color);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 32px rgba(26, 47, 26, 0.25);
+
+      .arrow {
+        transform: translateX(4px);
+      }
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-living-teal);
+      outline-offset: 2px;
+    }
+  }
+
+  .featured {
+    border: 2px solid var(--color-sunset-coral);
+    border-left: 3px solid var(--color-sunset-coral);
+    grid-column: span 2;
+
+    @media (max-width: 768px) {
+      grid-column: span 1;
+    }
+  }
+
+  .featured-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: var(--color-sunset-coral);
+    color: var(--color-deep-moss);
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-family: var(--font-heading);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    z-index: 2;
+  }
+
+  .card-image {
+    width: 100%;
+    height: 200px;
+    overflow: hidden;
+    position: relative;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+    }
+
+    .image-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+      pointer-events: none;
+    }
+
+    .project-card:hover & img {
+      transform: scale(1.05);
+    }
+  }
+
+  .featured .card-image {
+    height: 250px;
+  }
+
+  .card-content {
+    padding: 1.5rem;
+  }
+
+  .card-title {
+    font-family: var(--font-heading);
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--foreground-color);
+  }
+
+  .featured .card-title {
+    font-size: 1.5rem;
+  }
+
+  .card-description {
+    font-size: 0.95rem;
+    color: var(--color-warm-gray);
+    line-height: 1.6;
+    margin-bottom: 1rem;
+    
+    // Clamp to 3 lines
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .tag {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    background: rgba(95, 179, 161, 0.15);
+    color: var(--color-living-teal);
+    border-radius: 0.25rem;
+    font-family: var(--font-mono);
+  }
+
+  .card-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.9rem;
+    color: var(--color-living-teal);
+    font-weight: 500;
+  }
+
+  .arrow {
+    display: inline-block;
+    transition: transform 0.2s ease;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .featured {
+      animation: glow-pulse 4s ease-in-out infinite;
+    }
+
+    @keyframes glow-pulse {
+      0%, 100% {
+        box-shadow: 0 0 0 rgba(232, 168, 124, 0);
+      }
+      50% {
+        box-shadow: 0 0 20px rgba(232, 168, 124, 0.3);
+      }
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .project-card {
+      transition: none;
+    }
+    
+    .featured {
+      animation: none;
+    }
+  }
+</style>

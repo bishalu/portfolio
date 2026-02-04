@@ -1,0 +1,388 @@
+---
+/**
+ * IdeaExplorer Component
+ * A magical, centered experience that takes visitor ideas
+ * and connects them to Bishal's skills and projects.
+ * Vibin UI - not a service chatbot.
+ */
+---
+
+<section class="idea-explorer" id="explore">
+  <div class="container">
+    <div class="explorer-wrapper">
+      <!-- Magical animated gradient orb -->
+      <div class="orb" aria-hidden="true"></div>
+      
+      <div class="explorer-content">
+        <h2 class="explorer-title">What do you want to build?</h2>
+        <p class="explorer-subtitle">Drop your idea — I'll show you how I can make it happen</p>
+        
+        <form class="idea-form" id="idea-form">
+          <div class="input-wrapper">
+            <textarea 
+              id="idea-input"
+              placeholder="An AI that matches music to my mood..."
+              rows="2"
+              aria-label="Describe your idea"
+            ></textarea>
+            <button type="submit" class="explore-button" id="explore-button">
+              <span class="button-text">Explore</span>
+              <span class="button-icon">✨</span>
+            </button>
+          </div>
+        </form>
+        
+        <!-- Response area -->
+        <div class="response-area" id="response-area" hidden>
+          <div class="response-content" id="response-content"></div>
+          <div class="response-links" id="response-links"></div>
+        </div>
+        
+        <!-- Suggestion chips -->
+        <div class="suggestions">
+          <span class="suggestion-label">Try:</span>
+          <button class="chip" data-idea="An app that discovers new music based on astrology">Music + Astrology</button>
+          <button class="chip" data-idea="A recommendation engine for my creative content">Recommendation AI</button>
+          <button class="chip" data-idea="An AI assistant that understands my preferences">Personalized AI</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  document.addEventListener('astro:page-load', () => {
+    const form = document.getElementById('idea-form') as HTMLFormElement | null;
+    const input = document.getElementById('idea-input') as HTMLTextAreaElement | null;
+    const button = document.getElementById('explore-button') as HTMLButtonElement | null;
+    const responseArea = document.getElementById('response-area') as HTMLDivElement | null;
+    const responseContent = document.getElementById('response-content') as HTMLDivElement | null;
+    const responseLinks = document.getElementById('response-links') as HTMLDivElement | null;
+    const chips = document.querySelectorAll('.chip');
+
+    if (!form || !input || !button || !responseArea || !responseContent || !responseLinks) return;
+
+    // Handle chip clicks
+    chips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        const idea = (chip as HTMLElement).dataset.idea;
+        if (idea && input) {
+          input.value = idea;
+          input.focus();
+        }
+      });
+    });
+
+    // Handle form submit
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const idea = input.value.trim();
+      if (!idea) return;
+
+      // Show loading state
+      button.disabled = true;
+      button.innerHTML = '<span class="button-text">Thinking...</span><span class="button-icon">🌀</span>';
+      responseArea.hidden = true;
+
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: idea }),
+        });
+
+        const data = await res.json();
+        
+        // Show response
+        responseContent.innerHTML = `<p>${data.reply || 'Something went wrong. Let\'s connect directly!'}</p>`;
+        
+        // Add project links based on response
+        responseLinks.innerHTML = `
+          <a href="/vibeset/" class="project-link">
+            <span class="link-emoji">🎵</span>
+            <span>See how I built Vibeset</span>
+          </a>
+          <a href="/contact/" class="project-link cta">
+            <span class="link-emoji">💬</span>
+            <span>Let's talk about your idea</span>
+          </a>
+        `;
+        
+        responseArea.hidden = false;
+        responseArea.classList.add('animate-in', 'fade-in', 'slide-in-from-bottom-4', 'duration-500');
+
+      } catch (error) {
+        responseContent.innerHTML = `<p>I'm setting things up on my end. <a href="/contact/">Let's connect directly</a> to explore your idea!</p>`;
+        responseLinks.innerHTML = '';
+        responseArea.hidden = false;
+      } finally {
+        button.disabled = false;
+        button.innerHTML = '<span class="button-text">Explore</span><span class="button-icon">✨</span>';
+      }
+    });
+  });
+</script>
+
+<style lang="scss">
+  .idea-explorer {
+    position: relative;
+    padding: var(--space-4xl) 0;
+    overflow: hidden;
+  }
+
+  .explorer-wrapper {
+    position: relative;
+    max-width: 700px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  /* Magical animated gradient orb */
+  .orb {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(
+      circle at 30% 30%,
+      rgba(95, 179, 161, 0.4),
+      rgba(126, 161, 114, 0.3) 40%,
+      rgba(232, 168, 124, 0.2) 70%,
+      transparent
+    );
+    filter: blur(60px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .orb {
+      animation: orb-breathe 8s ease-in-out infinite;
+    }
+
+    @keyframes orb-breathe {
+      0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.6;
+      }
+      50% {
+        transform: translate(-50%, -50%) scale(1.15);
+        opacity: 0.8;
+      }
+    }
+  }
+
+  .explorer-content {
+    position: relative;
+    z-index: 1;
+  }
+
+  .explorer-title {
+    font-family: var(--font-heading);
+    font-size: clamp(1.75rem, 5vw, 2.5rem);
+    font-weight: 700;
+    color: var(--foreground-color);
+    margin-bottom: var(--space-xs);
+  }
+
+  .explorer-subtitle {
+    font-size: 1.1rem;
+    color: var(--color-warm-gray);
+    margin-bottom: var(--space-l);
+  }
+
+  /* Input area with gradient border */
+  .idea-form {
+    margin-bottom: var(--space-m);
+  }
+
+  .input-wrapper {
+    position: relative;
+    background: linear-gradient(135deg, var(--color-living-teal), var(--color-moss-green), var(--color-sunset-coral));
+    padding: 2px;
+    border-radius: 1rem;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: inherit;
+      filter: blur(12px);
+      opacity: 0.5;
+      z-index: -1;
+      border-radius: inherit;
+    }
+  }
+
+  textarea {
+    width: 100%;
+    padding: 1.25rem;
+    padding-right: 120px;
+    background: var(--background-color);
+    border: none;
+    border-radius: calc(1rem - 2px);
+    font-family: var(--font-body);
+    font-size: 1.1rem;
+    color: var(--foreground-color);
+    resize: none;
+    line-height: 1.5;
+
+    &::placeholder {
+      color: var(--color-warm-gray);
+      font-style: italic;
+    }
+
+    &:focus {
+      outline: none;
+    }
+  }
+
+  .explore-button {
+    position: absolute;
+    right: 0.5rem;
+    bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    background: linear-gradient(135deg, var(--color-living-teal), var(--color-moss-green));
+    color: var(--color-deep-moss);
+    border: none;
+    border-radius: 0.75rem;
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(95, 179, 161, 0.4);
+    }
+
+    &:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .button-icon {
+      font-size: 1.1rem;
+    }
+  }
+
+  /* Suggestion chips */
+  .suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .suggestion-label {
+    font-size: 0.85rem;
+    color: var(--color-warm-gray);
+  }
+
+  .chip {
+    padding: 0.5rem 1rem;
+    background: rgba(95, 179, 161, 0.1);
+    border: 1px solid rgba(95, 179, 161, 0.3);
+    border-radius: 9999px;
+    font-size: 0.85rem;
+    color: var(--color-living-teal);
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease;
+
+    &:hover {
+      background: rgba(95, 179, 161, 0.2);
+      border-color: var(--color-living-teal);
+    }
+  }
+
+  /* Response area */
+  .response-area {
+    margin-top: var(--space-l);
+    padding: var(--space-l);
+    background: var(--card-background, rgba(44, 44, 46, 0.5));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--card-border, rgba(168, 162, 158, 0.15));
+    border-radius: 1rem;
+    text-align: left;
+  }
+
+  .response-content {
+    font-size: 1.05rem;
+    line-height: 1.7;
+    color: var(--foreground-color);
+    margin-bottom: var(--space-m);
+
+    :global(p) {
+      margin: 0;
+    }
+
+    :global(a) {
+      color: var(--color-living-teal);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  }
+
+  .response-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .project-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: rgba(95, 179, 161, 0.1);
+    border: 1px solid rgba(95, 179, 161, 0.3);
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--color-living-teal);
+    text-decoration: none;
+    transition: background 0.2s ease;
+
+    &:hover {
+      background: rgba(95, 179, 161, 0.2);
+    }
+
+    &.cta {
+      background: var(--color-living-teal);
+      border-color: var(--color-living-teal);
+      color: var(--color-deep-moss);
+
+      &:hover {
+        background: var(--color-moss-green);
+      }
+    }
+
+    .link-emoji {
+      font-size: 1.1rem;
+    }
+  }
+
+  @media (max-width: 600px) {
+    textarea {
+      padding-right: 1rem;
+      padding-bottom: 4rem;
+    }
+
+    .explore-button {
+      right: 0.5rem;
+      left: 0.5rem;
+      width: calc(100% - 1rem);
+    }
+
+    .suggestions {
+      flex-direction: column;
+    }
+  }
+</style>

@@ -1,0 +1,31 @@
+---
+id: "db-search"
+name: "AI DJ (Database)"
+tagline: "Deep cuts from the database"
+description: "The flagship engine. Vectorized catalog of millions of tracks, semantic search that understands vibes, not just keywords."
+accent: "#7EA172"
+icon: "/studios/db-search.png"
+features:
+  - "Semantic vector search"
+  - "Vibe-based matching"
+  - "BPM and key awareness"
+techStack:
+  - "DynamoDB"
+  - "Vector embeddings"
+  - "Hybrid retrieval"
+status: "live"
+---
+
+## The Problem
+
+Traditional search: type "happy summer song," get results with those exact words in the title. Useless. You want tracks that *feel* like happy summer, even if they're in Japanese.
+
+## The Magic
+
+We embedded millions of tracks into a semantic vector space. Search by **vibe**, not vocabulary. "Something that sounds like driving through LA at sunset" actually works here.
+
+## The Tech
+
+- Custom audio embeddings from spectral analysis
+- Hybrid retrieval: semantic + metadata filtering
+- Sub-100ms query response at scale

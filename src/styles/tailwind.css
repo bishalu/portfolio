@@ -1,0 +1,421 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   MODERN ORGANIC DESIGN SYSTEM
+   Bishal Upadhyaya - "Build What Matters"
+   Warm. Inviting. Alive. The neuro stuff lives in the motion.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Google Fonts - MUST be first before Tailwind */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@import 'tailwindcss' source(none);
+@import 'tw-animate-css';
+
+@source '../../src/**/*.{astro,html,js,jsx,md,mdx,svelte,ts,tsx,vue}';
+@custom-variant dark (&:where(.darkmode, .darkmode *));
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   THEME: Color Palette & Typography
+   ───────────────────────────────────────────────────────────────────────────── */
+@theme inline {
+  /* ═══════════════════════════════════════════════════════════════════════════
+     BRIGHT MAGICAL PALETTE — "Sunlit Glass Workshop"
+     Google-inspired brightness + liquid glass + modern organic
+     ═══════════════════════════════════════════════════════════════════════════ */
+
+  /* Foundations (Bright Backgrounds) */
+  --color-cloud: #FAFBFC;
+  --color-warm-white: #F5F7FA;
+  --color-soft-gray: #E8ECEF;
+
+  /* Legacy (kept for dark mode compatibility) */
+  --color-deep-moss: #1A2F1A;
+  --color-soft-charcoal: #2C2C2E;
+  --color-warm-stone: #F5F1E8;
+
+  /* ✨ Google-Inspired Bright Accents (OKLCH for vibrancy) */
+  --color-google-red: oklch(0.63 0.24 25);
+  --color-google-yellow: oklch(0.83 0.18 85);
+  --color-google-green: oklch(0.72 0.19 145);
+  --color-google-blue: oklch(0.62 0.19 255);
+
+  /* Organic Accent Refresh */
+  --color-living-teal: #00D4AA;
+  --color-moss-green: #34A853;
+  --color-sunset-coral: #FF6B6B;
+  --color-magic-purple: oklch(0.65 0.22 300);
+
+  /* Text */
+  --color-cream: #FAF8F3;
+  --color-warm-gray: #6B7280;
+  --color-charcoal-text: #1F2937;
+
+  /* Typography */
+  --font-heading: 'Outfit', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Spacing & Sizing */
+  --radius-organic: 1rem;
+  --radius-card: 1.5rem;
+  --radius-pill: 9999px;
+  --radius-glass: 24px;
+
+  /* 🪄 Liquid Glass Tokens */
+  --glass-bg: rgba(255, 255, 255, 0.65);
+  --glass-bg-strong: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.4);
+  --glass-blur: 20px;
+  --glass-saturate: 180%;
+
+  /* 🪄 Navigation-specific Liquid Glass Tokens */
+  --glass-nav-blur: 24px;
+  --glass-nav-saturate: 180%;
+  --glass-nav-border: rgba(255, 255, 255, 0.4);
+  --glass-nav-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.5),
+    0 4px 20px rgba(0, 0, 0, 0.05);
+
+  /* Shadows (Bright Mode) */
+  --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.06);
+  --shadow-deep: 0 8px 32px rgba(0, 0, 0, 0.1);
+  --shadow-glow-teal: 0 0 30px rgba(0, 212, 170, 0.35);
+  --shadow-glow-coral: 0 0 30px rgba(255, 107, 107, 0.35);
+  --shadow-glow-blue: 0 0 30px rgba(66, 133, 244, 0.35);
+  --shadow-prismatic:
+    0 0 0 1px rgba(255, 255, 255, 0.5),
+    0 8px 32px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   BASE STYLES: Bright Mode Default (Sunlit Glass Workshop)
+   ───────────────────────────────────────────────────────────────────────────── */
+:root {
+  --bg-primary: var(--color-cloud);
+  --bg-secondary: var(--color-warm-white);
+  --text-primary: var(--color-charcoal-text);
+  --text-secondary: var(--color-warm-gray);
+  --accent-primary: var(--color-living-teal);
+  --accent-secondary: var(--color-moss-green);
+  --accent-highlight: var(--color-sunset-coral);
+
+  /* Semantic bright mode tokens */
+  --foreground-color: var(--color-charcoal-text);
+  --background-color: var(--color-cloud);
+  --card-background: var(--glass-bg);
+  --card-border: var(--glass-border);
+}
+
+html {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+}
+
+body {
+  background-color: var(--bg-primary);
+  min-height: 100vh;
+}
+
+/* Headings use Outfit */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* Code uses JetBrains Mono */
+code,
+pre,
+kbd {
+  font-family: var(--font-mono);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   ORGANIC MOTION: Breathing & Glowing
+   All animations respect prefers-reduced-motion
+   ───────────────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes breathe {
+
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+
+    50% {
+      transform: scale(1.02);
+      opacity: 0.95;
+    }
+  }
+
+  @keyframes glow-pulse {
+
+    0%,
+    100% {
+      box-shadow: 0 0 0 rgba(95, 179, 161, 0);
+    }
+
+    50% {
+      box-shadow: var(--shadow-glow-teal);
+    }
+  }
+
+  @keyframes glow-coral {
+
+    0%,
+    100% {
+      box-shadow: 0 0 0 rgba(232, 168, 124, 0);
+    }
+
+    50% {
+      box-shadow: var(--shadow-glow-coral);
+    }
+  }
+
+  @keyframes float {
+
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+
+  @keyframes morph-blob {
+
+    0%,
+    100% {
+      border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+    }
+
+    25% {
+      border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
+    }
+
+    50% {
+      border-radius: 50% 60% 30% 60% / 30% 60% 70% 40%;
+    }
+
+    75% {
+      border-radius: 60% 40% 60% 30% / 70% 30% 50% 60%;
+    }
+  }
+
+  /* Utility classes for organic motion */
+  .breathe {
+    animation: breathe 4s ease-in-out infinite;
+  }
+
+  .glow-on-hover:hover {
+    animation: glow-pulse 2s ease-in-out infinite;
+  }
+
+  .glow-coral-on-hover:hover {
+    animation: glow-coral 2s ease-in-out infinite;
+  }
+
+  .float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .morph-blob {
+    animation: morph-blob 8s ease-in-out infinite;
+  }
+}
+
+/* Reduced motion: disable all animations */
+@media (prefers-reduced-motion: reduce) {
+
+  .breathe,
+  .glow-on-hover:hover,
+  .glow-coral-on-hover:hover,
+  .float,
+  .morph-blob,
+  .animate-blur-in {
+    animation: none !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   MAGIC ANIMATIONS
+   ───────────────────────────────────────────────────────────────────────────── */
+
+@keyframes blur-in {
+  0% {
+    opacity: 0;
+    filter: blur(20px);
+    transform: scale(0.95);
+  }
+
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: scale(1);
+  }
+}
+
+.animate-blur-in {
+  animation: blur-in 1s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   COMPONENT UTILITIES
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Legacy glass card (now bright) */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-prismatic);
+}
+
+/* ✨ Liquid Glass Bright — The magical frost panel */
+.liquid-glass-bright {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-glass);
+  box-shadow: var(--shadow-prismatic);
+}
+
+/* Strong frost variant */
+.liquid-glass-strong {
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: var(--radius-glass);
+  box-shadow: var(--shadow-prismatic);
+}
+
+/* Navigation-specific liquid glass */
+.liquid-glass-nav {
+  backdrop-filter: blur(var(--glass-nav-blur)) saturate(var(--glass-nav-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-nav-blur)) saturate(var(--glass-nav-saturate));
+  border-bottom: 1px solid var(--glass-nav-border);
+  box-shadow: var(--glass-nav-shadow);
+}
+
+/* Rainbow prismatic glow (for hover effects) */
+.liquid-glass-rainbow {
+  position: relative;
+}
+
+.liquid-glass-rainbow::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: calc(var(--radius-glass) + 3px);
+  background: linear-gradient(135deg,
+      var(--color-google-red),
+      var(--color-google-yellow),
+      var(--color-google-green),
+      var(--color-google-blue),
+      var(--color-magic-purple),
+      var(--color-google-red));
+  z-index: -1;
+  opacity: 0;
+  filter: blur(12px);
+  transition: opacity 0.3s ease;
+}
+
+.liquid-glass-rainbow:hover::before {
+  opacity: 0.5;
+}
+
+/* Category accent borders */
+.accent-perception {
+  border-left: 3px solid var(--color-living-teal);
+}
+
+.accent-memory {
+  border-left: 3px solid var(--color-moss-green);
+}
+
+.accent-logic {
+  border-left: 3px solid var(--color-sunset-coral);
+}
+
+.accent-action {
+  border-left: 3px solid var(--color-cream);
+}
+
+/* Featured card (Vibeset) */
+.featured-card {
+  border: 2px solid var(--color-sunset-coral);
+  position: relative;
+}
+
+.featured-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: var(--color-sunset-coral);
+  color: var(--color-deep-moss);
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: var(--font-heading);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Focus states - WCAG compliant */
+:focus-visible {
+  outline: 2px solid var(--color-living-teal);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Link styling */
+a {
+  color: var(--color-living-teal);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--color-moss-green);
+}
+
+/* Text gradient (warm organic) */
+.text-gradient-organic {
+  background: linear-gradient(135deg,
+      var(--color-living-teal) 0%,
+      var(--color-moss-green) 50%,
+      var(--color-sunset-coral) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Smooth transitions for interactive elements */
+.transition-organic {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Card hover lift effect */
+.hover-lift {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-deep);
+}

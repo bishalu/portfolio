@@ -1,0 +1,57 @@
+---
+import DefaultLayout from '@layouts/DefaultLayout.astro'
+import Hero from '@components/Hero.astro'
+import VibesetSwitchboardWrapper from '@components/VibesetSwitchboardWrapper.astro'
+import DataLensWrapper from '@components/DataLensWrapper.astro'
+
+import PlansSection from '@components/PlansSection.astro'
+import WorldManager from '@components/WorldManager'
+import { getCollection } from 'astro:content'
+
+// Fetch all studios for the Vibeset showcase
+const allStudios = await getCollection('studios')
+
+// Fetch publications (filter out placeholder) and sort by year descending
+const allPublications = (
+  await getCollection('publications', ({ id }) => {
+    return !id.startsWith('_') // Exclude placeholder files
+  })
+).sort((a, b) => b.data.year - a.data.year)
+---
+
+<DefaultLayout title="Bishal Upadhyaya - AI Systems Architect">
+  <WorldManager client:load />
+  <Hero />
+
+  <!-- Vibeset Studios Showcase (Switchboard Console) -->
+  <VibesetSwitchboardWrapper studios={allStudios} />
+
+  <!-- Research Papers (Data Lens Optical Reveal) -->
+  <DataLensWrapper publications={allPublications} />
+  <PlansSection />
+</DefaultLayout>
+
+<style lang="scss">
+  /* Section spacing */
+  section {
+    padding: var(--space-3xl) 0;
+  }
+
+  .section-header {
+    margin-bottom: var(--space-xl);
+    text-align: center;
+  }
+
+  .section-title {
+    margin-bottom: var(--space-xs);
+    color: var(--foreground-color);
+    font-weight: 700;
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-family: var(--font-heading);
+  }
+
+  .section-subtitle {
+    color: var(--color-warm-gray);
+    font-size: 1.125rem;
+  }
+</style>

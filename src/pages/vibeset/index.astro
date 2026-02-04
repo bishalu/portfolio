@@ -1,0 +1,199 @@
+---
+import DefaultLayout from '@layouts/DefaultLayout.astro'
+import PageHero from '@components/PageHero.astro'
+import StudioCard from '@components/StudioCard.astro'
+import { getCollection, render } from 'astro:content'
+import { ShinyButton } from '@components/ui/ShinyButton'
+
+// Get Vibeset project
+const allProjects = await getCollection('projects')
+const vibeset = allProjects.find((p) => p.data.featured)
+
+if (!vibeset) {
+  return Astro.redirect('/404')
+}
+
+const { Content } = await render(vibeset)
+
+// Get featured studios to preview (4 of them)
+const allStudios = await getCollection('studios')
+const featuredStudios = allStudios.slice(0, 4)
+---
+
+<DefaultLayout title={vibeset.data.title}>
+  <PageHero
+    eyebrow={vibeset.data.category}
+    title={vibeset.data.title}
+    subtitle={vibeset.data.description}
+    size="medium"
+    accent="coral"
+  >
+    {
+      vibeset.data.link && (
+        <div class="hero-cta animate-in fade-in delay-300 duration-500">
+          <a href={vibeset.data.link} class="external-link" target="_blank" rel="noopener noreferrer">
+            Visit Vibeset →
+          </a>
+        </div>
+      )
+    }
+  </PageHero>
+
+  <section class="vibeset-content">
+    <div class="container">
+      <article class="prose animate-in fade-in delay-200 duration-700">
+        <Content />
+      </article>
+    </div>
+  </section>
+
+  <!-- Studios Preview Section -->
+  <section class="studios-preview">
+    <div class="container">
+      <header class="section-header animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <h2 class="section-title">Inside the Workshop</h2>
+        <p class="section-subtitle">Seven specialized AI modules. Each one does something different.</p>
+      </header>
+
+      <div class="studios-grid">
+        {
+          featuredStudios.map((studio, index) => (
+            <StudioCard
+              id={studio.id}
+              name={studio.data.name}
+              tagline={studio.data.tagline}
+              description={studio.data.description}
+              accent={studio.data.accent}
+              icon={studio.data.icon}
+              status={studio.data.status}
+              index={index}
+            />
+          ))
+        }
+      </div>
+
+      <div class="studios-cta animate-in fade-in delay-500 duration-500">
+        <ShinyButton client:visible href="/vibeset/studios/" className="inline-flex items-center gap-2">
+          See all 7 studios
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7"></path>
+          </svg>
+        </ShinyButton>
+      </div>
+    </div>
+  </section>
+</DefaultLayout>
+
+<style lang="scss">
+  .hero-cta {
+    margin-top: var(--space-l);
+  }
+
+  .external-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: transform 0.2s ease;
+    border-radius: 0.5rem;
+    background: var(--color-living-teal);
+    padding: 0.75rem 1.5rem;
+    color: var(--color-deep-moss);
+    font-weight: 600;
+    font-family: var(--font-heading);
+    text-decoration: none;
+
+    &:hover {
+      transform: translateY(-2px);
+    }
+  }
+
+  .vibeset-content {
+    padding: var(--space-xl) 0;
+  }
+
+  .prose {
+    margin: 0 auto;
+    max-width: 800px;
+
+    :global(h2) {
+      margin-top: var(--space-xl);
+      margin-bottom: var(--space-m);
+      color: var(--foreground-color);
+      font-weight: 600;
+      font-size: 1.75rem;
+      font-family: var(--font-heading);
+    }
+
+    :global(p) {
+      margin-bottom: var(--space-m);
+      color: light-dark(var(--color-charcoal-text), var(--color-warm-gray));
+      font-size: 1.1rem;
+      line-height: 1.7;
+    }
+
+    :global(ul),
+    :global(ol) {
+      margin-bottom: var(--space-m);
+      padding-left: var(--space-m);
+    }
+
+    :global(li) {
+      margin-bottom: var(--space-xs);
+      color: var(--color-warm-gray);
+    }
+
+    :global(strong) {
+      color: var(--foreground-color);
+    }
+
+    :global(code) {
+      border-radius: 0.25rem;
+      background: rgba(95, 179, 161, 0.1);
+      padding: 0.125rem 0.375rem;
+      font-size: 0.9em;
+      font-family: var(--font-mono);
+    }
+  }
+
+  /* Studios Preview Section */
+  .studios-preview {
+    background: linear-gradient(180deg, transparent 0%, rgba(95, 179, 161, 0.03) 50%, transparent 100%);
+    padding: var(--space-2xl) 0 var(--space-3xl);
+  }
+
+  .section-header {
+    margin-bottom: var(--space-xl);
+    text-align: center;
+  }
+
+  .section-title {
+    margin: 0 0 var(--space-xs);
+    color: var(--foreground-color);
+    font-weight: 700;
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    font-family: var(--font-heading);
+  }
+
+  .section-subtitle {
+    margin: 0;
+    color: var(--color-warm-gray);
+    font-size: 1.05rem;
+  }
+
+  .studios-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.25rem;
+    margin: 0 auto;
+    max-width: 1000px;
+
+    @media (min-width: 768px) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  .studios-cta {
+    margin-top: var(--space-xl);
+    text-align: center;
+  }
+</style>

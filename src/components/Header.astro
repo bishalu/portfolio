@@ -1,0 +1,70 @@
+---
+import Navigation from '../components/Navigation.astro'
+import { Link, SkipLink } from 'accessible-astro-components'
+import { Icon } from 'astro-icon/components'
+
+/**
+ * Header Component - Bishal Upadhyaya Portfolio
+ * Clean, focused navigation: Home, Vibeset, Research, About
+ * Note: Dark mode support removed - site defaults to light mode
+ */
+---
+
+<header>
+  <SkipLink />
+  <Navigation>
+    <li class="menu-item">
+      <Link href="/">Home</Link>
+    </li>
+    <li class="menu-item">
+      <Link href="/vibeset/">Vibeset</Link>
+    </li>
+    <li class="menu-item">
+      <Link href="/research/">Research</Link>
+    </li>
+    <li class="menu-item">
+      <Link href="/about/">About</Link>
+    </li>
+    <li class="menu-item">
+      <Link href="/contact/">Contact</Link>
+    </li>
+    <li class="menu-item type-icon animate-rotate">
+      <Link href="https://github.com/bishalu">
+        <Icon aria-hidden="true" name="lucide:github" />
+        <span class="sr-only">GitHub Profile</span>
+      </Link>
+    </li>
+  </Navigation>
+</header>
+
+<style lang="scss" is:global>
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.5),
+      0 4px 20px rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+    /* Enhanced liquid glass effect - Apple-inspired */
+    background-color: color-mix(in srgb, var(--background-color), transparent 25%);
+
+    .type-icon {
+      display: block;
+      margin-inline: -7px;
+
+      svg {
+        inline-size: 30px;
+        block-size: 30px;
+      }
+
+      a:hover,
+      a:focus-visible {
+        text-decoration: none;
+      }
+    }
+  }
+</style>

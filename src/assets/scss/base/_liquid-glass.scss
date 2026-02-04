@@ -1,0 +1,150 @@
+/**
+ * Liquid Glass Effects
+ * iOS 26-inspired translucent glass with blur, refraction, and specular highlights
+ */
+
+// =============================================================================
+// BASE LIQUID GLASS
+// =============================================================================
+
+.liquid-glass {
+    position: relative;
+
+    // Translucent background
+    background: light-dark(rgba(255, 255, 255, 0.12),
+            rgba(255, 255, 255, 0.08));
+
+    // The magic: blur what's behind
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+
+    // Soft organic border
+    border: 1px solid light-dark(rgba(0, 0, 0, 0.08),
+            rgba(255, 255, 255, 0.12));
+    border-radius: 1.5rem;
+
+    // Depth and float
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+
+    // GPU acceleration
+    will-change: transform, backdrop-filter;
+
+    // Specular highlight (rim light)
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: linear-gradient(135deg,
+                rgba(255, 255, 255, 0.25) 0%,
+                transparent 40%,
+                transparent 60%,
+                rgba(255, 255, 255, 0.08) 100%);
+        pointer-events: none;
+        z-index: 1;
+    }
+}
+
+// Higher opacity variant for better readability
+.liquid-glass--tinted {
+    background: light-dark(rgba(255, 255, 255, 0.25),
+            rgba(40, 40, 45, 0.65));
+}
+
+// Accent glow variant (uses --accent CSS variable)
+.liquid-glass--glow {
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.15),
+        0 0 0 1px var(--accent, transparent),
+        0 0 30px color-mix(in oklch, var(--accent) 30%, transparent);
+}
+
+
+// =============================================================================
+// ANIMATIONS
+// =============================================================================
+
+// Gentle floating (vertical sine wave)
+@keyframes float-gentle {
+
+    0%,
+    100% {
+        transform: translateY(0) rotate(0deg);
+    }
+
+    50% {
+        transform: translateY(-8px) rotate(0.5deg);
+    }
+}
+
+// Breathing pulse (scale + opacity)
+@keyframes breathe {
+
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 0.85;
+    }
+
+    50% {
+        transform: scale(1.02);
+        opacity: 1;
+    }
+}
+
+// Accent glow pulse
+@keyframes glow-pulse {
+
+    0%,
+    100% {
+        box-shadow:
+            0 8px 32px rgba(0, 0, 0, 0.15),
+            0 0 20px color-mix(in oklch, var(--accent) 25%, transparent);
+    }
+
+    50% {
+        box-shadow:
+            0 8px 32px rgba(0, 0, 0, 0.15),
+            0 0 40px color-mix(in oklch, var(--accent) 40%, transparent);
+    }
+}
+
+// Animation utility classes (motion-safe only)
+@media (prefers-reduced-motion: no-preference) {
+    .animate-float {
+        animation: float-gentle 6s ease-in-out infinite;
+    }
+
+    .animate-breathe {
+        animation: breathe 4s ease-in-out infinite;
+    }
+
+    .animate-glow {
+        animation: glow-pulse 3s ease-in-out infinite;
+    }
+}
+
+// Stagger delays for orbital effect
+@for $i from 1 through 7 {
+    .orbit-delay-#{$i} {
+        animation-delay: calc(#{$i - 1} * 0.4s);
+    }
+}
+
+
+// =============================================================================
+// REDUCED MOTION
+// =============================================================================
+
+@media (prefers-reduced-motion: reduce) {
+
+    .liquid-glass,
+    .animate-float,
+    .animate-breathe,
+    .animate-glow {
+        animation: none !important;
+        transition: none !important;
+    }
+}

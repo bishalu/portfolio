@@ -1,0 +1,249 @@
+---
+/**
+ * LightningCanvas Component
+ * Creates realistic branching lightning effects using HTML5 Canvas
+ * Uses recursive midpoint displacement algorithm for natural-looking bolts
+ */
+---
+
+<canvas id="lightning-canvas" aria-hidden="true"></canvas>
+
+<script>
+  document.addEventListener('astro:page-load', () => {
+    const canvas = document.getElementById('lightning-canvas') as HTMLCanvasElement | null
+    if (!canvas) return
+
+    // Respect reduced motion preference
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      canvas.style.display = 'none'
+      return
+    }
+
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    // Configuration
+    const CONFIG = {
+      colors: [
+        'rgba(234, 67, 53, 0.7)', // Google Red
+        'rgba(251, 188, 4, 0.7)', // Google Yellow
+        'rgba(52, 168, 83, 0.7)', // Google Green
+        'rgba(66, 133, 244, 0.7)', // Google Blue
+        'rgba(0, 212, 170, 0.7)', // Living Teal
+      ],
+      minInterval: 300, // Min ms between bolts (more frequent)
+      maxInterval: 600, // Max ms between bolts
+      boltDuration: 1800, // How long each bolt is visible (ms) - longer fade like original
+      maxBolts: 15, // Max simultaneous bolts (more like original)
+      branchProbability: 0.6, // Higher branching for synaptic look
+      maxRecursionDepth: 4, // Slightly less recursion for smaller bolts
+      jaggedness: 0.25, // More jagged for organic look
+      minBoltLength: 20, // Minimum bolt length
+      maxBoltLength: 60, // Maximum bolt length (smaller like original)
+    }
+
+    // Store active lightning bolts
+    interface LightningBolt {
+      segments: { x1: number; y1: number; x2: number; y2: number }[]
+      color: string
+      opacity: number
+      fadeSpeed: number
+      createdAt: number
+    }
+
+    let bolts: LightningBolt[] = []
+    let animationId: number
+
+    // Resize canvas to fill parent
+    function resizeCanvas() {
+      const parent = canvas.parentElement
+      if (parent) {
+        canvas.width = parent.clientWidth
+        canvas.height = parent.clientHeight
+      }
+    }
+
+    resizeCanvas()
+    window.addEventListener('resize', resizeCanvas)
+
+    /**
+     * Generate lightning bolt segments using recursive midpoint displacement
+     */
+    function generateBolt(
+      x1: number,
+      y1: number,
+      x2: number,
+      y2: number,
+      depth: number = 0,
+    ): { x1: number; y1: number; x2: number; y2: number }[] {
+      const segments: { x1: number; y1: number; x2: number; y2: number }[] = []
+
+      if (depth >= CONFIG.maxRecursionDepth) {
+        segments.push({ x1, y1, x2, y2 })
+        return segments
+      }
+
+      // Calculate midpoint
+      const midX = (x1 + x2) / 2
+      const midY = (y1 + y2) / 2
+
+      // Calculate perpendicular offset
+      const dx = x2 - x1
+      const dy = y2 - y1
+      const length = Math.sqrt(dx * dx + dy * dy)
+
+      // Perpendicular direction (normalized)
+      const perpX = -dy / length
+      const perpY = dx / length
+
+      // Random displacement scaled by distance and jaggedness
+      const displacement = (Math.random() - 0.5) * length * CONFIG.jaggedness
+
+      // Displaced midpoint
+      const newMidX = midX + perpX * displacement
+      const newMidY = midY + perpY * displacement
+
+      // Recurse on both halves
+      segments.push(...generateBolt(x1, y1, newMidX, newMidY, depth + 1))
+      segments.push(...generateBolt(newMidX, newMidY, x2, y2, depth + 1))
+
+      // Create branch with probability (only at lower depths for realism)
+      if (depth < 3 && Math.random() < CONFIG.branchProbability) {
+        // Branch angle: 20-45 degrees from main direction
+        const branchAngle = (Math.random() > 0.5 ? 1 : -1) * (20 + Math.random() * 25) * (Math.PI / 180)
+        const mainAngle = Math.atan2(y2 - y1, x2 - x1)
+        const finalAngle = mainAngle + branchAngle
+
+        // Branch length: 30-60% of remaining distance
+        const branchLength = length * (0.3 + Math.random() * 0.3) * (1 - depth / CONFIG.maxRecursionDepth)
+
+        const branchEndX = newMidX + Math.cos(finalAngle) * branchLength
+        const branchEndY = newMidY + Math.sin(finalAngle) * branchLength
+
+        // Generate branch with increased depth to limit further branching
+        segments.push(...generateBolt(newMidX, newMidY, branchEndX, branchEndY, depth + 2))
+      }
+
+      return segments
+    }
+
+    /**
+     * Create a new lightning bolt
+     */
+    function createBolt() {
+      if (bolts.length >= CONFIG.maxBolts) return
+
+      const w = canvas.width
+      const h = canvas.height
+
+      // Random start position anywhere on screen (like original synapses)
+      const x1 = Math.random() * w
+      const y1 = Math.random() * h
+
+      // Random angle for the bolt direction
+      const angle = Math.random() * Math.PI * 2
+
+      // Small bolt length (like original synapses)
+      const boltLength = CONFIG.minBoltLength + Math.random() * (CONFIG.maxBoltLength - CONFIG.minBoltLength)
+
+      const x2 = x1 + Math.cos(angle) * boltLength
+      const y2 = y1 + Math.sin(angle) * boltLength
+
+      const segments = generateBolt(x1, y1, x2, y2)
+      const color = CONFIG.colors[Math.floor(Math.random() * CONFIG.colors.length)]
+
+      bolts.push({
+        segments,
+        color,
+        opacity: 0.15 + Math.random() * 0.25, // Lower initial opacity like original
+        fadeSpeed: 1 / (CONFIG.boltDuration / 16), // Assuming ~60fps
+        createdAt: Date.now(),
+      })
+    }
+
+    /**
+     * Draw all active bolts
+     */
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+      bolts = bolts.filter((bolt) => bolt.opacity > 0)
+
+      for (const bolt of bolts) {
+        ctx.save()
+        ctx.globalAlpha = bolt.opacity
+        ctx.strokeStyle = bolt.color
+        ctx.lineWidth = 2
+        ctx.lineCap = 'round'
+        ctx.lineJoin = 'round'
+
+        // Glow effect
+        ctx.shadowColor = bolt.color
+        ctx.shadowBlur = 10
+
+        ctx.beginPath()
+        for (const seg of bolt.segments) {
+          ctx.moveTo(seg.x1, seg.y1)
+          ctx.lineTo(seg.x2, seg.y2)
+        }
+        ctx.stroke()
+
+        // Brighter core
+        ctx.shadowBlur = 5
+        ctx.lineWidth = 1
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)'
+        ctx.beginPath()
+        for (const seg of bolt.segments) {
+          ctx.moveTo(seg.x1, seg.y1)
+          ctx.lineTo(seg.x2, seg.y2)
+        }
+        ctx.stroke()
+
+        ctx.restore()
+
+        // Fade out
+        bolt.opacity -= bolt.fadeSpeed
+      }
+
+      animationId = requestAnimationFrame(draw)
+    }
+
+    /**
+     * Schedule next bolt creation
+     */
+    function scheduleNextBolt() {
+      const delay = CONFIG.minInterval + Math.random() * (CONFIG.maxInterval - CONFIG.minInterval)
+      setTimeout(() => {
+        createBolt()
+        scheduleNextBolt()
+      }, delay)
+    }
+
+    // Start animation
+    draw()
+
+    // Create initial burst of bolts (like original)
+    for (let i = 0; i < 15; i++) {
+      setTimeout(() => createBolt(), i * 120)
+    }
+
+    // Schedule continuous bolt creation
+    scheduleNextBolt()
+
+    // Cleanup on page unload
+    document.addEventListener('astro:before-swap', () => {
+      cancelAnimationFrame(animationId)
+    })
+  })
+</script>
+
+<style>
+  #lightning-canvas {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+</style>

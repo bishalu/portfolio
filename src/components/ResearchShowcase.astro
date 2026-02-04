@@ -1,0 +1,536 @@
+---
+/**
+ * ResearchShowcase Component — Synaptic Flash
+ *
+ * A high-impact reveal: A central neuron "Soma" charges up and "fires"
+ * a pulse of light that travels along dendrites to reveal research paper cards.
+ *
+ * Mechanics:
+ * - Cover UI hides content initially.
+ * - Magical Reveal triggered on scroll pause or click.
+ * - Fluid/Liquid aesthetics for dendrites.
+ */
+import type { CollectionEntry } from 'astro:content'
+import PublicationCard from '@components/PublicationCard.astro'
+
+interface Props {
+  publications: CollectionEntry<'publications'>[]
+}
+
+const { publications } = Astro.props
+---
+
+<section class="synaptic-section" id="research">
+  <!-- MAGICAL COVER OVERLAY -->
+  <div class="research-cover">
+    <div class="cover-glass">
+      <div class="cover-content">
+        <div class="cover-icon">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="64"
+            height="64"
+            viewBox="0 0 24 24"
+            fill="none"
+            class="animate-pulse-slow"
+          >
+            <path
+              d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20Z"
+              fill="url(#blue-gradient)"
+              opacity="0.2"></path>
+            <path
+              d="M12 6C8.69 6 6 8.69 6 12C6 15.31 8.69 18 12 18C15.31 18 18 15.31 18 12C18 8.69 15.31 6 12 6ZM12 16C9.79 16 8 14.21 8 12C8 9.79 9.79 8 12 8C14.21 8 16 9.79 16 12C16 14.21 14.21 16 12 16Z"
+              fill="url(#teal-gradient)"></path>
+            <defs>
+              <linearGradient id="blue-gradient" x1="2" y1="2" x2="22" y2="22">
+                <stop stop-color="#4285F4"></stop>
+                <stop offset="1" stop-color="#34A853"></stop>
+              </linearGradient>
+              <linearGradient id="teal-gradient" x1="6" y1="6" x2="18" y2="18">
+                <stop stop-color="#5FB3A1"></stop>
+                <stop offset="1" stop-color="#4285F4"></stop>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <h2 class="cover-title">Research</h2>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTENT REVEAL CONTAINER -->
+  <div class="synapse-content-wrapper">
+    <!-- CENTRAL SOMA (The Brain) -->
+    <div class="soma-container">
+      <div class="soma-glow"></div>
+      <div class="soma-core">
+        <h2 class="soma-title">Research</h2>
+      </div>
+
+      <!-- Liquid Filters -->
+      <svg style="position: absolute; width: 0; height: 0;">
+        <defs>
+          <filter id="liquid-glow">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur"></feGaussianBlur>
+            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" result="goo"
+            ></feColorMatrix>
+            <feComposite in="SourceGraphic" in2="goo" operator="atop"></feComposite>
+          </filter>
+        </defs>
+      </svg>
+
+      <svg class="dendrite-network" viewBox="0 0 1000 300" preserveAspectRatio="none">
+        <!-- Branch 1 (Top Left) -->
+        <path
+          id="dendrite-1"
+          class="dendrite-path"
+          d="M500,100 C400,100 300,100 250,250"
+          fill="none"
+          stroke="url(#grad-left)"
+          stroke-width="4"
+          stroke-linecap="round"></path>
+
+        <!-- Branch 2 (Bottom Left) -->
+        <path
+          id="dendrite-2"
+          class="dendrite-path"
+          d="M500,100 C450,150 400,200 350,250"
+          fill="none"
+          stroke="url(#grad-left)"
+          stroke-width="4"
+          stroke-linecap="round"></path>
+
+        <!-- Branch 3 (Top Right) -->
+        <path
+          id="dendrite-3"
+          class="dendrite-path"
+          d="M500,100 C600,100 700,100 750,250"
+          fill="none"
+          stroke="url(#grad-right)"
+          stroke-width="4"
+          stroke-linecap="round"></path>
+
+        <!-- Branch 4 (Bottom Right) -->
+        <path
+          id="dendrite-4"
+          class="dendrite-path"
+          d="M500,100 C550,150 600,200 650,250"
+          fill="none"
+          stroke="url(#grad-right)"
+          stroke-width="4"
+          stroke-linecap="round"></path>
+
+        <defs>
+          <linearGradient id="grad-left" x1="100%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#4285F4" stop-opacity="0.8"></stop>
+            <stop offset="100%" stop-color="#4285F4" stop-opacity="0.1"></stop>
+          </linearGradient>
+          <linearGradient id="grad-right" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#34A853" stop-opacity="0.8"></stop>
+            <stop offset="100%" stop-color="#34A853" stop-opacity="0.1"></stop>
+          </linearGradient>
+        </defs>
+      </svg>
+
+      <!-- Traveling Pulses -->
+      <div class="synaptic-pulse pulse-1"></div>
+      <div class="synaptic-pulse pulse-2"></div>
+      <div class="synaptic-pulse pulse-3"></div>
+      <div class="synaptic-pulse pulse-4"></div>
+    </div>
+
+    <!-- RESEARCH CARDS (Terminals) -->
+    <div class="terminals-container">
+      {
+        publications.map((pub, index) => (
+          <div class="terminal-wrapper" data-index={index}>
+            <PublicationCard
+              title={pub.data.title}
+              abstract={pub.data.abstract}
+              year={pub.data.year}
+              journal={pub.data.journal}
+              doi={pub.data.doi}
+              pdf={pub.data.pdf}
+              coauthors={pub.data.coauthors}
+              tags={pub.data.tags}
+            />
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<script>
+  import { gsap } from 'gsap'
+  import { ScrollTrigger } from 'gsap/ScrollTrigger'
+  import { MotionPathPlugin } from 'gsap/MotionPathPlugin'
+
+  document.addEventListener('astro:page-load', () => {
+    gsap.registerPlugin(ScrollTrigger, MotionPathPlugin)
+
+    const section = document.querySelector('.synaptic-section') as HTMLElement
+    if (!section) return
+
+    // Elements
+    const cover = section.querySelector('.research-cover') as HTMLElement
+    const content = section.querySelector('.synapse-content-wrapper') as HTMLElement
+    const somaCore = section.querySelector('.soma-core')
+    const somaGlow = section.querySelector('.soma-glow')
+    const pulses = section.querySelectorAll('.synaptic-pulse')
+    const terminals = section.querySelectorAll('.terminal-wrapper')
+    const dendrites = section.querySelectorAll('.dendrite-path')
+
+    // Initial State: Content hidden, Cover visible
+    gsap.set(content, { opacity: 0, pointerEvents: 'none' })
+    gsap.set(cover, { opacity: 1, y: 0 })
+    gsap.set([dendrites, terminals, pulses], { opacity: 0 })
+    gsap.set(somaCore, { scale: 0.8 })
+
+    // Check reduced motion
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (prefersReducedMotion) {
+      section.classList.add('reduced-motion')
+      // Simple fade in
+      gsap.to(cover, { opacity: 0, duration: 0.5, delay: 0.5 })
+      gsap.to(content, { opacity: 1, duration: 0.5, delay: 0.5, pointerEvents: 'all' })
+      gsap.to(terminals, { opacity: 1 })
+      return
+    }
+
+    // INTERACTION: Reveal on Scroll Stall or View
+    const revealTimeline = gsap.timeline({
+      scrollTrigger: {
+        trigger: section,
+        start: 'top 60%', // Trigger earlier
+        end: '+=100',
+        toggleActions: 'play none none reverse',
+      },
+    })
+
+    // 1. Reveal Sequence
+    revealTimeline
+      // Fade out cover
+      .to(cover, {
+        opacity: 0,
+        y: -20,
+        duration: 0.8,
+        ease: 'power2.inOut',
+        pointerEvents: 'none',
+        onComplete: () => {
+          // Optional: Hide cover completely?
+        },
+      })
+      // Fade in content container
+      .to(
+        content,
+        {
+          opacity: 1,
+          pointerEvents: 'all',
+          duration: 0.5,
+        },
+        '<+=0.1',
+      )
+
+      // 2. Synaptic Firing Sequence
+      .to(somaCore, {
+        scale: 1,
+        duration: 0.8,
+        ease: 'elastic.out(1, 0.7)',
+      })
+      .to(
+        somaCore,
+        {
+          boxShadow: '0 8px 32px rgba(66, 133, 244, 0.5)',
+          duration: 0.4,
+        },
+        '<',
+      )
+
+      // Flash
+      .to(somaGlow, {
+        opacity: 0.6,
+        scale: 1.5,
+        duration: 0.3,
+        ease: 'power2.out',
+      })
+      .to(somaGlow, {
+        opacity: 0,
+        scale: 3,
+        duration: 0.4,
+        ease: 'power2.out',
+      })
+
+      // Dendrites & Pulse
+      .to(dendrites, { opacity: 1, duration: 0.5 }, '-=0.4')
+
+    // Animate Pulses along paths
+    const pulseTimeline = gsap.timeline()
+    const paths = ['#dendrite-1', '#dendrite-2', '#dendrite-3', '#dendrite-4']
+
+    pulses.forEach((pulse, i) => {
+      // Create a unique timeline for each pulse or stagger them
+      // Ensure specific pulses go to specific paths if needed,
+      // or just cycle through if count matches
+      const pathId = paths[i % paths.length]
+
+      pulseTimeline.set(pulse, { opacity: 1 }, 0).to(
+        pulse,
+        {
+          motionPath: {
+            path: pathId,
+            align: pathId,
+            alignOrigin: [0.5, 0.5],
+          },
+          duration: 1.0,
+          ease: 'power1.inOut',
+        },
+        0 + i * 0.1,
+      )
+    })
+
+    revealTimeline.add(pulseTimeline, '-=0.5')
+
+    // Terminals appear when pulse arrives
+    revealTimeline.to(
+      terminals,
+      {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        stagger: 0.1,
+        duration: 0.6,
+        ease: 'back.out(1.2)',
+      },
+      '-=0.8',
+    )
+
+    // Hide pulses at end
+    revealTimeline.to(pulses, { opacity: 0, duration: 0.2 })
+  })
+</script>
+
+<style lang="scss">
+  .synaptic-section {
+    position: relative;
+    padding: var(--space-xl) 0; /* Reduced padding */
+    min-height: 80vh; /* Reduced from 100vh */
+    overflow: hidden;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     COVER UI
+     ═══════════════════════════════════════════════════════════════════════════ */
+  .research-cover {
+    display: flex;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    justify-content: center;
+    align-items: center;
+    transform: translate(-50%, -50%);
+    z-index: 50;
+    width: 100%;
+    height: 100%;
+    /* pointer-events: none; handled by GSAP */
+  }
+
+  .cover-glass {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    box-shadow:
+      0 20px 40px rgba(0, 0, 0, 0.05),
+      0 0 0 1px rgba(255, 255, 255, 0.6);
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.4);
+    padding: 3rem;
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+  }
+
+  .cover-icon {
+    margin-bottom: 1rem;
+
+    svg {
+      filter: drop-shadow(0 4px 12px rgba(66, 133, 244, 0.3));
+    }
+  }
+
+  .animate-pulse-slow {
+    animation: pulse 3s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.8;
+    }
+    50% {
+      transform: scale(1.05);
+      opacity: 1;
+    }
+  }
+
+  .cover-title {
+    margin: 0;
+    background: linear-gradient(135deg, var(--color-google-blue), var(--color-living-teal));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-weight: 700;
+    font-size: 2.5rem;
+    font-family: var(--font-heading);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     CONTENT
+     ═══════════════════════════════════════════════════════════════════════════ */
+  .synapse-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+  }
+
+  /* SOMA (Central Brain) */
+  .soma-container {
+    display: flex;
+    position: relative;
+    justify-content: center;
+    z-index: 10;
+    width: 100%;
+    height: 200px; /* Reduced from 250px */
+  }
+
+  .soma-core {
+    display: flex;
+    position: relative;
+    justify-content: center;
+    align-items: center;
+    z-index: 20;
+
+    /* Glass Sphere Aesthetics */
+    backdrop-filter: blur(12px) saturate(150%);
+    box-shadow:
+      inset 0 4px 10px rgba(255, 255, 255, 0.8),
+      0 8px 32px rgba(66, 133, 244, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.9), rgba(230, 240, 255, 0.4));
+
+    width: 140px; /* Slightly smaller */
+    height: 140px;
+  }
+
+  .soma-glow {
+    position: absolute;
+    top: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    filter: blur(40px);
+    border-radius: 50%;
+    background: var(--color-google-blue);
+    width: 80px;
+    height: 80px;
+    pointer-events: none;
+  }
+
+  .soma-title {
+    margin: 0;
+    color: var(--color-google-blue);
+    font-weight: 700;
+    font-size: 1.5rem;
+    font-family: var(--font-heading, 'Outfit', sans-serif);
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+  }
+
+  /* DENDRITES (Connections) */
+  .dendrite-network {
+    position: absolute;
+    top: 70px; /* Adjusted for smaller soma */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1;
+
+    /* Liquid Glow Filter */
+    filter: drop-shadow(0 0 8px rgba(95, 179, 161, 0.3));
+    width: 1000px;
+    height: 300px; /* MATCH SVG VIEWBOX HEIGHT */
+    pointer-events: none;
+  }
+
+  .synaptic-pulse {
+    position: absolute;
+    opacity: 0; /* Hidden until firing */
+    z-index: 15;
+    box-shadow:
+      0 0 10px white,
+      0 0 20px var(--color-living-teal);
+    border-radius: 50%;
+    background: white;
+    width: 12px;
+    height: 12px;
+  }
+
+  /* TERMINALS (Cards) */
+  .terminals-container {
+    display: grid;
+    position: relative;
+    grid-template-columns: repeat(2, 1fr); /* 2 columns for 4 items */
+    gap: var(--space-l);
+    z-index: 20;
+    margin-top: -140px; /* Pull up closer */
+    padding: 0 var(--space-m);
+    width: 100%;
+    max-width: 1000px;
+  }
+
+  .terminal-wrapper {
+    transform: scale(0.9) translateY(20px);
+    opacity: 0; /* Hidden initially */
+  }
+
+  /* REDUCED MOTION FALLBACK */
+  .synaptic-section.reduced-motion {
+    .soma-core {
+      animation: none;
+    }
+    .dendrite-network,
+    .synaptic-pulse {
+      display: none;
+    }
+    .terminal-wrapper {
+      transform: none;
+      opacity: 1;
+      transition: opacity 0.5s ease;
+    }
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    .terminals-container {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+      margin-top: 0;
+    }
+    .dendrite-network {
+      display: none; /* Hide complex paths on mobile */
+    }
+    .soma-container {
+      margin-bottom: 2rem;
+      height: 120px;
+    }
+
+    .cover-glass {
+      padding: 2rem;
+      width: 85%;
+    }
+  }
+</style>
