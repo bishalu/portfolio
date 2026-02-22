@@ -338,7 +338,9 @@ async function sendSlackTest(parsed: ReturnType<typeof parseLeaderboard>) {
     `Score: ${formatScore(top1.score)}${
       top1.score_ci !== undefined ? `±${formatScore(top1.score_ci)}` : ""
     } | Votes: ${top1.votes.toLocaleString()}`,
-    `#2: ${top2.model} (${formatScore(top2.score)})`,
+    `#2: ${top2.model}${top2.org ? ` (${top2.org})` : ""} (${formatScore(
+      top2.score
+    )}${top2.score_ci !== undefined ? `±${formatScore(top2.score_ci)}` : ""} | Votes: ${top2.votes.toLocaleString()})`,
     `Lead: +${formatScore(leadScore)} score | +${leadVotes.toLocaleString()} votes`,
     `Leaderboard date: ${date} | Total votes: ${totalVotes}`,
     `Link: ${LEADERBOARD_URL}`,
