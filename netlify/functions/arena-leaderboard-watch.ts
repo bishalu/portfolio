@@ -1,6 +1,5 @@
 import type { Handler, ScheduledEvent } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
-import * as cheerio from "cheerio";
 
 type ModelSnapshot = {
   model: string;
@@ -132,11 +131,13 @@ const handler: Handler = async (_event, context) => {
 };
 
 async function fetchLeaderboard(): Promise<string> {
-  const response = await fetch(LEADERBOARD_URL, {
+  const rscUrl = `${LEADERBOARD_URL}?_rsc=1`;
+  const response = await fetch(rscUrl, {
     headers: {
       "user-agent":
         "arena-leaderboard-watch/1.0 (+https://bishalup.netlify.app)",
-      accept: "text/html,application/xhtml+xml",
+      accept: "text/x-component,text/plain,*/*",
+      RSC: "1",
     },
   });
 
@@ -147,208 +148,107 @@ async function fetchLeaderboard(): Promise<string> {
   return response.text();
 }
 
-function parseLeaderboard(html: string, scrapedAt: string) {
-  const $ = cheerio.load(html);
-  const text = $("body").text();
-  const lines = text
-    .split("\n")
-    .map((line) => line.replace(/\s+/g, " ").trim())
-    .filter(Boolean);
+function parseLeaderboard(rscPayload: string, scrapedAt: string) {
+  const key = "\"leaderboardSlug\":\"overall-no-style-control\"";
+  const idx = rscPayload.indexOf(key);
+  if (idx === -1) return null;
 
-  const headerIndex = lines.findIndex((line) =>
-    /Model\s+Score\s+Votes/.test(line)
-  );
+  const start = rscPayload.lastIndexOf("{", idx);
+  const end = rscPayload.indexOf("},\"plots\"", idx);
+  if (start === -1 || end === -1) return null;
 
-  if (headerIndex === -1) {
+  const blob = rscPayload.slice(start, end + 1);
+  let data: {
+    entries: Array<{
+      rank: number;
+      rankUpper?: number;
+      rankLower?: number;
+      rankStyleControl?: number;
+      modelDisplayName: string;
+      rating: number;
+      ratingUpper?: number;
+      ratingLower?: number;
+      votes: number;
+      modelOrganization?: string;
+      modelUrl?: string;
+      license?: string;
+    }>;
+    voteCutoffISOString?: string;
+    totalVotes?: number;
+    totalModels?: number;
+  };
+
+  try {
+    data = JSON.parse(blob);
+  } catch {
     return null;
   }
 
-  const anchorMap = buildAnchorMap($);
-  const rowsLines = lines.slice(headerIndex + 1);
-  const first = parseRow(rowsLines, 0, anchorMap);
-  if (!first) {
-    return null;
-  }
-  const second = parseRow(rowsLines, first.nextIndex, anchorMap);
-  if (!second) {
-    return null;
-  }
+  if (!data.entries || data.entries.length < 2) return null;
 
-  const leaderboardDate = findDate(text);
-  const totalVotes = findCount(text, /([\d,]+)\s+votes/i);
-  const modelCount = findCount(text, /([\d,]+)\s+models/i);
+  const top1 = toSnapshot(data.entries[0]);
+  const top2 = toSnapshot(data.entries[1]);
 
-  if (
-    !first.model ||
-    !second.model ||
-    Number.isNaN(first.score) ||
-    Number.isNaN(first.votes) ||
-    Number.isNaN(second.score) ||
-    Number.isNaN(second.votes)
-  ) {
-    return null;
-  }
+  if (!top1 || !top2) return null;
+
+  const leaderboardDate = data.voteCutoffISOString
+    ? formatDateUTC(data.voteCutoffISOString)
+    : undefined;
 
   return {
-    top1: first.model,
-    top2: second.model,
-    leadMarginScore: first.model.score - second.model.score,
-    leadMarginVotes: first.model.votes - second.model.votes,
+    top1,
+    top2,
+    leadMarginScore: roundTo(top1.score - top2.score, 2),
+    leadMarginVotes: top1.votes - top2.votes,
     meta: {
-      leaderboard_date: leaderboardDate ?? undefined,
-      total_votes: totalVotes ?? undefined,
-      model_count: modelCount ?? undefined,
+      leaderboard_date: leaderboardDate,
+      total_votes: data.totalVotes,
+      model_count: data.totalModels,
       scraped_at: scrapedAt,
     },
   };
 }
 
-function parseRow(
-  lines: string[],
-  startIndex: number,
-  anchorMap: Map<string, string>
-) {
-  let i = startIndex;
-  while (i < lines.length && !isRank(lines[i])) {
-    i += 1;
-  }
-  if (i >= lines.length) {
-    return null;
-  }
-  const rank = parseInt(lines[i], 10);
-  i += 1;
-  if (i >= lines.length) {
-    return null;
-  }
-  const rankSpread = lines[i];
-  if (!isRankSpread(rankSpread)) {
-    return null;
-  }
-  i += 1;
+function toSnapshot(entry: {
+  rank: number;
+  rankUpper?: number;
+  rankLower?: number;
+  rankStyleControl?: number;
+  modelDisplayName: string;
+  rating: number;
+  ratingUpper?: number;
+  ratingLower?: number;
+  votes: number;
+  modelOrganization?: string;
+  modelUrl?: string;
+  license?: string;
+}): ModelSnapshot | null {
+  if (!entry.modelDisplayName || typeof entry.rating !== "number") return null;
+  if (typeof entry.votes !== "number") return null;
 
-  const metaLines: string[] = [];
-  while (i < lines.length && !isScore(lines[i])) {
-    metaLines.push(lines[i]);
-    i += 1;
-  }
-  if (i >= lines.length) {
-    return null;
-  }
-  const scoreLine = lines[i];
-  i += 1;
-  if (i >= lines.length) {
-    return null;
-  }
-  const votesLine = lines[i];
-  i += 1;
+  const score = roundTo(entry.rating, 2);
+  const scoreCi =
+    typeof entry.ratingUpper === "number" && typeof entry.ratingLower === "number"
+      ? roundTo((entry.ratingUpper - entry.ratingLower) / 2, 2)
+      : undefined;
 
-  const cleanedMeta = metaLines
-    .filter((line) => line && !/^Image:/.test(line))
-    .filter((line) => line !== "Preliminary");
-  const preliminary = metaLines.includes("Preliminary");
-  const licenseLine = cleanedMeta.find((line) => line.includes("·"));
+  const rankSpread =
+    typeof entry.rankUpper === "number" && typeof entry.rankLower === "number"
+      ? `${entry.rankUpper} ${entry.rankLower}`
+      : undefined;
 
-  let org: string | undefined;
-  let license: string | undefined;
-  if (licenseLine) {
-    const [orgPart, licensePart] = licenseLine.split("·").map((s) => s.trim());
-    if (orgPart) org = orgPart;
-    if (licensePart) license = licensePart;
-  }
-
-  let modelName: string | undefined;
-  if (licenseLine) {
-    const licenseIndex = cleanedMeta.indexOf(licenseLine);
-    if (licenseIndex > 0) {
-      modelName = cleanedMeta[licenseIndex - 1];
-    }
-    if (!org && licenseIndex > 1) {
-      org = cleanedMeta[licenseIndex - 2];
-    }
-  }
-
-  if (!modelName && cleanedMeta.length > 0) {
-    modelName = cleanedMeta[cleanedMeta.length - 1];
-  }
-
-  if (!org && cleanedMeta.length > 1) {
-    org = cleanedMeta[0];
-  }
-
-  if (!modelName) {
-    return null;
-  }
-
-  const { score, scoreCi } = parseScore(scoreLine);
-  const votes = parseVotes(votesLine);
-  const url = anchorMap.get(modelName);
-
-  const model: ModelSnapshot = {
-    model: modelName,
-    org,
-    license,
+  return {
+    model: entry.modelDisplayName,
+    org: entry.modelOrganization,
+    license: entry.license,
     score,
     score_ci: scoreCi,
-    votes,
-    rank,
+    votes: entry.votes,
+    rank: entry.rank,
     rank_spread: rankSpread,
-    preliminary,
-    url,
+    preliminary: false,
+    url: entry.modelUrl,
   };
-
-  return { model, nextIndex: i };
-}
-
-function isRank(value: string) {
-  return /^\d+$/.test(value);
-}
-
-function isRankSpread(value: string) {
-  return /^\d+\s+\d+$/.test(value);
-}
-
-function isScore(value: string) {
-  return /^\d{3,4}±\d+$/.test(value);
-}
-
-function parseScore(value: string) {
-  const match = value.match(/^(\d{3,4})±(\d+)$/);
-  if (!match) {
-    return { score: Number.NaN, scoreCi: undefined };
-  }
-  return { score: Number(match[1]), scoreCi: Number(match[2]) };
-}
-
-function parseVotes(value: string) {
-  const match = value.match(/^[\d,]+$/);
-  if (!match) return Number.NaN;
-  return Number(value.replace(/,/g, ""));
-}
-
-function findDate(text: string) {
-  const match = text.match(
-    /\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},\s+\d{4}\b/
-  );
-  return match ? match[0] : null;
-}
-
-function findCount(text: string, regex: RegExp) {
-  const match = text.match(regex);
-  if (!match) return null;
-  return Number(match[1].replace(/,/g, ""));
-}
-
-function buildAnchorMap($: cheerio.CheerioAPI) {
-  const map = new Map<string, string>();
-  $("a[href]").each((_i, el) => {
-    const text = $(el).text().trim();
-    const href = $(el).attr("href");
-    if (!text || !href) return;
-    if (!map.has(text)) {
-      map.set(text, href);
-    }
-  });
-  return map;
 }
 
 async function sendSlackChange(
@@ -371,11 +271,15 @@ async function sendSlackChange(
 
   const message = [
     `*New #1:* ${top1.model}${top1.org ? ` (${top1.org})` : ""}`,
-    `Score: ${top1.score}${top1.score_ci ? `±${top1.score_ci}` : ""} | Votes: ${top1.votes.toLocaleString()}`,
-    `Prev #1: ${previous.current.model} (${previous.current.score}${
-      previous.current.score_ci ? `±${previous.current.score_ci}` : ""
+    `Score: ${formatScore(top1.score)}${
+      top1.score_ci !== undefined ? `±${formatScore(top1.score_ci)}` : ""
+    } | Votes: ${top1.votes.toLocaleString()}`,
+    `Prev #1: ${previous.current.model} (${formatScore(previous.current.score)}${
+      previous.current.score_ci !== undefined
+        ? `±${formatScore(previous.current.score_ci)}`
+        : ""
     })`,
-    `Lead over #2: +${leadScore} score | +${leadVotes.toLocaleString()} votes`,
+    `Lead over #2: +${formatScore(leadScore)} score | +${leadVotes.toLocaleString()} votes`,
     `Leaderboard date: ${date} | Total votes: ${totalVotes}`,
     `Link: ${LEADERBOARD_URL}`,
   ].join("\n");
@@ -445,6 +349,25 @@ function ok(message: string) {
     statusCode: 200,
     body: message,
   };
+}
+
+function formatDateUTC(iso: string) {
+  const date = new Date(iso);
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+function roundTo(value: number, digits: number) {
+  const factor = 10 ** digits;
+  return Math.round(value * factor) / factor;
+}
+
+function formatScore(value: number) {
+  return Number.isInteger(value) ? value.toString() : value.toFixed(2);
 }
 
 export { handler, handler as default };
