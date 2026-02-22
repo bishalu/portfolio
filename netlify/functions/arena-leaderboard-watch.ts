@@ -293,6 +293,9 @@ async function sendSlackChange(
     `Score: ${formatScore(top1.score)}${
       top1.score_ci !== undefined ? `±${formatScore(top1.score_ci)}` : ""
     } | Votes: ${top1.votes.toLocaleString()}`,
+    `#2: ${top2.model}${top2.org ? ` (${top2.org})` : ""} (${formatScore(
+      top2.score
+    )}${top2.score_ci !== undefined ? `±${formatScore(top2.score_ci)}` : ""} | Votes: ${top2.votes.toLocaleString()})`,
     `Prev #1: ${previous.current.model} (${formatScore(previous.current.score)}${
       previous.current.score_ci !== undefined
         ? `±${formatScore(previous.current.score_ci)}`
@@ -409,8 +412,15 @@ function ok(message: string) {
 }
 
 function getConfiguredStore() {
-  const siteID = process.env.BLOBS_SITE_ID;
-  const token = process.env.BLOBS_TOKEN;
+  const siteID =
+    process.env.BLOBS_SITE_ID ||
+    process.env.NETLIFY_SITE_ID ||
+    process.env.NETLIFY_BLOBS_SITE_ID;
+  const token =
+    process.env.BLOBS_TOKEN ||
+    process.env.NETLIFY_AUTH_TOKEN ||
+    process.env.NETLIFY_ACCESS_TOKEN ||
+    process.env.NETLIFY_BLOBS_TOKEN;
   if (siteID && token) {
     return getStore(STORE_NAME, { siteID, token });
   }
