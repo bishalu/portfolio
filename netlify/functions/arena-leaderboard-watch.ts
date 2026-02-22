@@ -47,6 +47,12 @@ const STATE_KEY = "state.json";
 const MAX_HISTORY = 30;
 
 const handler: Handler = async (_event, context) => {
+  const debug =
+    typeof _event === "object" &&
+    _event !== null &&
+    "queryStringParameters" in _event &&
+    (_event as { queryStringParameters?: Record<string, string> })
+      .queryStringParameters?.debug === "1";
   const scheduledEvent = context as ScheduledEvent;
   const runId = scheduledEvent?.event?.id ?? "manual";
   const scrapedAt = new Date().toISOString();
@@ -61,7 +67,7 @@ const handler: Handler = async (_event, context) => {
         "Missing required fields while parsing leaderboard.",
         runId
       );
-      return ok("Parse failed");
+      return ok(debug ? "Parse failed (debug enabled)" : "Parse failed");
     }
 
     const store = getStore(STORE_NAME);
@@ -81,7 +87,7 @@ const handler: Handler = async (_event, context) => {
         history: [],
       };
       await store.set(STATE_KEY, initialState);
-      return ok("Initialized state");
+      return ok(debug ? "Initialized state (debug enabled)" : "Initialized state");
     }
 
     const hasChange = previous.current.model !== parsed.top1.model;
@@ -118,15 +124,17 @@ const handler: Handler = async (_event, context) => {
 
       await store.set(STATE_KEY, nextState);
       await sendSlackChange(parsed, previous);
-      return ok("Change notified");
+      return ok(debug ? "Change notified (debug enabled)" : "Change notified");
     }
 
     await store.set(STATE_KEY, nextState);
-    return ok("No change");
+    return ok(debug ? "No change (debug enabled)" : "No change");
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await safeSlackFailure("fetch_failed", message, runId);
-    return ok("Error handled");
+    return ok(
+      debug ? `Error handled (debug): ${message}` : "Error handled"
+    );
   }
 };
 
