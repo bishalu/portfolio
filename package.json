@@ -65,7 +65,7 @@
     "@astrojs/react": "^4.4.2",
     "@astrojs/sitemap": "^3.5.1",
     "@aws-sdk/client-secrets-manager": "^3.971.0",
-    "@netlify/blobs": "^8.2.1",
+    "@netlify/blobs": "^10.0.10",
     "@netlify/functions": "^5.1.2",
     "@tailwindcss/vite": "^4.1.13",
     "@types/react": "^19.2.8",
