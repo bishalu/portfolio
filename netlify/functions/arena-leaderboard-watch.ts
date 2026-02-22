@@ -360,8 +360,8 @@ function ok(message: string) {
 }
 
 function getConfiguredStore() {
-  const siteID = process.env.NETLIFY_SITE_ID;
-  const token = process.env.NETLIFY_AUTH_TOKEN;
+  const siteID = process.env.BLOBS_SITE_ID;
+  const token = process.env.BLOBS_TOKEN;
   if (siteID && token) {
     return getStore(STORE_NAME, { siteID, token });
   }
