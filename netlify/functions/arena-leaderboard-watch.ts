@@ -70,7 +70,7 @@ const handler: Handler = async (_event, context) => {
       return ok(debug ? "Parse failed (debug enabled)" : "Parse failed");
     }
 
-    const store = getStore(STORE_NAME);
+    const store = getConfiguredStore();
     const previous = await store.get<State>(STATE_KEY, { type: "json" });
 
     if (!previous) {
@@ -357,6 +357,15 @@ function ok(message: string) {
     statusCode: 200,
     body: message,
   };
+}
+
+function getConfiguredStore() {
+  const siteID = process.env.NETLIFY_SITE_ID;
+  const token = process.env.NETLIFY_AUTH_TOKEN;
+  if (siteID && token) {
+    return getStore(STORE_NAME, { siteID, token });
+  }
+  return getStore(STORE_NAME);
 }
 
 function formatDateUTC(iso: string) {
