@@ -53,6 +53,12 @@ const handler: Handler = async (_event, context) => {
     "queryStringParameters" in _event &&
     (_event as { queryStringParameters?: Record<string, string> })
       .queryStringParameters?.debug === "1";
+  const testNotify =
+    typeof _event === "object" &&
+    _event !== null &&
+    "queryStringParameters" in _event &&
+    (_event as { queryStringParameters?: Record<string, string> })
+      .queryStringParameters?.test === "1";
   const scheduledEvent = context as ScheduledEvent;
   const runId = scheduledEvent?.event?.id ?? "manual";
   const scrapedAt = new Date().toISOString();
@@ -68,6 +74,11 @@ const handler: Handler = async (_event, context) => {
         runId
       );
       return ok(debug ? "Parse failed (debug enabled)" : "Parse failed");
+    }
+
+    if (testNotify) {
+      await sendSlackTest(parsed);
+      return ok(debug ? "Test notification sent (debug enabled)" : "Test notification sent");
     }
 
     const store = getConfiguredStore();
@@ -294,6 +305,44 @@ async function sendSlackChange(
 
   await postToSlack(webhookUrl, {
     text: `New #1 on Arena Text (no style control): ${top1.model}`,
+    blocks: [
+      {
+        type: "section",
+        text: { type: "mrkdwn", text: message },
+      },
+    ],
+  });
+}
+
+async function sendSlackTest(parsed: ReturnType<typeof parseLeaderboard>) {
+  if (!parsed) return;
+  const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+  if (!webhookUrl) return;
+
+  const top1 = parsed.top1;
+  const top2 = parsed.top2;
+  const leadScore = parsed.leadMarginScore;
+  const leadVotes = parsed.leadMarginVotes;
+  const date = parsed.meta.leaderboard_date ?? "unknown";
+  const totalVotes =
+    parsed.meta.total_votes !== undefined
+      ? parsed.meta.total_votes.toLocaleString()
+      : "unknown";
+
+  const message = [
+    "*TEST* Arena watcher is live.",
+    `Current #1: ${top1.model}${top1.org ? ` (${top1.org})` : ""}`,
+    `Score: ${formatScore(top1.score)}${
+      top1.score_ci !== undefined ? `±${formatScore(top1.score_ci)}` : ""
+    } | Votes: ${top1.votes.toLocaleString()}`,
+    `#2: ${top2.model} (${formatScore(top2.score)})`,
+    `Lead: +${formatScore(leadScore)} score | +${leadVotes.toLocaleString()} votes`,
+    `Leaderboard date: ${date} | Total votes: ${totalVotes}`,
+    `Link: ${LEADERBOARD_URL}`,
+  ].join("\n");
+
+  await postToSlack(webhookUrl, {
+    text: `TEST: Arena watcher live (${top1.model})`,
     blocks: [
       {
         type: "section",
