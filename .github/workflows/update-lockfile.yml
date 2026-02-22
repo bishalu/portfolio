@@ -15,12 +15,12 @@ jobs:
           node-version: 20
       - run: npm install
       - run: |
-          if git diff --quiet package-lock.json; then
+          git add package-lock.json
+          if git diff --cached --quiet; then
             echo "No lockfile changes"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add package-lock.json
           git commit -m "Update lockfile for arena watcher deps"
           git push
