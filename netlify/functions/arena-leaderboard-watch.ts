@@ -28,6 +28,7 @@ type State = {
     lead_margin_votes: number;
     changes_count: number;
     last_change_at?: string;
+    last_heartbeat_date?: string;
   };
   history: Array<{
     changed_at: string;
@@ -38,6 +39,8 @@ type State = {
     lead_margin_score: number;
     leaderboard_date?: string;
   }>;
+  simulate_next?: boolean;
+  simulate_requested_at?: string;
 };
 
 const LEADERBOARD_URL =
@@ -45,6 +48,8 @@ const LEADERBOARD_URL =
 const STORE_NAME = "arena-leaderboard";
 const STATE_KEY = "state.json";
 const MAX_HISTORY = 30;
+const HEARTBEAT_UTC_HOUR = 15;
+const HEARTBEAT_UTC_MINUTE = 0;
 
 const handler: Handler = async (_event, context) => {
   const debug =
@@ -59,6 +64,18 @@ const handler: Handler = async (_event, context) => {
     "queryStringParameters" in _event &&
     (_event as { queryStringParameters?: Record<string, string> })
       .queryStringParameters?.test === "1";
+  const simulate =
+    typeof _event === "object" &&
+    _event !== null &&
+    "queryStringParameters" in _event &&
+    (_event as { queryStringParameters?: Record<string, string> })
+      .queryStringParameters?.simulate === "1";
+  const simulateKey =
+    typeof _event === "object" &&
+    _event !== null &&
+    "queryStringParameters" in _event &&
+    (_event as { queryStringParameters?: Record<string, string> })
+      .queryStringParameters?.key;
   const scheduledEvent = context as ScheduledEvent;
   const runId = scheduledEvent?.event?.id ?? "manual";
   const scrapedAt = new Date().toISOString();
@@ -84,6 +101,39 @@ const handler: Handler = async (_event, context) => {
     const store = getConfiguredStore();
     const previous = await store.get<State>(STATE_KEY, { type: "json" });
 
+    if (simulate) {
+      const requiredKey = process.env.SIMULATE_KEY;
+      if (!requiredKey || requiredKey !== simulateKey) {
+        return {
+          statusCode: 403,
+          body: "Forbidden",
+        };
+      }
+      const nextState: State = previous
+        ? {
+            ...previous,
+            simulate_next: true,
+            simulate_requested_at: scrapedAt,
+          }
+        : {
+            current: parsed.top1,
+            runner_up: parsed.top2,
+            meta: parsed.meta,
+            stats: {
+              lead_margin_score: parsed.leadMarginScore,
+              lead_margin_votes: parsed.leadMarginVotes,
+              changes_count: 0,
+              last_change_at: undefined,
+              last_heartbeat_date: undefined,
+            },
+            history: [],
+            simulate_next: true,
+            simulate_requested_at: scrapedAt,
+          };
+      await store.set(STATE_KEY, nextState);
+      return ok(debug ? "Simulate scheduled (debug enabled)" : "Simulate scheduled");
+    }
+
     if (!previous) {
       const initialState: State = {
         current: parsed.top1,
@@ -94,6 +144,7 @@ const handler: Handler = async (_event, context) => {
           lead_margin_votes: parsed.leadMarginVotes,
           changes_count: 0,
           last_change_at: undefined,
+          last_heartbeat_date: undefined,
         },
         history: [],
       };
@@ -101,7 +152,8 @@ const handler: Handler = async (_event, context) => {
       return ok(debug ? "Initialized state (debug enabled)" : "Initialized state");
     }
 
-    const hasChange = previous.current.model !== parsed.top1.model;
+    const shouldSimulate = previous.simulate_next === true;
+    const hasChange = previous.current.model !== parsed.top1.model || shouldSimulate;
     const nextState: State = {
       current: parsed.top1,
       runner_up: parsed.top2,
@@ -111,14 +163,18 @@ const handler: Handler = async (_event, context) => {
         lead_margin_votes: parsed.leadMarginVotes,
         changes_count: previous.stats.changes_count,
         last_change_at: previous.stats.last_change_at,
+        last_heartbeat_date: previous.stats.last_heartbeat_date,
       },
       history: previous.history ?? [],
+      simulate_next: shouldSimulate ? false : previous.simulate_next,
+      simulate_requested_at: previous.simulate_requested_at,
     };
 
     if (hasChange) {
       const changedAt = scrapedAt;
       nextState.stats.changes_count = previous.stats.changes_count + 1;
       nextState.stats.last_change_at = changedAt;
+      nextState.simulate_next = false;
 
       nextState.history = [
         {
@@ -136,6 +192,17 @@ const handler: Handler = async (_event, context) => {
       await store.set(STATE_KEY, nextState);
       await sendSlackChange(parsed, previous);
       return ok(debug ? "Change notified (debug enabled)" : "Change notified");
+    }
+
+    const today = getUtcDate();
+    if (
+      nextState.stats.last_heartbeat_date !== today &&
+      shouldSendHeartbeatNow()
+    ) {
+      nextState.stats.last_heartbeat_date = today;
+      await store.set(STATE_KEY, nextState);
+      await sendSlackHeartbeat(parsed, today);
+      return ok(debug ? "Heartbeat sent (debug enabled)" : "Heartbeat sent");
     }
 
     await store.set(STATE_KEY, nextState);
@@ -357,6 +424,31 @@ async function sendSlackTest(parsed: ReturnType<typeof parseLeaderboard>) {
   });
 }
 
+async function sendSlackHeartbeat(
+  parsed: ReturnType<typeof parseLeaderboard>,
+  date: string
+) {
+  if (!parsed) return;
+  const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+  if (!webhookUrl) return;
+
+  const top1 = parsed.top1;
+  const message = [
+    "*Heartbeat:* Arena watcher is healthy.",
+    `Date: ${date}`,
+    `Current #1: ${top1.model}${top1.org ? ` (${top1.org})` : ""}`,
+    `Score: ${formatScore(top1.score)}${
+      top1.score_ci !== undefined ? `±${formatScore(top1.score_ci)}` : ""
+    } | Votes: ${top1.votes.toLocaleString()}`,
+    `Link: ${LEADERBOARD_URL}`,
+  ].join("\n");
+
+  await postToSlack(webhookUrl, {
+    text: `Heartbeat: Arena watcher (${date})`,
+    blocks: [{ type: "section", text: { type: "mrkdwn", text: message } }],
+  });
+}
+
 async function sendSlackFailure(
   kind: "fetch_failed" | "parse_failed",
   detail: string,
@@ -437,6 +529,18 @@ function formatDateUTC(iso: string) {
     year: "numeric",
     timeZone: "UTC",
   });
+}
+
+function getUtcDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function shouldSendHeartbeatNow() {
+  const now = new Date();
+  return (
+    now.getUTCHours() === HEARTBEAT_UTC_HOUR &&
+    now.getUTCMinutes() === HEARTBEAT_UTC_MINUTE
+  );
 }
 
 function roundTo(value: number, digits: number) {
