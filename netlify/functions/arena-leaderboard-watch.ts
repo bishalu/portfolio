@@ -1,4 +1,4 @@
-import type { Handler, ScheduledEvent } from "@netlify/functions";
+import { schedule, type Handler, type ScheduledEvent } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
 
 type ModelSnapshot = {
@@ -50,8 +50,9 @@ const STATE_KEY = "state.json";
 const MAX_HISTORY = 30;
 const HEARTBEAT_UTC_HOUR = 15;
 const HEARTBEAT_UTC_MINUTE = 0;
+const WATCH_CRON = "*/30 * * * *";
 
-const handler: Handler = async (_event, context) => {
+const runWatcher: Handler = async (_event, context) => {
   const debug =
     typeof _event === "object" &&
     _event !== null &&
@@ -215,6 +216,8 @@ const handler: Handler = async (_event, context) => {
     );
   }
 };
+
+const handler = schedule(WATCH_CRON, runWatcher);
 
 async function fetchLeaderboard(): Promise<string> {
   const rscUrl = `${LEADERBOARD_URL}?_rsc=1`;
@@ -553,6 +556,3 @@ function formatScore(value: number) {
 }
 
 export { handler, handler as default };
-export const config = {
-  schedule: "*/30 * * * *",
-};
