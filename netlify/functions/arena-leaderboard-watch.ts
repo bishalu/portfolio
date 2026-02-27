@@ -51,6 +51,8 @@ const MAX_HISTORY = 30;
 const HEARTBEAT_UTC_HOUR = 15;
 const HEARTBEAT_UTC_MINUTE = 0;
 const WATCH_CRON = "*/30 * * * *";
+const FIXTURE_MODEL_1 = "fixture-top-model";
+const FIXTURE_MODEL_2 = "fixture-runner-up";
 
 const runWatcher: Handler = async (_event, context) => {
   const debug =
@@ -77,11 +79,26 @@ const runWatcher: Handler = async (_event, context) => {
     "queryStringParameters" in _event &&
     (_event as { queryStringParameters?: Record<string, string> })
       .queryStringParameters?.key;
+  const fixtureNotify =
+    typeof _event === "object" &&
+    _event !== null &&
+    "queryStringParameters" in _event &&
+    (_event as { queryStringParameters?: Record<string, string> })
+      .queryStringParameters?.fixture === "1";
   const scheduledEvent = context as ScheduledEvent;
   const runId = scheduledEvent?.event?.id ?? "manual";
   const scrapedAt = new Date().toISOString();
 
   try {
+    if (fixtureNotify) {
+      await sendSlackTest(makeFixtureParsed(scrapedAt));
+      return ok(
+        debug
+          ? "Fixture test notification sent (debug enabled)"
+          : "Fixture test notification sent"
+      );
+    }
+
     const html = await fetchLeaderboard();
     const parsed = parseLeaderboard(html, scrapedAt);
 
@@ -100,7 +117,7 @@ const runWatcher: Handler = async (_event, context) => {
     }
 
     const store = getConfiguredStore();
-    const previous = await store.get<State>(STATE_KEY, { type: "json" });
+    const previous = await readState(store);
 
     if (simulate) {
       const requiredKey = process.env.SIMULATE_KEY;
@@ -131,7 +148,7 @@ const runWatcher: Handler = async (_event, context) => {
             simulate_next: true,
             simulate_requested_at: scrapedAt,
           };
-      await store.set(STATE_KEY, nextState);
+      await writeState(store, nextState);
       return ok(debug ? "Simulate scheduled (debug enabled)" : "Simulate scheduled");
     }
 
@@ -149,7 +166,7 @@ const runWatcher: Handler = async (_event, context) => {
         },
         history: [],
       };
-      await store.set(STATE_KEY, initialState);
+      await writeState(store, initialState);
       return ok(debug ? "Initialized state (debug enabled)" : "Initialized state");
     }
 
@@ -190,7 +207,7 @@ const runWatcher: Handler = async (_event, context) => {
         ...(previous.history ?? []),
       ].slice(0, MAX_HISTORY);
 
-      await store.set(STATE_KEY, nextState);
+      await writeState(store, nextState);
       await sendSlackChange(parsed, previous);
       return ok(debug ? "Change notified (debug enabled)" : "Change notified");
     }
@@ -201,12 +218,12 @@ const runWatcher: Handler = async (_event, context) => {
       shouldSendHeartbeatNow()
     ) {
       nextState.stats.last_heartbeat_date = today;
-      await store.set(STATE_KEY, nextState);
+      await writeState(store, nextState);
       await sendSlackHeartbeat(parsed, today);
       return ok(debug ? "Heartbeat sent (debug enabled)" : "Heartbeat sent");
     }
 
-    await store.set(STATE_KEY, nextState);
+    await writeState(store, nextState);
     return ok(debug ? "No change (debug enabled)" : "No change");
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -522,6 +539,51 @@ function getConfiguredStore() {
     return getStore(STORE_NAME, { siteID, token });
   }
   return getStore(STORE_NAME);
+}
+
+async function readState(store: ReturnType<typeof getConfiguredStore>) {
+  try {
+    return await store.get<State>(STATE_KEY, { type: "json" });
+  } catch (error) {
+    console.error("State parse failed, reinitializing state", error);
+    return null;
+  }
+}
+
+async function writeState(store: ReturnType<typeof getConfiguredStore>, state: State) {
+  await store.setJSON(STATE_KEY, state);
+}
+
+function makeFixtureParsed(scrapedAt: string) {
+  const top1: ModelSnapshot = {
+    model: FIXTURE_MODEL_1,
+    org: "Fixture Labs",
+    score: 1510.12,
+    score_ci: 6.11,
+    votes: 7123,
+    rank: 1,
+  };
+  const top2: ModelSnapshot = {
+    model: FIXTURE_MODEL_2,
+    org: "Fixture Labs",
+    score: 1509.88,
+    score_ci: 6.33,
+    votes: 7010,
+    rank: 2,
+  };
+
+  return {
+    top1,
+    top2,
+    leadMarginScore: roundTo(top1.score - top2.score, 2),
+    leadMarginVotes: top1.votes - top2.votes,
+    meta: {
+      leaderboard_date: formatDateUTC(scrapedAt),
+      total_votes: 5_340_000,
+      model_count: 260,
+      scraped_at: scrapedAt,
+    },
+  };
 }
 
 function formatDateUTC(iso: string) {
