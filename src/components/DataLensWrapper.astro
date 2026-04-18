@@ -37,8 +37,7 @@ const publicationData = publications.map((pub) => ({
     /* background: 
       linear-gradient(120deg, transparent 40%, rgba(255, 255, 255, 0.4) 50%, transparent 60%),
       linear-gradient(to bottom, transparent 0%, rgba(66, 133, 244, 0.03) 100%); */
-    padding: 2rem 1rem;
-    min-height: 100dvh;
+    padding: clamp(1rem, 3vw, 2rem) 1rem;
     scroll-snap-align: start;
   }
 
@@ -55,7 +54,6 @@ const publicationData = publications.map((pub) => ({
     background: rgba(255, 255, 255, 0.3);
     width: 100%;
     max-width: 1200px;
-    min-height: 600px;
 
     overflow: hidden;
   }
@@ -100,6 +98,49 @@ const publicationData = publications.map((pub) => ({
     font-size: 1rem;
   }
 
+  /* ─── Scroll Navigation Wrapper ────────────────────────────────────────── */
+  .publications-scroll-wrapper {
+    display: flex;
+    position: relative;
+    align-items: center;
+    width: 100%;
+  }
+
+  .scroll-arrow {
+    display: flex;
+    position: absolute;
+    justify-content: center;
+    align-items: center;
+    z-index: 20;
+    backdrop-filter: blur(12px) saturate(150%);
+    transition: all 0.2s ease;
+    cursor: pointer;
+    box-shadow:
+      0 4px 12px rgba(0, 0, 0, 0.1),
+      0 0 0 1px rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9);
+    width: 48px;
+    height: 48px;
+    color: var(--color-google-blue);
+
+    &:hover {
+      box-shadow:
+        0 8px 20px rgba(66, 133, 244, 0.2),
+        0 0 0 1px rgba(255, 255, 255, 0.7);
+      background: rgba(255, 255, 255, 1);
+    }
+  }
+
+  .scroll-arrow-left {
+    left: 0.5rem;
+  }
+
+  .scroll-arrow-right {
+    right: 0.5rem;
+  }
+
   /* ─── Grid Layout (Horizontal Scroll) ──────────────────────────────────── */
   .publications-grid {
     display: flex;
@@ -116,7 +157,7 @@ const publicationData = publications.map((pub) => ({
 
     /* Mask fade on edges (optional, adds polish) */
     mask-image: linear-gradient(to right, transparent, black 1rem, black calc(100% - 1rem), transparent);
-    scroll-padding: 0 1rem;
+    scroll-padding: 0 1.5rem;
     scroll-snap-type: x mandatory;
 
     /* Hide scrollbar for cleaner "magical" look */
@@ -130,7 +171,7 @@ const publicationData = publications.map((pub) => ({
   .publications-grid > :global(*) {
     flex: 0 0 auto;
     width: 320px; // Slightly smaller card width
-    max-width: 85vw; /* Responsive on mobile */
+    max-width: 88vw; /* Responsive on mobile */
     scroll-snap-align: center;
 
     @media (min-width: 768px) {
@@ -140,9 +181,8 @@ const publicationData = publications.map((pub) => ({
 
   /* ─── Flip Card Container ────────────────────────────────────────────────── */
   .flip-card-container {
-    display: flex;
     position: relative;
-    flex-direction: column;
+    perspective: 1000px; /* Enable 3D space for children */
     transition:
       box-shadow 0.3s ease,
       transform 0.3s ease;
@@ -153,8 +193,8 @@ const publicationData = publications.map((pub) => ({
     border: 1px solid rgba(255, 255, 255, 0.5);
     border-radius: 20px;
     background: transparent; /* Container is now transparent, faces have bg */
-    height: 100%;
-    min-height: 300px;
+    width: 320px; /* Explicit width to prevent collapse */
+    height: clamp(420px, 58vh, 520px); /* Responsive card height */
     overflow: visible; /* Allow 3D rotation to be visible */
 
     &:hover {
@@ -166,13 +206,14 @@ const publicationData = publications.map((pub) => ({
     }
 
     &:focus {
-      outline: 2px solid var(--color-google-blue);
-      outline-offset: 4px;
+      outline: none;
     }
   }
 
   .flip-card-inner {
     position: relative;
+    transform-origin: center center; /* Flip from center */
+    transform-style: preserve-3d; /* Preserve 3D transforms for children */
     border-radius: 20px;
     width: 100%;
     height: 100%;
@@ -181,14 +222,17 @@ const publicationData = publications.map((pub) => ({
   .flip-card-face {
     display: flex;
     position: absolute;
+    top: 0;
+    left: 0;
     flex-direction: column;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
     backdrop-filter: blur(12px) saturate(140%);
-    inset: 0;
     border: 1px solid rgba(255, 255, 255, 0.5);
     border-radius: 20px;
     background: rgba(255, 255, 255, 0.95);
+    width: 100%;
+    height: 100%;
     overflow: hidden;
   }
 
@@ -430,10 +474,6 @@ const publicationData = publications.map((pub) => ({
   }
 
   @media (max-width: 768px) {
-    .publications-grid {
-      grid-template-columns: 1fr;
-    }
-
     .section-title {
       font-size: 2.5rem;
     }
@@ -444,6 +484,50 @@ const publicationData = publications.map((pub) => ({
 
     .glass-container {
       border-radius: 20px;
+    }
+
+    .datalens-section {
+      padding: 2rem 0.75rem;
+    }
+
+    .datalens-header {
+      margin-bottom: 1.5rem;
+    }
+
+    .publications-scroll-wrapper {
+      padding: 0;
+    }
+
+    .publications-grid {
+      gap: 1rem;
+      mask-image: none;
+      padding: 0.75rem 0.25rem 1.25rem 0.25rem;
+      scroll-padding: 0 0.5rem;
+    }
+
+    .publications-grid > :global(*) {
+      width: min(320px, 88vw);
+      max-width: 88vw;
+    }
+
+    .flip-card-container {
+      height: min(460px, 72vh);
+    }
+
+    .pub-content-wrapper {
+      padding: 1.1rem;
+    }
+
+    .pub-title {
+      font-size: 1rem;
+    }
+
+    .pub-abstract-full {
+      font-size: 0.8rem;
+    }
+
+    .scroll-arrow {
+      display: none;
     }
   }
 </style>

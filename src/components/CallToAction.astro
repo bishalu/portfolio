@@ -40,7 +40,9 @@ const {
 ---
 
 <div class="container">
-  <div class="call-to-action mt-24 mb-32 flex flex-col items-center gap-8 rounded-xl px-12 py-20 md:px-24">
+  <div
+    class="call-to-action mt-16 mb-24 flex flex-col items-center gap-6 rounded-xl px-6 py-12 md:mt-24 md:mb-32 md:gap-8 md:px-12 md:py-20 lg:px-24"
+  >
     <Heading level="h2" class="text-center text-3xl md:text-5xl">{title}</Heading>
     {description && <p class="description text-center">{description}</p>}
     <Link href={link} isButton size="lg" animateOnHover animationType="nudge">
@@ -55,19 +57,15 @@ const {
 
   .call-to-action {
     position: relative;
-    background: linear-gradient(
-      135deg,
-      rgba(95, 179, 161, 0.15) 0%,
-      rgba(108, 134, 109, 0.15) 100%
-    );
     border: 1px solid var(--card-border, rgba(168, 162, 158, 0.15));
+    background: linear-gradient(135deg, rgba(95, 179, 161, 0.15) 0%, rgba(108, 134, 109, 0.15) 100%);
     color: var(--foreground-color);
   }
 
   .description {
-    font-size: 1.125rem;
-    color: var(--color-warm-gray);
     max-width: 500px;
+    color: var(--color-warm-gray);
+    font-size: 1.125rem;
     line-height: 1.6;
   }
 </style>

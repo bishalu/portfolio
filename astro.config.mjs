@@ -9,9 +9,9 @@ import sitemap from '@astrojs/sitemap'
 import tailwindcss from '@tailwindcss/vite'
 import { watch } from 'fs'
 
-import netlify from '@astrojs/netlify';
+import netlify from '@astrojs/netlify'
 
-import react from '@astrojs/react';
+import react from '@astrojs/react'
 
 // Check if we're using a symlinked/workspace setup
 const componentsPath = resolve('./node_modules/accessible-astro-components')
@@ -23,7 +23,7 @@ const viteConfig = {
     preprocessorOptions: {
       scss: {
         logger: {
-          warn: () => { },
+          warn: () => {},
         },
       },
     },

@@ -8,21 +8,21 @@
   // ═══════════════════════════════════════════════════════════════════════════
 
   // Foundation colors (backgrounds)
-  --color-deep-moss: #1A2F1A;
-  --color-soft-charcoal: #2C2C2E;
-  --color-warm-stone: #F5F1E8;
+  --color-deep-moss: #1a2f1a;
+  --color-soft-charcoal: #2c2c2e;
+  --color-warm-stone: #f5f1e8;
 
   // Accent colors (life)
-  --color-living-teal: #5FB3A1;
-  --color-moss-green: #7EA172;
-  --color-sunset-coral: #E8A87C;
-  --color-google-blue: #4285F4;
+  --color-living-teal: #5fb3a1;
+  --color-moss-green: #7ea172;
+  --color-sunset-coral: #e8a87c;
+  --color-google-blue: #4285f4;
   /* Ensure Google Blue is explicit */
 
   // Text colors
-  --color-cream: #FAF8F3;
-  --color-warm-gray: #A8A29E;
-  --color-charcoal-text: #44403C;
+  --color-cream: #faf8f3;
+  --color-warm-gray: #a8a29e;
+  --color-charcoal-text: #44403c;
 
   // Map to existing brand system for compatibility
   --brand-primary: var(--color-living-teal);
@@ -63,8 +63,8 @@
 
   --icon-color: light-dark(var(--color-charcoal-text), var(--color-cream));
 
-  --link-color: light-dark(#2A7A6A, var(--color-living-teal));
-  --link-hover-color: light-dark(#4D7645, var(--color-moss-green));
+  --link-color: light-dark(#2a7a6a, var(--color-living-teal));
+  --link-hover-color: light-dark(#4d7645, var(--color-moss-green));
 
   --border-color: light-dark(rgba(44, 44, 46, 0.15), rgba(168, 162, 158, 0.2));
   --border-color-subtle: light-dark(rgba(44, 44, 46, 0.1), rgba(168, 162, 158, 0.15));
@@ -79,8 +79,8 @@
   --card-border: light-dark(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.1));
 
   // Featured card (Vibeset) - coral works in both modes
-  --featured-border-color: light-dark(#D4956A, var(--color-sunset-coral));
-  --featured-badge-bg: light-dark(#D4956A, var(--color-sunset-coral));
+  --featured-border-color: light-dark(#d4956a, var(--color-sunset-coral));
+  --featured-badge-bg: light-dark(#d4956a, var(--color-sunset-coral));
   --featured-badge-text: light-dark(var(--color-cream), var(--color-deep-moss));
 
   // theme settings
@@ -96,7 +96,6 @@
   // font families
   --font-heading: var(--font-family-special);
   --font-body: var(--font-family-default);
-
 
   // font sizes
   // @link https://utopia.fyi/type/calculator?c=320,16,1.2,1240,18,1.25,6,2,&s=0.75|0.5|0.25,1.5|2|3|4|6,s-l&g=s,l,xl,12

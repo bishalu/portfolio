@@ -1,132 +1,146 @@
-import type { APIRoute } from 'astro';
-import OpenAI from "openai";
-import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
+import type { APIRoute } from 'astro'
+import { BedrockRuntimeClient, ConverseCommand } from '@aws-sdk/client-bedrock-runtime'
 
-export const prerender = false;
+export const prerender = false
 
-// Bishal's context - inspiring, connecting ideas to real work
-const BISHAL_CONTEXT = `You are channeling Bishal Upadhyaya on his portfolio. When someone shares an idea, your job is to:
-1. Get excited about their idea
-2. Connect it to skills Bishal has PROVEN through real work
-3. Point them toward relevant projects (Vibeset or research)
-4. Fill them with confidence that Bishal can make it happen
+// Balgo's context - inspiring, connecting ideas to Bishal's real work
+const BISHAL_CONTEXT = `You are Balgo, Bishal's AI collaborator and the intelligent gateway to his technical portfolio.
+Your role is to deeply analyze the user's input, answer their questions using the detailed context below, and ALWAYS provide an array of specific, highly relevant deep-links into the portfolio interface so the user can explore visually.
 
-BISHAL'S PROVEN WORK:
-- Vibeset: AI music discovery that matches tracks to astrological vibes and moods. Built the full stack - LLM integration, audio processing, recommendation engine, beautiful UI.
-- Research: Academic work in AI systems and intelligent applications.
+CRITICAL DIRECTIVE:
+You are not Bishal. You are Balgo.
 
-BISHAL'S SKILLS (only mention what's relevant):
-- LLM integration: GPT-4, Mistral, Gemini - building agents that actually understand context
-- Music/Audio AI: Fingerprinting, mood matching, discovery systems  
-- Recommendation engines: Personalized, context-aware suggestions
-- Full-stack shipping: Python, TypeScript, AWS, serverless - prototype to production
+BISHAL'S PROVEN WORK & LANDING PAGE MAP:
 
-TONE: Warm, confident, direct. Like a friend who genuinely wants to build something cool with them.
-- Never sound like a service chatbot
-- Keep it to 2-3 punchy sentences
-- End with a specific connection to Vibeset or research
-- Make them feel like their idea is totally buildable`;
+--- SECTION: Vibeset Switchboard ---
+Vibeset is an AI music discovery platform that matches tracks to astrological vibes and moods.
+*   Curation (Anchor: #vibeset): "Combines live discovery, deep catalog search, sequence reasoning, and extension logic to generate coherent setlists that stay true to your intended energy curve." Tech Stack: Next.js, FastAPI, Vector DB, LLMs.
+*   Cue (Anchor: #vibeset): "Translates visual mood and edit rhythm into music choices, powering cue-aware matching for videos, scenes, and aesthetic-driven requests." Tech Stack: Python, OpenCV.
+*   Choon (Anchor: #vibeset): "Custom audio fingerprinting for your catalog. Learns your audio domain to identify tracks, stems, and sampled motifs with high precision, even where generic fingerprinting APIs fail."
 
-const getSecret = async (secretName: string) => {
-    // In Astro, use import.meta.env for access to .env variables
-    const region = import.meta.env.AWS_DEFAULT_REGION || "us-east-2";
-    const accessKeyId = import.meta.env.AWS_ID;
-    const secretAccessKey = import.meta.env.AWS_SEC;
+--- SECTION: Data Lens / Research (Anchor: #datalens) ---
+Research and academic work in AI systems. Point out the specific paper if relevant:
+*   Structured Pruning of Transformers: Adapting models for resource-constrained edge devices using L1-norm pruning. 
+*   Alzheimers detection via PET Scans: 3D CNNs to diagnose early onset.
+*   Neural Damage Segmentation: U-Net models to detect contusions in un-enhanced CT Scans.
+*   INX Synapses for Neuromorphic Computing: Brain-inspired hardware efficiency.
 
-    // Fallback or explicit check
-    if (!accessKeyId || !secretAccessKey) {
-        console.warn("AWS Credentials missing in import.meta.env");
-    }
+--- SECTION: Work With Me (Anchor: #work-with-me) ---
+Bishal offers three tiers of engagement:
+*   Consultation (Free): "A quick chat to explore fit. Idea exploration. No strings attached."
+*   Retainer (Monthly): "Ongoing AI advisory. I become an extension of your team, available for strategic and technical guidance. Monthly hours, priority async access, architecture reviews, prototype builds."
+*   Project (Custom): "Full-scope build. From concept to deployment, I own the AI system you need to ship. Scoped deliverable, end-to-end ownership, handoff & documentation."
 
-    const client = new SecretsManagerClient({
-        region,
-        credentials: {
-            accessKeyId: accessKeyId || "",
-            secretAccessKey: secretAccessKey || "",
-        },
-    });
+--- SECTION: Contact (Link: /contact) ---
+Direct line to Bishal for inquiries.
 
-    try {
-        const response = await client.send(
-            new GetSecretValueCommand({
-                SecretId: secretName,
-            })
-        );
-
-        if (response.SecretString) {
-            return JSON.parse(response.SecretString);
-        }
-    } catch (error) {
-        console.error(`Failed to fetch secret ${secretName}:`, error);
-    }
-    return null;
-};
+TONE: Simple, conversational, and collaborator-focused. Use "vibing" and "energy curve" naturally to match the project's aesthetic.
+- Avoid sounding like a corporate assistant or documentation bot.
+- Use **bold** for key tech, project names, and sections.
+- Use *italics* for emphasis or subtle vibes.
+- Keep the reply to 2-4 punchy, simple sentences.
+- Include 1-2 relevant link buttons based on their query.
+- Use Markdown formatting (**bold**, *italics*) for visual hierarchy.
+- Talk like a sharp, technical collaborator who is genuinely excited to show what Bishal has built.`
 
 export const POST: APIRoute = async ({ request }) => {
-    try {
-        const body = await request.json();
-        const { message } = body;
+  try {
+    const body = await request.json()
+    const { message } = body
 
-        if (!message || typeof message !== "string") {
-            return new Response(
-                JSON.stringify({ error: "Message is required" }),
-                { status: 400, headers: { "Content-Type": "application/json" } }
-            );
-        }
-
-        // Try getting API key from environment first (fastest, supports local dev)
-        let apiKey = import.meta.env.MISTRAL_API_KEY;
-
-        // Fallback to AWS Secrets Manager if not in env
-        if (!apiKey) {
-            console.log("MISTRAL_API_KEY not in env, fetching from AWS Secrets Manager...");
-            const secret = await getSecret("vibeset/azure_ai_foundry");
-            apiKey = secret?.api_key_o3;
-        }
-
-        if (!apiKey) {
-            console.error("Failed to retrieve API key from env or secrets manager");
-            return new Response(
-                JSON.stringify({
-                    error: "Chat service not configured",
-                    reply: "I'm not fully set up yet. Please contact Bishal directly at the contact page!"
-                }),
-                { status: 503, headers: { "Content-Type": "application/json" } }
-            );
-        }
-
-        // Initialize OpenAI client with Azure Mistral endpoint
-        const client = new OpenAI({
-            baseURL: "https://kevin-m86fxp36-eastus2.services.ai.azure.com/openai/v1/",
-            apiKey: apiKey,
-        });
-
-        // Call Mistral
-        const response = await client.chat.completions.create({
-            model: "mistral-small-2503",
-            messages: [
-                { role: "system", content: BISHAL_CONTEXT },
-                { role: "user", content: message },
-            ],
-            temperature: 0.7,
-            max_tokens: 200,
-        });
-
-        const reply = response.choices[0]?.message?.content || "I couldn't generate a response. Please try again.";
-
-        return new Response(
-            JSON.stringify({ reply }),
-            { status: 200, headers: { "Content-Type": "application/json" } }
-        );
-
-    } catch (error) {
-        console.error("Chat error:", error);
-        return new Response(
-            JSON.stringify({
-                error: "Failed to process request",
-                reply: "Something went wrong. Please try again or contact Bishal directly!"
-            }),
-            { status: 500, headers: { "Content-Type": "application/json" } }
-        );
+    if (!message || typeof message !== 'string') {
+      return new Response(JSON.stringify({ error: 'Message is required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      })
     }
-};
+
+    const accessKeyId = import.meta.env.AWS_ID
+    const secretAccessKey = import.meta.env.AWS_SEC
+    const region = import.meta.env.AWS_DEFAULT_REGION || 'us-east-2'
+
+    const client = new BedrockRuntimeClient({
+      region,
+      credentials: {
+        accessKeyId: accessKeyId || '',
+        secretAccessKey: secretAccessKey || '',
+      },
+    })
+
+    const command = new ConverseCommand({
+      modelId: 'mistral.ministral-3-8b-instruct',
+      messages: [{ role: 'user', content: [{ text: message }] }],
+      system: [{ text: BISHAL_CONTEXT }],
+      inferenceConfig: {
+        maxTokens: 500,
+        temperature: 0.7,
+      },
+      toolConfig: {
+        tools: [
+          {
+            toolSpec: {
+              name: 'generate_portfolio_response',
+              description: 'Generates a structured conversational response with relevant links to Bishal\'s portfolio.',
+              inputSchema: {
+                json: {
+                  type: 'object',
+                  properties: {
+                    reply: {
+                      type: 'string',
+                      description: 'The conversational response text.',
+                    },
+                    links: {
+                      type: 'array',
+                      description: 'A list of relevant portfolio links.',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          title: { type: 'string', description: 'The text to show on the button.' },
+                          href: { type: 'string', description: 'The anchor link or URL (e.g., #vibeset-cue).' },
+                          emoji: { type: 'string', description: 'A relevant emoji for the button.' },
+                        },
+                        required: ['title', 'href', 'emoji'],
+                      },
+                    },
+                  },
+                  required: ['reply', 'links'],
+                },
+              },
+            },
+          },
+        ],
+        toolChoice: { any: {} },
+      },
+    })
+
+    const response = await client.send(command)
+    
+    // Extract tool use content
+    const content = response.output?.message?.content
+    if (!content) {
+      throw new Error('No content returned from Bedrock')
+    }
+
+    const toolUseBlock = content.find((block) => block.toolUse)
+    if (!toolUseBlock || !toolUseBlock.toolUse) {
+      throw new Error('No tool usage found in response')
+    }
+
+    const result = toolUseBlock.toolUse.input
+
+    return new Response(JSON.stringify(result), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  } catch (error: any) {
+    console.error('Chat routing error:', error)
+    return new Response(
+      JSON.stringify({
+        error: error.message || 'Failed to process request through bedrock',
+        reply: 'The neural network is initializing. Please try again or contact Bishal directly!',
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } },
+    )
+  }
+}
+

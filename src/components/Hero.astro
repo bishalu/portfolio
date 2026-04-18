@@ -1,400 +1,906 @@
 ---
-/* Trigger rebuild */
 /**
- * Hero Component - Bishal Upadhyaya
- * "I build vibes within AI systems"
- * With integrated IdeaExplorer - visible immediately
+ * Hero Component — 2026 Cover-Led Cinematic Layout
+ * A layered hero scene built entirely from the landing cover, with the
+ * chat portal taking over only after the first interaction.
  */
-import HeroWorldWrapper from '@components/HeroWorldWrapper'
+import landingCover from '@assets/img/landingpage_cover.jpg'
 ---
 
-<section class="hero" id="hero">
-  <div class="container">
-    <HeroWorldWrapper client:load>
-      <div class="hero-content">
-        <h1 class="hero-title animate-blur-in duration-700">
-          <span class="name">Bishal Upadhyaya</span>
-        </h1>
-        <p class="hero-tagline animate-blur-in delay-150 duration-700">
-          I build AI systems with <span class="text-gradient-organic">vibes</span>
-        </p>
-        <p class="hero-subtitle animate-blur-in delay-300 duration-700">
-          Shipping intelligent products that understand context, match moods, and deliver real value.
-        </p>
+<section class="kinetic-hero" id="hero">
+  <div class="hero-scene" aria-hidden="true">
+    <img class="scene-backdrop" src={landingCover.src} alt="" />
+  </div>
 
-        <!-- Idea Explorer - right in the hero -->
-        <div class="idea-input animate-blur-in delay-500 duration-700">
-          <form class="idea-form" id="idea-form">
-            <div class="input-wrapper">
-              <input
-                type="text"
-                id="idea-input"
-                placeholder="What do you want to build?"
-                autocomplete="off"
-                aria-label="Describe your idea"
-              />
-              <button type="submit" class="explore-btn" id="explore-btn"> Explore ✨ </button>
+  <div class="container cinematic" id="kinetic-container">
+    <div class="macro-wrapper horizontal-header">
+      <p class="hero-kicker">AI systems architect · research to production</p>
+      <h1 class="macro-title macro-title--solid">
+        <span class="mask-text">Bishal Upadhyaya.</span>
+      </h1>
+    </div>
+
+    <div class="split-layout" id="split-layout">
+      <div class="hero-left-column">
+
+      </div>
+
+      <div class="hero-right-column">
+        <div class="balgo-portal" id="balgo-portal" data-state="collapsed">
+          <div class="balgo-chat-history" id="balgo-chat-history" aria-live="polite">
+            <!-- Messages appear here -->
+          </div>
+
+          <form id="kinetic-balgo-form" class="kinetic-balgo-form">
+            <textarea
+              id="kinetic-input"
+              class="massive-input"
+              placeholder="What are we building today?"
+              rows="1"
+              aria-label="Ask Balgo a question"
+            ></textarea>
+            
+            <div class="form-footer" id="form-footer">
+              <button type="submit" class="kinetic-send-btn" id="kinetic-send-btn" aria-label="Send message">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 12h14"/>
+                  <path d="m12 5 7 7-7 7"/>
+                </svg>
+              </button>
             </div>
           </form>
-          <div class="chips">
-            <button class="chip" data-idea="An AI that discovers music based on my mood">Music AI</button>
-            <button class="chip" data-idea="A recommendation engine for my content">Recs</button>
-            <button class="chip" data-idea="A personalized AI assistant">Assistant</button>
-          </div>
-        </div>
 
-        <!-- Response area (appears after submit) -->
-        <div class="response-area animate-blur-in duration-500" id="response-area" hidden>
-          <div class="response-content" id="response-content"></div>
-          <div class="response-links" id="response-links"></div>
         </div>
       </div>
-    </HeroWorldWrapper>
+    </div>
   </div>
 </section>
 
 <script>
+  import { gsap } from 'gsap'
+
   document.addEventListener('astro:page-load', () => {
-    const form = document.getElementById('idea-form') as HTMLFormElement | null
-    const input = document.getElementById('idea-input') as HTMLInputElement | null
-    const btn = document.getElementById('explore-btn') as HTMLButtonElement | null
-    const responseArea = document.getElementById('response-area') as HTMLDivElement | null
-    const responseContent = document.getElementById('response-content') as HTMLDivElement | null
-    const responseLinks = document.getElementById('response-links') as HTMLDivElement | null
-    const chips = document.querySelectorAll('.chip')
+    /* ═══════════════════════════════════════════════════════════════════════════
+       GSAP ENTRY ANIMATIONS (2026 Kinetic Layout)
+       ═══════════════════════════════════════════════════════════════════════════ */
+    // Cinematic Load Sequence: Animate both layers simultaneously
+    const solidTexts = document.querySelectorAll('.macro-title--solid .mask-text')
+    const manifestoBox = document.querySelector('.consulting-manifesto')
+    const balgoPortal = document.getElementById('balgo-portal') as HTMLDivElement | null
+    const form = document.getElementById('kinetic-balgo-form') as HTMLFormElement | null
+    const input = document.getElementById('kinetic-input') as HTMLTextAreaElement | null
+    const sendBtn = document.getElementById('kinetic-send-btn') as HTMLButtonElement | null
+    const chatHistory = document.getElementById('balgo-chat-history') as HTMLDivElement | null
 
-    if (!form || !input || !btn || !responseArea || !responseContent || !responseLinks) return
+    const kicker = document.querySelector('.hero-kicker')
+    
+    const tl = gsap.timeline({ defaults: { ease: "power4.out" } })
+    
+    tl.fromTo(kicker,
+      { y: 20, opacity: 0 },
+      { y: 0, opacity: 1, duration: 1, delay: 0.2 }
+    )
+    .fromTo(solidTexts,
+      { y: 150, opacity: 0 }, 
+      { y: 0, opacity: 1, duration: 1.2, stagger: 0.1 },
+      "-=0.7"
+    )
+    .fromTo([manifestoBox, balgoPortal],
+      { y: 40, opacity: 0 }, 
+      { y: 0, opacity: 1, duration: 1.2, stagger: 0.1 },
+      "-=0.9" // Sharp overlap
+    )
 
-    // Chip clicks
-    chips.forEach((chip) => {
-      chip.addEventListener('click', () => {
-        const idea = (chip as HTMLElement).dataset.idea
-        if (idea) {
-          input.value = idea
-          input.focus()
-        }
-      })
+    // Spotlight logic removed
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       CHAT FUNCTIONALITY & MORPHING LOGIC
+       ═══════════════════════════════════════════════════════════════════════════ */
+
+    if (!form || !input || !sendBtn || !chatHistory || !balgoPortal) return
+
+    let isFirstMessage = true
+    let isSubmitting = false
+
+    // Auto-resize input
+    input.addEventListener('input', () => {
+      input.style.height = 'auto'
+      input.style.height = Math.min(input.scrollHeight, 120) + 'px'
     })
 
-    // Form submit
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault()
+        form.requestSubmit()
+      }
+    })
+
+    // Cinematic morph on first submit
+    const triggerCinematicChatMode = async () => {
+      // 1. Dim the editorial scene and intro before promoting the chat.
+      await Promise.all([
+        gsap.to('.hero-left-column', {
+          opacity: 0,
+          x: -40,
+          scale: 0.98,
+          duration: 0.4,
+          ease: "power2.inOut"
+        }),
+        gsap.to('.horizontal-header', {
+          opacity: 0.1,
+          scale: 0.95,
+          y: -20,
+          duration: 0.6,
+          ease: "expo.out"
+        }),
+        gsap.to('.scene-backdrop, .scene-overlay', {
+          opacity: 0.4,
+          duration: 0.45,
+          ease: "power2.inOut"
+        })
+      ])
+      
+      // 2. Hide left column to make room in the layout
+      const leftCol = document.querySelector('.hero-left-column') as HTMLElement;
+      if (leftCol) leftCol.style.display = 'none';
+
+      // 3. Update structure for chat mode
+      balgoPortal.classList.add('expanded')
+      chatHistory.style.display = 'flex'
+      
+      // 4. Concurrently expand Balgo and choreograph the vertical 'bloom'
+      await Promise.all([
+        gsap.to('.split-layout', {
+          minHeight: "75vh",
+          paddingTop: "0",
+          duration: 1,
+          ease: "expo.out"
+        }),
+        gsap.to('.hero-right-column', {
+          paddingBottom: "0",
+          paddingRight: "0", // Center focus
+          justifyContent: "center",
+          duration: 1,
+          ease: "expo.out"
+        }),
+        gsap.to(input, { fontSize: "1.05rem", padding: "0.5rem 0", duration: 0.4 }),
+        gsap.to(balgoPortal, {
+          width: "100%",
+          maxWidth: "800px",
+          height: "min(600px, 75vh)",
+          padding: "1.5rem 1.65rem",
+          borderRadius: "30px",
+          duration: 1.2,
+          ease: "expo.out"
+        })
+      ])
+
+      // 5. Finalize state
+      document.querySelector('.split-layout')?.classList.add('chat-active')
+    }
+
+    // Helper to format simple markdown (bold/italic)
+    const markdownToHtml = (text: string) => {
+      return text
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    }
+
+    // Helper to type text (restored since it's needed for AI replies)
+    const typeText = async (element: HTMLElement, text: string, speed = 20) => {
+      element.innerHTML = ''
+      
+      // We process the text to identify HTML vs plain text for typing
+      // For simplicity, we'll type the text but apply the bolding properly
+      // A more robust way is to type the parsed HTML but only show content
+      const htmlText = markdownToHtml(text)
+      
+      // Quick approach: Just set innerHTML and fade in or reveal
+      // to avoid breaking HTML tags during typing
+      element.innerHTML = htmlText
+      gsap.fromTo(element, { opacity: 0 }, { opacity: 1, duration: 0.5 })
+      
+      /* 
+      // If we really want typing effect for HTML:
+      const words = text.split(' ')
+      for (let i = 0; i < words.length; i++) {
+        element.innerHTML = markdownToHtml(words.slice(0, i + 1).join(' '))
+        await new Promise(resolve => setTimeout(resolve, speed + Math.random() * 5))
+      }
+      */
+    }
+
+    const appendUserMessage = (text: string) => {
+      const wrapper = document.createElement('div')
+      wrapper.className = 'msg msg-user fade-up'
+      const bubble = document.createElement('div')
+      bubble.className = 'msg-bubble msg-bubble-user'
+      bubble.textContent = text
+      wrapper.appendChild(bubble)
+      chatHistory.appendChild(wrapper)
+      setTimeout(() => chatHistory.scrollTop = chatHistory.scrollHeight, 50)
+    }
+
+    const appendAILoading = () => {
+      const wrapper = document.createElement('div')
+      wrapper.className = 'msg msg-ai fade-up ai-loading-wrapper'
+      const header = document.createElement('div')
+      header.className = 'msg-ai-header'
+      header.innerHTML = '<span class="msg-ai-glyph">✦</span><span class="msg-ai-name">Balgo</span>'
+      const bubble = document.createElement('div')
+      bubble.className = 'msg-bubble msg-bubble-ai'
+      bubble.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>'
+      wrapper.appendChild(header)
+      wrapper.appendChild(bubble)
+      chatHistory.appendChild(wrapper)
+      setTimeout(() => chatHistory.scrollTop = chatHistory.scrollHeight, 50)
+      return wrapper
+    }
+
+    const replaceAILoadingWithMessage = async (loadingWrapper: HTMLElement, data: any) => {
+      const bubble = loadingWrapper.querySelector('.msg-bubble-ai') as HTMLElement
+      if (!bubble) return
+
+      bubble.innerHTML = ''
+      const textEl = document.createElement('div')
+      textEl.className = 'msg-text'
+      bubble.appendChild(textEl)
+      await typeText(textEl, data.reply)
+
+      if (data.links && data.links.length > 0) {
+        const linksEl = document.createElement('div')
+        linksEl.className = 'msg-links fade-up'
+        linksEl.innerHTML = data.links.map((link: any) => `
+          <a href="${link.href}" class="msg-link smooth-scroll" data-target="${link.href}">
+            <span class="msg-link-emoji">${link.emoji || '✦'}</span>
+            <span>${link.title}</span>
+          </a>
+        `).join('')
+        bubble.appendChild(linksEl)
+
+        linksEl.querySelectorAll('.msg-link.smooth-scroll').forEach(anchor => {
+          anchor.addEventListener('click', (e) => {
+            const targetId = anchor.getAttribute('data-target')
+            if (targetId && targetId.startsWith('#')) {
+              e.preventDefault()
+              let scrollTargetId = targetId
+              if (targetId.startsWith('#vibeset-')) scrollTargetId = '#vibeset'
+              else if (targetId.startsWith('#paper-')) scrollTargetId = targetId
+              const targetElement = document.querySelector(scrollTargetId)
+              if (targetElement) {
+                targetElement.scrollIntoView({ behavior: 'smooth' })
+                history.pushState(null, '', targetId)
+              }
+            }
+          })
+        })
+      }
+
+      loadingWrapper.classList.remove('ai-loading-wrapper')
+      setTimeout(() => chatHistory.scrollTop = chatHistory.scrollHeight, 50)
+    }
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault()
+      if (isSubmitting) return
+      
       const idea = input.value.trim()
       if (!idea) return
 
-      btn.disabled = true
-      btn.textContent = '...'
-      responseArea.hidden = true
+      isSubmitting = true
+      sendBtn.disabled = true
 
       try {
+        if (isFirstMessage) {
+          await triggerCinematicChatMode()
+          isFirstMessage = false
+        }
+
+        appendUserMessage(idea)
+        input.value = ''
+        input.style.height = 'auto'
+        
+        const loadingEl = appendAILoading()
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
         const res = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: idea }),
+          signal: controller.signal
         })
-        const data = await res.json()
+        clearTimeout(timeoutId);
 
-        responseContent.innerHTML = `<p>${data.reply || "Let's explore this together!"}</p>`
-        responseLinks.innerHTML = `
-          <a href="/vibeset/" class="link">🎵 See Vibeset</a>
-          <a href="/contact/" class="link primary">💬 Let's talk</a>
-        `
-        responseArea.hidden = false
-      } catch {
-        responseContent.innerHTML = `<p>I'm setting things up. <a href="/contact/">Let's connect</a> to explore this!</p>`
-        responseLinks.innerHTML = ''
-        responseArea.hidden = false
+        const rawData = await res.json()
+        let data = { reply: "Let's connect directly.", links: [] as any[] }
+        try {
+          if (rawData.reply) {
+            if (rawData.links !== undefined) {
+              // Direct JSON match 
+              data = { ...rawData }
+            } else {
+              // Try parsing reply, but if it fails, just use the reply string as the message
+              try {
+                const parsed = JSON.parse(rawData.reply)
+                if (parsed.reply) data.reply = parsed.reply
+                if (parsed.links) data.links = parsed.links
+              } catch {
+                // If it's just a fallback string (like backend 500s), adopt it
+                data.reply = rawData.reply
+              }
+            }
+          }
+        } catch {}
+        await replaceAILoadingWithMessage(loadingEl, data)
+      } catch (e: any) {
+        let errorMsg = "Systems offline. Contact directly."
+        if (e.name === 'AbortError') {
+          errorMsg = "Request timed out connecting to the neural network."
+        }
+        
+        const els = chatHistory.querySelectorAll('.ai-loading-wrapper');
+        const errorEl = els[els.length - 1] as HTMLElement;
+        if (errorEl) {
+          await replaceAILoadingWithMessage(errorEl, { reply: errorMsg, links: [] })
+        }
       } finally {
-        btn.disabled = false
-        btn.textContent = 'Explore ✨'
+        isSubmitting = false
+        sendBtn.disabled = false
       }
     })
   })
 </script>
 
 <style lang="scss">
-  .hero {
-    display: flex;
+  /* ═══════════════════════════════════════════════════════════════════════════
+     BOUNDED HERO SPATIAL LAYOUT
+     ═══════════════════════════════════════════════════════════════════════════ */
+  .kinetic-hero {
     position: relative;
-    align-items: center;
-
-    /* Ethereal Gateway Background */
-    /* Ethereal Gateway Background - REMOVED for WorldManager */
-    /* background:
-      radial-gradient(circle at 15% 15%, rgba(66, 133, 244, 0.08) 0%, transparent 40%),
-      radial-gradient(circle at 85% 85%, rgba(0, 212, 170, 0.08) 0%, transparent 40%); */
-    padding: var(--space-xl) 0;
-    min-height: 100dvh;
-    overflow: hidden;
-    scroll-snap-align: start;
-  }
-
-  .hero-content {
-    position: relative;
-    z-index: 1;
-    margin: 0 auto;
     width: 100%;
-    max-width: 700px;
-    text-align: center;
+    height: 100vh;
+    min-height: 720px;
+    max-height: 980px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    isolation: isolate;
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: auto 0 0;
+      height: 28%;
+      background: linear-gradient(180deg, transparent 0%, rgba(245, 241, 232, 0.74) 70%, rgba(245, 241, 232, 0.96) 100%);
+      z-index: 2;
+      pointer-events: none;
+    }
   }
 
-  .hero-title {
-    margin-bottom: var(--space-s);
+  .hero-scene {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    background-color: #f5f1e8; // Warm Stone Foundation
   }
 
-  .name {
-    display: block;
-    color: var(--foreground-color);
-    font-weight: 800;
-    font-size: clamp(2.5rem, 7vw, 5rem);
-    line-height: 1.1;
-    font-family: var(--font-heading);
-    letter-spacing: -0.02em;
+  .scene-backdrop {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 56%;
+    filter: saturate(1.1) contrast(1.1) brightness(1.02);
+    
+    // Radical Editorial Mask
+    // 1. Softened radial focus on the face (50% 45%) — extremely gradual falloff
+    // 2. Symmetrical vertical fade to blend into the beige page foundation above and below
+    -webkit-mask-image: 
+      radial-gradient(circle at 50% 44%, black 0%, rgba(0,0,0,0.85) 28%, transparent 92%),
+      linear-gradient(to bottom, transparent 0%, black 18%, black 82%, transparent 100%);
+    mask-image: 
+      radial-gradient(circle at 50% 44%, black 0%, rgba(0,0,0,0.85) 28%, transparent 92%),
+      linear-gradient(to bottom, transparent 0%, black 18%, black 82%, transparent 100%);
+    
+    -webkit-mask-composite: source-in;
+    mask-composite: intersect;
   }
 
-  .hero-tagline {
-    margin-bottom: var(--space-s);
-    color: var(--foreground-color);
+
+  .kinetic-container {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    max-width: 1500px;
+    padding: 0 var(--space-xl);
+    margin: 0 auto;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     ASYMMETRIC SPLIT-SCREEN GRID
+     ═══════════════════════════════════════════════════════════════════════════ */
+  .split-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.8fr);
+    gap: clamp(2rem, 4vw, 5rem);
+    align-items: end;
+    min-height: 52vh;
+    padding-top: 0;
+    margin-top: -1rem;
+
+    &.chat-active {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+      align-items: center;
+      min-height: 75vh; 
+
+      .hero-right-column {
+        justify-content: center;
+        align-items: center;
+        padding-bottom: 0;
+        padding-right: 0;
+      }
+      
+      .balgo-portal {
+        margin: 0 auto;
+      }
+    }
+  }
+
+  .hero-left-column {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1.5rem;
+    max-width: 850px;
+    padding-bottom: clamp(3rem, 8vh, 5.5rem);
+    position: relative;
+    z-index: 2;
+  }
+
+
+
+  .hero-kicker {
+    margin: 0 0 0.25rem 0;
+    color: var(--color-charcoal-text);
+    font-size: 11px;
     font-weight: 500;
-    font-size: clamp(1.25rem, 3.5vw, 2rem);
-    line-height: 1.3;
-    font-family: var(--font-heading);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-family: var(--font-body);
+    text-align: left;
+    position: relative;
+    z-index: 15;
+    opacity: 0.8;
   }
 
-  .text-gradient-organic {
-    background: linear-gradient(
-      135deg,
-      var(--color-google-blue) 0%,
-      var(--color-living-teal) 35%,
-      var(--color-google-green) 65%,
-      var(--color-google-yellow) 100%
-    );
+  .mask-line {
+    overflow: hidden;
+    line-height: 0.9;
+    padding-bottom: 0.1em;
+  }
+
+  .mask-text {
+    display: inline-block;
+    will-change: transform, opacity;
+  }
+
+  .macro-wrapper {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto; // Separate rows for kicker and title
+    z-index: 10;
+    width: 100%;
+    margin-bottom: 0.5rem;
+
+    &.horizontal-header {
+      margin-top: -1.75rem; // Controlled pull-up of the entire brand block
+    }
+  }
+
+  .macro-title {
+    grid-area: 1 / 1;
+    margin: 0;
+    font-family: var(--font-heading);
+    font-weight: 900;
+    font-size: clamp(3rem, 10.5vw, 11rem);
+    text-align: left;
+    margin: 0;
+    padding: 0;
+    display: block; // Ensure it doesn't default to center-aligning within a flex/grid cell
+    margin-left: -8px; // Deeper optical correction for the 'B'
+
+    letter-spacing: -0.075em;
+    text-transform: uppercase;
+    width: 100%;
+    white-space: nowrap;
+    transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+    pointer-events: none;
+    line-height: 1;
+
+    &--solid {
+      color: var(--color-charcoal-text);
+      z-index: 2;
+    }
+
+    &--solid {
+      // ... same as before but without hover styles below
+    }
+  }
+
+  /* Interaction hook removed as per user request */
+
+  .consulting-manifesto {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    max-width: 34rem;
+    padding: 1.15rem 0;
+  }
+
+  .manifesto-text {
+    font-family: var(--font-body);
+    font-size: clamp(1.2rem, 1.8vw, 1.5rem);
+    line-height: 1.42;
+    color: var(--color-charcoal-text);
+    font-weight: 500;
+    margin: 0;
+    letter-spacing: -0.01em;
+
+    .highlight {
+      font-weight: 700;
+    }
+  }
+
+  .text-gradient-accent {
+    background: linear-gradient(100deg, var(--color-google-blue) 0%, var(--color-living-teal) 50%, var(--color-moss-green) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 4px 15px rgba(0, 212, 170, 0.35));
   }
 
-  .hero-subtitle {
-    margin-bottom: var(--space-l);
-    color: var(--color-warm-gray);
-    font-size: clamp(0.95rem, 1.5vw, 1.1rem);
-    line-height: 1.6;
-  }
-
-  /* Idea Input */
-  .idea-input {
-    margin-bottom: var(--space-m);
-  }
-
-  .input-wrapper {
+  .hero-right-column {
     display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: flex-end;
+    gap: 1rem;
+    width: 100%;
+    // Tighter corner docking with a minimal buffer (halved from previous)
+    padding-bottom: 0.6rem; 
+    padding-right: 1.25rem;
     position: relative;
-    gap: 0;
-    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-    box-shadow:
-      var(--shadow-prismatic),
-      0 0 0 2px rgba(0, 212, 170, 0.2);
-    border-radius: var(--radius-glass);
-    background: var(--glass-bg-strong);
-    padding: 4px;
+    z-index: 3;
+    transition: justify-content 0.8s ease, padding 0.8s ease;
   }
 
-  /* Rainbow shimmer on focus-within */
-  .input-wrapper:focus-within {
-    box-shadow:
-      var(--shadow-prismatic),
-      0 0 20px rgba(66, 133, 244, 0.3),
-      0 0 40px rgba(0, 212, 170, 0.2);
-  }
+  .balgo-portal {
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(48px) saturate(200%);
+    -webkit-backdrop-filter: blur(48px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow: 
+      0 20px 50px -10px rgba(33, 28, 24, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    border-radius: 100px;
+    padding: 0.8rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    width: 100%;
+    max-width: 440px;
+    height: 72px;
+    min-height: auto;
+    transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
 
-  input {
-    flex: 1;
-    border: none;
-    border-radius: calc(var(--radius-glass) - 4px) 0 0 calc(var(--radius-glass) - 4px);
-    background: transparent;
-    padding: 1rem 1.25rem;
-    color: var(--foreground-color);
-    font-size: 1rem;
-
-    &::placeholder {
-      color: var(--color-warm-gray);
+    &.expanded {
+      background: rgba(255, 255, 255, 0.98);
+      border-color: rgba(255, 255, 255, 1);
+      box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.15);
     }
 
+    &:hover:not(.expanded) {
+      box-shadow: 
+        0 30px 60px -10px rgba(0, 212, 170, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.85);
+      border-color: rgba(255, 255, 255, 0.85);
+      background: rgba(255, 255, 255, 0.45);
+    }
+  }
+
+  .kinetic-balgo-form {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: auto;
+  }
+
+  .massive-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    font-family: var(--font-heading);
+    font-size: 1.15rem;
+    font-weight: 500;
+    color: var(--color-charcoal-text);
+    line-height: 1.2;
+    resize: none;
+    padding: 0.5rem 0;
+    margin-bottom: 0;
+
+    &::placeholder {
+      color: rgba(0, 0, 0, 0.24);
+    }
+    
     &:focus {
       outline: none;
     }
   }
 
-  .explore-btn {
-    transition: all 0.3s ease;
-    cursor: pointer;
+  .form-footer {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .kinetic-send-btn {
+    width: 3.35rem;
+    height: 3.35rem;
+    border-radius: 50%;
     border: none;
-    border-radius: 0 calc(var(--radius-glass) - 4px) calc(var(--radius-glass) - 4px) 0;
-    background: linear-gradient(135deg, var(--color-google-blue), var(--color-living-teal));
-    padding: 1rem 1.5rem;
+    background: var(--color-charcoal-text);
     color: white;
-    font-weight: 600;
-    font-size: 0.95rem;
-    font-family: var(--font-heading);
-    white-space: nowrap;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 
     &:hover:not(:disabled) {
-      transform: translateX(2px);
-      background: linear-gradient(135deg, var(--color-living-teal), var(--color-google-green));
+      background: var(--color-google-blue);
+      transform: scale(1.08) rotate(-15deg);
+      box-shadow: 0 10px 20px rgba(66, 133, 244, 0.2);
     }
 
     &:disabled {
-      opacity: 0.7;
+      opacity: 0.3;
+      cursor: not-allowed;
     }
   }
 
-  .chips {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.5rem;
-    margin-top: 1rem;
+  /* ═══════════════════════════════════════════════════════════════════════════
+     CHAT HISTORY (Revealed after transition)
+     ═══════════════════════════════════════════════════════════════════════════ */
+  .balgo-chat-history {
+    display: none; 
+    flex-direction: column;
+    gap: 1.5rem;
+    flex: 1;
+    overflow-y: auto;
+    margin-bottom: 2rem;
+    padding-right: 1rem;
+    scrollbar-width: thin;
+
+    &::-webkit-scrollbar { width: 5px; }
+    &::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+    }
   }
 
-  .chip {
-    backdrop-filter: blur(8px);
-    transition: all 0.2s ease;
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-    border: 1px solid rgba(0, 212, 170, 0.25);
-    border-radius: 9999px;
-    background: rgba(255, 255, 255, 0.6);
-    padding: 0.5rem 1rem;
+  .msg-ai-header {
+    display: flex; align-items: center; gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  .msg-ai-glyph { color: var(--color-living-teal); font-size: 1.1rem; }
+  .msg-ai-name { color: var(--color-charcoal-text); font-weight: 700; font-family: var(--font-heading); font-size: 0.9rem; }
+
+  .msg { display: flex; flex-direction: column; max-width: 88%; }
+  .msg-user { align-self: flex-end; }
+  .msg-ai { align-self: flex-start; }
+
+  .msg-bubble {
+    padding: 0.9rem 1.3rem; font-size: 1.05rem; line-height: 1.6;
+  }
+  
+  .msg-bubble-user {
+    background: var(--color-charcoal-text);
+    color: white;
+    border-radius: 1.5rem 1.5rem 0.5rem 1.5rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+  }
+  
+  .msg-bubble-ai {
+    background: white;
+    border: 1px solid rgba(0, 0, 0, 0.05);
     color: var(--color-charcoal-text);
-    font-size: 0.85rem;
+    border-radius: 1.5rem 1.5rem 1.5rem 0.5rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+  }
 
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 212, 170, 0.15);
-      border-color: var(--color-living-teal);
-      background: rgba(0, 212, 170, 0.15);
+  .typing-dots {
+    display: flex; align-items: center; gap: 4px;
+    span {
+      display: inline-block; width: 5px; height: 5px;
+      background-color: var(--color-living-teal); border-radius: 50%;
+      animation: dot-pulse 1.4s infinite ease-in-out both;
+      &:nth-child(1) { animation-delay: -0.32s; }
+      &:nth-child(2) { animation-delay: -0.16s; }
     }
   }
 
-  /* Response */
-  .response-area {
-    backdrop-filter: blur(12px);
-    margin-top: var(--space-m);
-    border: 1px solid var(--card-border, rgba(168, 162, 158, 0.15));
-    border-radius: 1rem;
-    background: var(--card-background, rgba(44, 44, 46, 0.5));
-    padding: var(--space-m);
-    text-align: left;
+  @keyframes dot-pulse {
+    0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
+    40% { transform: scale(1); opacity: 1; }
   }
 
-  .response-content {
-    margin-bottom: var(--space-s);
-    color: var(--foreground-color);
-    font-size: 1rem;
-    line-height: 1.6;
+  .msg-links {
+    display: flex; flex-wrap: wrap; gap: 0.5rem;
+    margin-top: 1rem; padding-top: 1rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+  }
 
-    :global(p) {
-      margin: 0;
+  :global(.msg-link) {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    border: 1px solid rgba(0, 212, 170, 0.25);
+    border-radius: 1rem; background: rgba(0, 212, 170, 0.06);
+    padding: 0.4rem 0.9rem; color: var(--color-living-teal);
+    font-size: 0.9rem; font-weight: 600; text-decoration: none;
+    transition: all 0.2s ease;
+    &:hover { background: var(--color-living-teal); color: white; transform: translateY(-2px); }
+  }
+
+  .fade-up {
+    animation: fade-up 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     DARK MODE SUPPORT
+     ═══════════════════════════════════════════════════════════════════════════ */
+  :global(.darkmode) {
+    .macro-title { color: #f3f4f6; }
+    .hero-kicker { color: rgba(255, 255, 255, 0.58); }
+    .manifesto-text { color: rgba(255, 255, 255, 0.85); }
+    .scene-backdrop { filter: saturate(0.72) contrast(1.02) brightness(0.56); }
+    .scene-backdrop-tint {
+      background:
+        linear-gradient(95deg, rgba(14, 18, 17, 0.92) 0%, rgba(14, 18, 17, 0.78) 28%, rgba(14, 18, 17, 0.16) 55%, rgba(8, 11, 10, 0.36) 100%),
+        radial-gradient(circle at 74% 24%, rgba(95, 179, 161, 0.18), transparent 38%);
     }
-    :global(a) {
-      color: var(--color-living-teal);
-      text-decoration: underline;
+    .kinetic-hero::after {
+      background: linear-gradient(180deg, transparent 0%, rgba(10, 14, 13, 0.44) 68%, rgba(10, 14, 13, 0.88) 100%);
     }
-  }
-
-  .response-links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-  }
-
-  :global(.link) {
-    border: 1px solid rgba(95, 179, 161, 0.3);
-    border-radius: 0.5rem;
-    background: rgba(95, 179, 161, 0.1);
-    padding: 0.4rem 0.8rem;
-    color: var(--color-living-teal);
-    font-size: 0.85rem;
-    text-decoration: none;
-
-    &:hover {
-      background: rgba(95, 179, 161, 0.2);
+    .balgo-portal {
+      background: rgba(30, 30, 32, 0.6);
+      border-color: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.4);
     }
-  }
-
-  :global(.link.primary) {
-    border-color: var(--color-living-teal);
-    background: var(--color-living-teal);
-    color: var(--color-deep-moss);
-  }
-
-  /* 🪄 ENHANCED HERO CONTENT - Glowing reveal */
-  .hero-content {
-    /* animation: magic-reveal 1s ease-out forwards; */
-  }
-
-  @keyframes magic-reveal {
-    0% {
-      transform: translateY(30px) scale(0.95);
-      opacity: 0;
-      filter: blur(10px) brightness(2);
+    
+    .massive-input { color: #f3f4f6; }
+    .massive-input::placeholder { color: rgba(255, 255, 255, 0.15); }
+    .kinetic-chip {
+      border-color: rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.7);
+      &:hover { background: var(--color-living-teal); color: white; border-color: var(--color-living-teal); }
     }
-    50% {
-      filter: blur(2px) brightness(1.3);
-    }
-    100% {
-      transform: translateY(0) scale(1);
-      opacity: 1;
-      filter: blur(0) brightness(1);
-    }
+    .kinetic-send-btn { background: #f3f4f6; color: #111; }
+    
+    .msg-bubble-user { background: var(--color-living-teal); color: white; }
+    .msg-bubble-ai { background: rgba(255, 255, 255, 0.04); border-color: rgba(255, 255, 255, 0.06); color: #f3f4f6; }
+    .msg-ai-name { color: #f3f4f6; }
   }
 
-  /* Glowing edge effect on title */
-  .hero-title {
-    /* animation: glow-pulse 3s ease-in-out infinite; */
-    /* animation-delay: 1s; */
+  /* ═══════════════════════════════════════════════════════════════════════════
+     RESPONSIVE BREAKPOINTS (Fluid grid adapting down to Mobile)
+     ═══════════════════════════════════════════════════════════════════════════ */
+  
+  /* TIGHT DESKTOP / TABLET LANDSCAPE */
+  @media (max-width: 1200px) {
+    .split-layout { grid-template-columns: minmax(0, 1fr) minmax(320px, 0.82fr); }
+    .scene-focus-glow { inset: 16% 12% 12% 38%; }
+    .macro-title { font-size: clamp(3.6rem, 7.5vw, 7rem); }
   }
 
-  @keyframes glow-pulse {
-    0%,
-    100% {
-      text-shadow: 0 0 0 transparent;
+  @media (max-width: 960px) {
+    .kinetic-hero {
+      height: auto;
+      min-height: 100vh;
+      max-height: none;
+      padding: calc(var(--space-2xl) + 1rem) 0 var(--space-xl);
     }
-    50% {
-      text-shadow:
-        0 0 20px rgba(0, 212, 170, 0.3),
-        0 0 40px rgba(66, 133, 244, 0.2);
-    }
-  }
 
-  /* Shimmer effect on the gradient text */
-  .text-gradient-organic {
-    animation: shimmer-gradient 4s ease-in-out infinite;
-    background-size: 200% 200%;
-  }
-
-  @keyframes shimmer-gradient {
-    0%,
-    100% {
-      background-position: 0% 50%;
+    .split-layout { 
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      margin-top: 0;
+      align-items: start;
+      min-height: auto;
+      padding-top: 0;
     }
-    50% {
-      background-position: 100% 50%;
-    }
-  }
 
-  @media (max-width: 600px) {
-    .input-wrapper {
+    .scene-backdrop { object-position: 62% 56%; }
+    .scene-focus-glow { inset: 18% 8% 18% 48%; opacity: 0.72; }
+
+    .hero-left-column { 
+      display: flex;
       flex-direction: column;
+      align-items: flex-start;
+      justify-content: flex-start;
+      gap: 1.35rem;
+      max-width: 560px;
+      padding-bottom: 0;
     }
 
-    input {
-      border-radius: calc(0.75rem - 2px) calc(0.75rem - 2px) 0 0;
+    .hero-right-column {
+      align-items: flex-start;
+      padding-bottom: 0;
     }
 
-    .explore-btn {
-      border-radius: 0 0 calc(0.75rem - 2px) calc(0.75rem - 2px);
+    .chat-dock-copy {
+      text-align: left;
+      max-width: 26rem;
+      padding-right: 0;
     }
+
+    .macro-title { font-size: clamp(3.35rem, 12vw, 5.2rem); }
+    .consulting-manifesto { max-width: 32rem; }
+    .balgo-portal { max-width: min(100%, 620px); }
+  }
+
+  /* MOBILE */
+  @media (max-width: 600px) {
+    .kinetic-container {
+      padding-inline: 1rem;
+    }
+
+    .kinetic-hero {
+      min-height: 0;
+      padding-top: calc(var(--space-xl) + 1rem);
+    }
+
+    .scene-backdrop { object-position: 68% 54%; }
+    .scene-focus-glow {
+      inset: 22% 2% 26% 52%;
+      opacity: 0.56;
+      filter: blur(34px);
+    }
+
+    .hero-left-column {
+      max-width: none;
+    }
+
+    .macro-title { font-size: 3rem; }
+
+    .balgo-portal { 
+      min-height: 290px; 
+      padding: 1.15rem 1.1rem;
+      border-radius: 24px;
+    }
+
+    .massive-input { font-size: 1.22rem; margin-bottom: 1rem; }
+    .kinetic-send-btn { width: 3.2rem; height: 3.2rem; }
+    .msg-bubble { font-size: 1rem; padding: 0.8rem 1rem; }
+    .form-footer {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.9rem;
+    }
+    .chip-row { width: 100%; }
+    .kinetic-send-btn { align-self: flex-end; }
   }
 </style>

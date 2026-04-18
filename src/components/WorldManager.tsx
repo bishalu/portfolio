@@ -16,7 +16,7 @@ const WorldManager = () => {
     const handleScroll = () => {
       // Get all section elements (Removed 'plans' since it was deleted)
       const sections = ['hero', 'vibeset', 'datalens', 'lets-build']
-      const sectionElements = sections.map(id => document.getElementById(id))
+      const sectionElements = sections.map((id) => document.getElementById(id))
 
       // Find the one most visible in viewport
       let maxVisibility = 0
@@ -75,7 +75,7 @@ const WorldManager = () => {
         className="world-layer world-gateway"
         initial={{ opacity: 1 }}
         animate={{ opacity: activeWorld === 0 ? 1 : 0 }}
-        transition={{ duration: 1, ease: "easeInOut" }}
+        transition={{ duration: 1, ease: 'easeInOut' }}
       >
         <NeuralDust isActive={activeWorld === 0} />
       </motion.div>
@@ -90,7 +90,7 @@ const WorldManager = () => {
         className="world-layer world-console"
         initial={{ opacity: 0 }}
         animate={{ opacity: activeWorld === 1 ? 1 : 0 }}
-        transition={{ duration: 1, ease: "easeInOut" }}
+        transition={{ duration: 1, ease: 'easeInOut' }}
       >
         <div className="console-grid-overlay" />
         <ActiveGrid />
@@ -106,7 +106,7 @@ const WorldManager = () => {
         className="world-layer world-lab"
         initial={{ opacity: 0 }}
         animate={{ opacity: activeWorld === 2 ? 1 : 0 }}
-        transition={{ duration: 1, ease: "easeInOut" }}
+        transition={{ duration: 1, ease: 'easeInOut' }}
       >
         <SynapticLightning isActive={activeWorld === 2} />
       </motion.div>
@@ -121,7 +121,7 @@ const WorldManager = () => {
         className="world-layer world-hearth"
         initial={{ opacity: 0 }}
         animate={{ opacity: activeWorld === 3 ? 1 : 0 }}
-        transition={{ duration: 1, ease: "easeInOut" }}
+        transition={{ duration: 1, ease: 'easeInOut' }}
       >
         <RisingEmbers />
       </motion.div>

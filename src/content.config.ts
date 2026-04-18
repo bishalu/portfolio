@@ -44,6 +44,7 @@ const studios = defineCollection({
       'db-search',
       'optic-to-audio',
       'set-extender',
+      'setlist-editor',
       'video-sync',
       'audio-fingerprint',
       'logic-flow',
@@ -56,10 +57,11 @@ const studios = defineCollection({
     features: z.array(z.string()).default([]),
     techStack: z.array(z.string()).default([]),
     status: z.enum(['live', 'beta', 'coming-soon']).default('live'),
+    productGroup: z.enum(['curation-engine', 'cue', 'choon']),
+    productLabel: z.string().optional(),
     order: z.number().default(0),
   }),
 })
 
 // 4. Export collections
 export const collections = { projects, publications, studios }
-

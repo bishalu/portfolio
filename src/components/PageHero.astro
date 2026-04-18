@@ -1,10 +1,10 @@
 ---
 /**
  * PageHero Component
- * 
+ *
  * A unified, magical hero for all pages.
  * Simple. Bold. Non-corporate.
- * 
+ *
  * Features:
  * - Animated gradient blobs (respects prefers-reduced-motion)
  * - Configurable size and accent colors
@@ -24,19 +24,13 @@ interface Props {
   accent?: 'teal' | 'coral' | 'purple' | 'mixed'
 }
 
-const { 
-  title, 
-  subtitle, 
-  eyebrow, 
-  size = 'medium',
-  accent = 'teal'
-} = Astro.props
+const { title, subtitle, eyebrow, size = 'medium', accent = 'teal' } = Astro.props
 
 // Size classes
 const sizeClasses = {
   full: 'hero--full',
-  medium: 'hero--medium', 
-  compact: 'hero--compact'
+  medium: 'hero--medium',
+  compact: 'hero--compact',
 }
 
 // Accent classes for blob colors
@@ -44,7 +38,7 @@ const accentClasses = {
   teal: 'hero--accent-teal',
   coral: 'hero--accent-coral',
   purple: 'hero--accent-purple',
-  mixed: 'hero--accent-mixed'
+  mixed: 'hero--accent-mixed',
 }
 ---
 
@@ -54,12 +48,12 @@ const accentClasses = {
       {eyebrow && <span class="eyebrow">{eyebrow}</span>}
       <h1 class="hero-title">{title}</h1>
       {subtitle && <p class="hero-subtitle">{subtitle}</p>}
-      
+
       <!-- Optional slot for interactive content -->
       <slot />
     </div>
   </div>
-  
+
   <!-- Ambient gradient blobs -->
   <div class="hero-blobs" aria-hidden="true">
     <div class="blob blob-1"></div>
@@ -70,184 +64,229 @@ const accentClasses = {
 
 <style lang="scss">
   .page-hero {
-    position: relative;
     display: flex;
-    align-items: center;
+    position: relative;
     justify-content: center;
+    align-items: center;
     overflow: hidden;
     text-align: center;
-    
+
     // Size variants
     &.hero--full {
-      min-height: 100vh;
       padding: var(--space-2xl) 0;
+      min-height: 100vh;
     }
-    
+
     &.hero--medium {
-      min-height: 45vh;
       padding: var(--space-2xl) 0 var(--space-xl);
+      min-height: 45vh;
     }
-    
+
     &.hero--compact {
-      min-height: 30vh;
       padding: var(--space-xl) 0;
+      min-height: 30vh;
     }
   }
-  
+
   .hero-content {
     position: relative;
     z-index: 1;
+    margin: 0 auto;
     width: 100%;
     max-width: 700px;
-    margin: 0 auto;
   }
-  
+
   .eyebrow {
     display: inline-block;
-    font-size: 0.8rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    color: var(--color-living-teal);
     margin-bottom: var(--space-s);
+    color: var(--color-living-teal);
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
   }
-  
+
   .hero-title {
-    font-family: var(--font-heading);
-    font-size: clamp(2.5rem, 8vw, 5rem);
-    font-weight: 800;
-    line-height: 1.05;
-    letter-spacing: -0.03em;
-    color: var(--foreground-color);
     margin: 0 0 var(--space-m);
+    color: var(--foreground-color);
+    font-weight: 800;
+    font-size: clamp(2.5rem, 8vw, 5rem);
+    line-height: 1.05;
+    font-family: var(--font-heading);
+    letter-spacing: -0.03em;
   }
-  
+
   .hero-subtitle {
-    font-size: clamp(1rem, 2vw, 1.25rem);
-    color: var(--color-warm-gray);
-    line-height: 1.6;
-    max-width: 550px;
     margin: 0 auto;
-    
+    max-width: 550px;
+    color: var(--color-warm-gray);
+    font-size: clamp(1rem, 2vw, 1.25rem);
+    line-height: 1.6;
+
     :global(strong) {
       color: var(--foreground-color);
     }
   }
-  
+
   // Ambient blobs
   .hero-blobs {
     position: absolute;
-    inset: 0;
-    pointer-events: none;
-    overflow: hidden;
     z-index: 0;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
   }
-  
+
   .blob {
     position: absolute;
-    border-radius: 50%;
-    filter: blur(90px);
     opacity: 0.2;
+    filter: blur(90px);
+    border-radius: 50%;
   }
-  
+
   .blob-1 {
-    width: 350px;
-    height: 350px;
     top: -120px;
     right: -80px;
+    width: 350px;
+    height: 350px;
   }
-  
+
   .blob-2 {
-    width: 280px;
-    height: 280px;
     bottom: -80px;
     left: 10%;
+    width: 280px;
+    height: 280px;
   }
-  
+
   .blob-3 {
-    width: 200px;
-    height: 200px;
     top: 40%;
     left: -60px;
+    width: 200px;
+    height: 200px;
   }
-  
+
   // Accent color themes
   .hero--accent-teal {
-    .eyebrow { color: var(--color-living-teal); }
-    .blob-1 { background: var(--color-living-teal); }
-    .blob-2 { background: var(--color-moss-green); opacity: 0.15; }
-    .blob-3 { background: var(--color-sunset-coral); opacity: 0.12; }
+    .eyebrow {
+      color: var(--color-living-teal);
+    }
+    .blob-1 {
+      background: var(--color-living-teal);
+    }
+    .blob-2 {
+      opacity: 0.15;
+      background: var(--color-moss-green);
+    }
+    .blob-3 {
+      opacity: 0.12;
+      background: var(--color-sunset-coral);
+    }
   }
-  
+
   .hero--accent-coral {
-    .eyebrow { color: var(--color-sunset-coral); }
-    .blob-1 { background: var(--color-sunset-coral); }
-    .blob-2 { background: var(--color-living-teal); opacity: 0.15; }
-    .blob-3 { background: #9B59B6; opacity: 0.12; }
+    .eyebrow {
+      color: var(--color-sunset-coral);
+    }
+    .blob-1 {
+      background: var(--color-sunset-coral);
+    }
+    .blob-2 {
+      opacity: 0.15;
+      background: var(--color-living-teal);
+    }
+    .blob-3 {
+      opacity: 0.12;
+      background: #9b59b6;
+    }
   }
-  
+
   .hero--accent-purple {
-    .eyebrow { color: #9B59B6; }
-    .blob-1 { background: #9B59B6; }
-    .blob-2 { background: var(--color-living-teal); opacity: 0.15; }
-    .blob-3 { background: var(--color-sunset-coral); opacity: 0.12; }
+    .eyebrow {
+      color: #9b59b6;
+    }
+    .blob-1 {
+      background: #9b59b6;
+    }
+    .blob-2 {
+      opacity: 0.15;
+      background: var(--color-living-teal);
+    }
+    .blob-3 {
+      opacity: 0.12;
+      background: var(--color-sunset-coral);
+    }
   }
-  
+
   .hero--accent-mixed {
-    .eyebrow { color: var(--color-living-teal); }
-    .blob-1 { background: var(--color-living-teal); }
-    .blob-2 { background: var(--color-sunset-coral); opacity: 0.18; }
-    .blob-3 { background: #9B59B6; opacity: 0.15; }
+    .eyebrow {
+      color: var(--color-living-teal);
+    }
+    .blob-1 {
+      background: var(--color-living-teal);
+    }
+    .blob-2 {
+      opacity: 0.18;
+      background: var(--color-sunset-coral);
+    }
+    .blob-3 {
+      opacity: 0.15;
+      background: #9b59b6;
+    }
   }
-  
+
   // Blob animations - respects prefers-reduced-motion
   @media (prefers-reduced-motion: no-preference) {
     .blob {
       animation: blob-morph 14s ease-in-out infinite;
     }
-    .blob-2 { animation-delay: -5s; }
-    .blob-3 { animation-delay: -10s; }
-    
+    .blob-2 {
+      animation-delay: -5s;
+    }
+    .blob-3 {
+      animation-delay: -10s;
+    }
+
     @keyframes blob-morph {
-      0%, 100% {
-        border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+      0%,
+      100% {
         transform: translate(0, 0) scale(1);
+        border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
       }
       33% {
-        border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
         transform: translate(8px, -8px) scale(1.03);
+        border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
       }
       66% {
-        border-radius: 50% 60% 30% 60% / 30% 60% 70% 40%;
         transform: translate(-8px, 8px) scale(0.97);
+        border-radius: 50% 60% 30% 60% / 30% 60% 70% 40%;
       }
     }
   }
-  
+
   // Responsive adjustments
   @media (max-width: 768px) {
     .page-hero {
       &.hero--medium {
-        min-height: auto;
         padding: var(--space-xl) 0;
-      }
-      
-      &.hero--compact {
         min-height: auto;
+      }
+
+      &.hero--compact {
         padding: var(--space-l) 0;
+        min-height: auto;
       }
     }
-    
+
     .blob-1 {
       width: 250px;
       height: 250px;
     }
-    
+
     .blob-2 {
       width: 180px;
       height: 180px;
     }
-    
+
     .blob-3 {
       width: 140px;
       height: 140px;

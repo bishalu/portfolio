@@ -7,25 +7,25 @@ import DefaultLayout from '@layouts/DefaultLayout.astro'
 import { getCollection, render } from 'astro:content'
 
 // Prerender these pages at build time for content collections
-export const prerender = true;
+export const prerender = true
 
 // Generate static paths for all studios
 export async function getStaticPaths() {
-  const studios = await getCollection('studios');
+  const studios = await getCollection('studios')
   return studios.map((studio) => ({
     params: { id: studio.id },
     props: { studio },
-  }));
+  }))
 }
 
-const { studio } = Astro.props;
+const { studio } = Astro.props
 
 // Guard against undefined entry
 if (!studio) {
-  return Astro.redirect('/404');
+  return Astro.redirect('/404')
 }
 
-const { Content } = await render(studio);
+const { Content } = await render(studio)
 ---
 
 <DefaultLayout title={`${studio.data.name} - VibeSet Studios`}>
@@ -41,44 +41,48 @@ const { Content } = await render(studio);
           <span aria-hidden="true">/</span>
           <span class="current">{studio.data.name}</span>
         </nav>
-        
-        <div class="hero-content animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150">
-          {studio.data.icon && (
-            <div class="studio-icon-large" transition:name={`studio-${studio.data.id}`}>
-              <img src={studio.data.icon} alt="" />
-            </div>
-          )}
-          
+
+        <div class="hero-content animate-in fade-in slide-in-from-bottom-4 delay-150 duration-700">
+          {
+            studio.data.icon && (
+              <div class="studio-icon-large" transition:name={`studio-${studio.data.id}`}>
+                <img src={studio.data.icon} alt="" />
+              </div>
+            )
+          }
+
           <h1 class="studio-title">{studio.data.name}</h1>
           <p class="studio-tagline">{studio.data.tagline}</p>
           <p class="studio-description">{studio.data.description}</p>
-          
-          {studio.data.techStack && studio.data.techStack.length > 0 && (
-            <div class="tech-stack">
-              {studio.data.techStack.map((tech: string) => (
-                <span class="tech-tag">{tech}</span>
-              ))}
-            </div>
-          )}
+
+          {
+            studio.data.techStack && studio.data.techStack.length > 0 && (
+              <div class="tech-stack">
+                {studio.data.techStack.map((tech: string) => (
+                  <span class="tech-tag">{tech}</span>
+                ))}
+              </div>
+            )
+          }
         </div>
       </div>
     </header>
-    
+
     <!-- MDX Content -->
     <section class="studio-content">
       <div class="container">
-        <div class="prose animate-in fade-in duration-700 delay-300">
+        <div class="prose animate-in fade-in delay-300 duration-700">
           <Content />
         </div>
       </div>
     </section>
-    
+
     <!-- Back link -->
     <footer class="studio-footer">
       <div class="container">
         <a href="/vibeset/studios/" class="back-link">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M19 12H5M12 19l-7-7 7-7"/>
+            <path d="M19 12H5M12 19l-7-7 7-7"></path>
           </svg>
           <span>All Studios</span>
         </a>
@@ -91,13 +95,13 @@ const { Content } = await render(studio);
   .studio-detail {
     min-height: 100vh;
   }
-  
+
   .studio-hero {
     position: relative;
     padding: var(--space-xl) 0 var(--space-2xl);
     overflow: hidden;
   }
-  
+
   .hero-gradient {
     position: absolute;
     inset: 0;
@@ -108,184 +112,184 @@ const { Content } = await render(studio);
     );
     pointer-events: none;
   }
-  
+
   .breadcrumb {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.85rem;
     margin-bottom: var(--space-l);
-    
+    font-size: 0.85rem;
+
     a {
+      transition: color 0.2s;
       color: var(--color-warm-gray);
       text-decoration: none;
-      transition: color 0.2s;
-      
+
       &:hover {
         color: var(--accent);
       }
     }
-    
+
     span[aria-hidden] {
       color: rgba(168, 162, 158, 0.4);
     }
-    
+
     .current {
       color: var(--foreground-color);
       font-weight: 500;
     }
   }
-  
+
   .hero-content {
     position: relative;
+    margin: 0 auto;
     max-width: 800px;
     text-align: center;
-    margin: 0 auto;
   }
-  
+
   .studio-icon-large {
+    margin: 0 auto var(--space-m);
     width: 120px;
     height: 120px;
-    margin: 0 auto var(--space-m);
-    
+
     img {
+      filter: drop-shadow(0 0 30px var(--accent));
       width: 100%;
       height: 100%;
       object-fit: contain;
-      filter: drop-shadow(0 0 30px var(--accent));
     }
   }
-  
+
   .studio-title {
-    font-family: var(--font-heading);
-    font-size: clamp(2.5rem, 6vw, 4rem);
-    font-weight: 800;
-    color: var(--foreground-color);
     margin: 0 0 var(--space-s);
+    color: var(--foreground-color);
+    font-weight: 800;
+    font-size: clamp(2.5rem, 6vw, 4rem);
     line-height: 1.1;
-  }
-  
-  .studio-tagline {
     font-family: var(--font-heading);
-    font-size: 1.35rem;
-    font-weight: 500;
+  }
+
+  .studio-tagline {
+    margin: 0 0 var(--space-m);
     color: var(--accent);
-    margin: 0 0 var(--space-m);
+    font-weight: 500;
+    font-size: 1.35rem;
+    font-family: var(--font-heading);
   }
-  
+
   .studio-description {
-    font-size: 1.1rem;
-    color: var(--color-warm-gray);
-    line-height: 1.6;
     margin: 0 0 var(--space-m);
+    color: var(--color-warm-gray);
+    font-size: 1.1rem;
+    line-height: 1.6;
   }
-  
+
   .tech-stack {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     gap: 0.5rem;
   }
-  
+
   .tech-tag {
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 0.25rem 0.75rem;
-    background: rgba(95, 179, 161, 0.1);
     border: 1px solid rgba(95, 179, 161, 0.3);
     border-radius: 9999px;
+    background: rgba(95, 179, 161, 0.1);
+    padding: 0.25rem 0.75rem;
     color: var(--color-living-teal);
+    font-weight: 600;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
   }
-  
+
   .studio-content {
     padding: var(--space-xl) 0 var(--space-2xl);
   }
-  
+
   .prose {
-    max-width: 700px;
     margin: 0 auto;
-    
+    max-width: 700px;
+
     :global(h2) {
-      font-family: var(--font-heading);
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: var(--foreground-color);
       margin: var(--space-xl) 0 var(--space-m);
-      padding-left: 1rem;
       border-left: 3px solid var(--accent);
+      padding-left: 1rem;
+      color: var(--foreground-color);
+      font-weight: 700;
+      font-size: 1.5rem;
+      font-family: var(--font-heading);
     }
-    
+
     :global(p) {
+      margin: 0 0 var(--space-m);
+      color: var(--color-warm-gray);
       font-size: 1.05rem;
       line-height: 1.7;
-      color: var(--color-warm-gray);
-      margin: 0 0 var(--space-m);
     }
-    
+
     :global(ul) {
       margin: 0 0 var(--space-m);
       padding-left: var(--space-m);
     }
-    
+
     :global(li) {
-      color: var(--color-warm-gray);
       margin-bottom: var(--space-xs);
-      
+      color: var(--color-warm-gray);
+
       &::marker {
         color: var(--accent);
       }
     }
-    
+
     :global(strong) {
       color: var(--foreground-color);
       font-weight: 600;
     }
-    
+
     :global(code) {
-      font-family: var(--font-mono, monospace);
+      border-radius: 0.25rem;
       background: rgba(95, 179, 161, 0.1);
       padding: 0.125rem 0.375rem;
-      border-radius: 0.25rem;
       font-size: 0.9em;
+      font-family: var(--font-mono, monospace);
     }
   }
-  
+
   .studio-footer {
-    padding: var(--space-xl) 0;
     border-top: 1px solid rgba(168, 162, 158, 0.15);
+    padding: var(--space-xl) 0;
   }
-  
+
   .back-link {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    font-family: var(--font-heading);
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--color-living-teal);
-    text-decoration: none;
-    padding: 0.75rem 1.25rem;
-    background: rgba(95, 179, 161, 0.1);
+    transition: all 0.2s ease;
     border: 1px solid rgba(95, 179, 161, 0.3);
     border-radius: 0.5rem;
-    transition: all 0.2s ease;
-    
+    background: rgba(95, 179, 161, 0.1);
+    padding: 0.75rem 1.25rem;
+    color: var(--color-living-teal);
+    font-weight: 600;
+    font-size: 0.95rem;
+    font-family: var(--font-heading);
+    text-decoration: none;
+
     &:hover {
-      background: rgba(95, 179, 161, 0.2);
       transform: translateX(-4px);
+      background: rgba(95, 179, 161, 0.2);
     }
-    
+
     &:focus-visible {
       outline: 2px solid var(--color-living-teal);
       outline-offset: 2px;
     }
-    
+
     svg {
       transition: transform 0.2s ease;
     }
-    
+
     &:hover svg {
       transform: translateX(-2px);
     }

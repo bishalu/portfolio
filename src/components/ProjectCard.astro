@@ -13,54 +13,50 @@ interface Props {
   tags?: string[]
 }
 
-const { 
-  title, 
-  description, 
-  image, 
-  link = '#', 
-  featured = false, 
-  category = 'logic',
-  tags = []
-} = Astro.props
+const { title, description, image, link = '#', featured = false, category = 'logic', tags = [] } = Astro.props
 
 // Category accent colors (subtle left border)
 const categoryAccents = {
   perception: 'var(--color-living-teal)',
   memory: 'var(--color-moss-green)',
   logic: 'var(--color-sunset-coral)',
-  action: 'var(--color-cream)'
+  action: 'var(--color-cream)',
 }
 
 const accentColor = categoryAccents[category]
 ---
 
-<a 
-  href={link} 
+<a
+  href={link}
   class:list={['project-card', 'animate-in', 'fade-in', 'zoom-in-95', 'duration-500', { featured }]}
   style={`--accent-color: ${accentColor}`}
   aria-label={`${title} - ${category} project`}
 >
   {featured && <span class="featured-badge">Featured</span>}
-  
-  {image && (
-    <div class="card-image">
-      <img src={image} alt="" loading="lazy" decoding="async" />
-      <div class="image-ring" aria-hidden="true"></div>
-    </div>
-  )}
-  
+
+  {
+    image && (
+      <div class="card-image">
+        <img src={image} alt="" loading="lazy" decoding="async" />
+        <div class="image-ring" aria-hidden="true" />
+      </div>
+    )
+  }
+
   <div class="card-content">
     <h3 class="card-title">{title}</h3>
     <p class="card-description">{description}</p>
-    
-    {tags.length > 0 && (
-      <div class="card-tags">
-        {tags.slice(0, 4).map(tag => (
-          <span class="tag">{tag}</span>
-        ))}
-      </div>
-    )}
-    
+
+    {
+      tags.length > 0 && (
+        <div class="card-tags">
+          {tags.slice(0, 4).map((tag) => (
+            <span class="tag">{tag}</span>
+          ))}
+        </div>
+      )
+    }
+
     <span class="card-cta">
       Explore <span class="arrow">→</span>
     </span>
@@ -71,17 +67,18 @@ const accentColor = categoryAccents[category]
   .project-card {
     display: block;
     position: relative;
-    background: var(--card-background, rgba(44, 44, 46, 0.7));
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+    transition:
+      transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border: 1px solid var(--card-border, rgba(168, 162, 158, 0.2));
     border-left: 3px solid var(--accent-color);
     border-radius: 1.25rem;
+    background: var(--card-background, rgba(44, 44, 46, 0.7));
     overflow: hidden;
-    text-decoration: none;
     color: var(--foreground-color);
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-decoration: none;
 
     &:hover {
       transform: translateY(-4px);
@@ -99,9 +96,9 @@ const accentColor = categoryAccents[category]
   }
 
   .featured {
+    grid-column: span 2;
     border: 2px solid var(--color-sunset-coral);
     border-left: 3px solid var(--color-sunset-coral);
-    grid-column: span 2;
 
     @media (max-width: 768px) {
       grid-column: span 1;
@@ -112,36 +109,36 @@ const accentColor = categoryAccents[category]
     position: absolute;
     top: 1rem;
     right: 1rem;
-    background: var(--color-sunset-coral);
-    color: var(--color-deep-moss);
-    padding: 0.25rem 0.75rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    font-family: var(--font-heading);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
     z-index: 2;
+    border-radius: 9999px;
+    background: var(--color-sunset-coral);
+    padding: 0.25rem 0.75rem;
+    color: var(--color-deep-moss);
+    font-weight: 600;
+    font-size: 0.75rem;
+    font-family: var(--font-heading);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
   }
 
   .card-image {
+    position: relative;
     width: 100%;
     height: 200px;
     overflow: hidden;
-    position: relative;
 
     img {
+      transition: transform 0.3s ease;
       width: 100%;
       height: 100%;
       object-fit: cover;
-      transition: transform 0.3s ease;
     }
 
     .image-ring {
       position: absolute;
       inset: 0;
-      border-radius: inherit;
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+      border-radius: inherit;
       pointer-events: none;
     }
 
@@ -159,11 +156,11 @@ const accentColor = categoryAccents[category]
   }
 
   .card-title {
-    font-family: var(--font-heading);
-    font-size: 1.25rem;
-    font-weight: 600;
     margin-bottom: 0.5rem;
     color: var(--foreground-color);
+    font-weight: 600;
+    font-size: 1.25rem;
+    font-family: var(--font-heading);
   }
 
   .featured .card-title {
@@ -171,14 +168,13 @@ const accentColor = categoryAccents[category]
   }
 
   .card-description {
-    font-size: 0.95rem;
-    color: var(--color-warm-gray);
-    line-height: 1.6;
-    margin-bottom: 1rem;
-    
     // Clamp to 3 lines
     display: -webkit-box;
+    margin-bottom: 1rem;
     -webkit-line-clamp: 3;
+    color: var(--color-warm-gray);
+    font-size: 0.95rem;
+    line-height: 1.6;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
@@ -191,11 +187,11 @@ const accentColor = categoryAccents[category]
   }
 
   .tag {
-    font-size: 0.75rem;
-    padding: 0.25rem 0.5rem;
-    background: rgba(95, 179, 161, 0.15);
-    color: var(--color-living-teal);
     border-radius: 0.25rem;
+    background: rgba(95, 179, 161, 0.15);
+    padding: 0.25rem 0.5rem;
+    color: var(--color-living-teal);
+    font-size: 0.75rem;
     font-family: var(--font-mono);
   }
 
@@ -203,9 +199,9 @@ const accentColor = categoryAccents[category]
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
-    font-size: 0.9rem;
     color: var(--color-living-teal);
     font-weight: 500;
+    font-size: 0.9rem;
   }
 
   .arrow {
@@ -219,7 +215,8 @@ const accentColor = categoryAccents[category]
     }
 
     @keyframes glow-pulse {
-      0%, 100% {
+      0%,
+      100% {
         box-shadow: 0 0 0 rgba(232, 168, 124, 0);
       }
       50% {
@@ -232,7 +229,7 @@ const accentColor = categoryAccents[category]
     .project-card {
       transition: none;
     }
-    
+
     .featured {
       animation: none;
     }

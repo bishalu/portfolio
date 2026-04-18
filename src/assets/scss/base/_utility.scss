@@ -21,6 +21,11 @@
   &.narrow {
     max-width: 800px;
   }
+
+  &.cinematic {
+    max-width: 1500px;
+    padding-inline: var(--space-xl);
+  }
 }
 
 .center-content {

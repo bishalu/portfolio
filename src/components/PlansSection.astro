@@ -13,7 +13,7 @@ import { Icon } from 'astro-icon/components'
       <p class="section-subtitle">Choose your level of engagement</p>
     </div>
 
-    <div class="relative z-10 grid grid-cols-1 gap-8 md:grid-cols-3">
+    <div class="relative z-10 grid grid-cols-1 gap-8 lg:grid-cols-3">
       <!-- Plan 1: Free Consultation -->
       <div class="plan-card glass-panel">
         <div class="card-header">
@@ -113,8 +113,14 @@ import { Icon } from 'astro-icon/components'
 <style lang="scss">
   .plans-section {
     position: relative;
-    padding: 6rem 0;
+    padding-top: 4rem;
+    padding-bottom: 1rem;
     overflow: hidden;
+
+    @media (min-width: 768px) {
+      padding-top: 6rem;
+      padding-bottom: 1.5rem;
+    }
 
     /* Background elements for depth */
     &::before {
@@ -177,7 +183,11 @@ import { Icon } from 'astro-icon/components'
     border: 1px solid rgba(255, 255, 255, 0.5);
     border-radius: 24px;
     background: var(--glass-bg, rgba(255, 255, 255, 0.65));
-    padding: 2.5rem;
+    padding: 1.5rem;
+
+    @media (min-width: 768px) {
+      padding: 2.5rem;
+    }
 
     &:hover {
       transform: translateY(-5px);

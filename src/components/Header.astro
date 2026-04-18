@@ -39,18 +39,26 @@ import { Icon } from 'astro-icon/components'
 
 <style lang="scss" is:global>
   header {
-    position: sticky;
+    position: absolute;
+    width: 100%;
     top: 0;
     z-index: 100;
-    backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.5),
-      0 4px 20px rgba(0, 0, 0, 0.05);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.4);
-    /* Enhanced liquid glass effect - Apple-inspired */
-    background-color: color-mix(in srgb, var(--background-color), transparent 25%);
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+
+    a {
+      color: var(--color-charcoal-text) !important;
+      opacity: 1 !important;
+      font-weight: 500;
+
+      &:hover,
+      &:focus-visible {
+        text-decoration: none;
+        opacity: 0.7 !important;
+      }
+    }
 
     .type-icon {
       display: block;
@@ -59,11 +67,8 @@ import { Icon } from 'astro-icon/components'
       svg {
         inline-size: 30px;
         block-size: 30px;
-      }
-
-      a:hover,
-      a:focus-visible {
-        text-decoration: none;
+        color: var(--color-charcoal-text) !important;
+        fill: currentColor;
       }
     }
   }
