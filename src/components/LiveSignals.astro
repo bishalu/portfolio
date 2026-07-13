@@ -1,11 +1,10 @@
 ---
 /**
  * LiveSignals — the ambient proof-of-life strip at the hero's ink seam
- * (docs/design/DESIGN.md §5.2). Not interactive; three true facts in mono.
+ * (docs/design/DESIGN.md §5.2). Not interactive; true facts in mono.
  * Server-rendered fallbacks update in place from /api/live-signals — if the
  * sources are down, the fallbacks simply stay (never blank, never a spinner).
  */
-const FALLBACK_TRACKS = '19,995'
 ---
 
 <aside class="lsig on-ink" aria-label="Live signals">
@@ -14,10 +13,6 @@ const FALLBACK_TRACKS = '19,995'
       <span class="live-dot" aria-hidden="true"></span>
       <span>lmarena #1 right now:&nbsp;</span>
       <span id="lsig-arena" class="lsig-value">watching…</span>
-    </p>
-    <p class="lsig-item">
-      <span>vibeset catalog:&nbsp;</span>
-      <span id="lsig-catalog" class="lsig-value">{FALLBACK_TRACKS} tracks</span>
     </p>
     <p class="lsig-item lsig-item-quiet">
       <span>this page: no spinners, no skeletons — just the signal</span>
@@ -28,8 +23,7 @@ const FALLBACK_TRACKS = '19,995'
 <script>
   document.addEventListener('astro:page-load', async () => {
     const arenaEl = document.getElementById('lsig-arena')
-    const catalogEl = document.getElementById('lsig-catalog')
-    if (!arenaEl || !catalogEl) return
+    if (!arenaEl) return
     try {
       const res = await fetch('/api/live-signals')
       if (!res.ok) throw new Error()
@@ -38,9 +32,6 @@ const FALLBACK_TRACKS = '19,995'
         arenaEl.textContent = data.arena.org ? `${data.arena.model} (${data.arena.org})` : data.arena.model
       } else {
         arenaEl.textContent = 'the big three, trading places'
-      }
-      if (typeof data.catalog?.songs === 'number') {
-        catalogEl.textContent = `${data.catalog.songs.toLocaleString()} tracks`
       }
     } catch {
       arenaEl.textContent = 'the big three, trading places'
