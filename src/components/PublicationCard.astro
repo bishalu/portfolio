@@ -23,7 +23,7 @@ const authorDisplay = coauthors.length > 0 ? `with ${coauthors.join(', ')}` : ''
 <article class="publication-card">
   <header class="pub-header">
     <span class="pub-year">{year}</span>
-    <h3 class="pub-title">{title}</h3>
+    <h2 class="pub-title">{title}</h2>
     {journal && <p class="pub-journal">{journal}</p>}
     {coauthors.length > 0 && <p class="pub-authors">{authorDisplay}</p>}
   </header>
@@ -61,13 +61,13 @@ const authorDisplay = coauthors.length > 0 ? `with ${coauthors.join(', ')}` : ''
 <style lang="scss">
   .publication-card {
     transition: border-color 0.2s ease;
-    border: 1px solid var(--card-border, rgba(168, 162, 158, 0.15));
+    border: 1px solid var(--hairline-on-paper);
     border-radius: 1rem;
-    background: var(--card-background, rgba(44, 44, 46, 0.5));
+    background: var(--paper-2);
     padding: 1.5rem;
 
     &:hover {
-      border-color: var(--color-moss-green);
+      border-color: var(--crimson);
     }
   }
 
@@ -78,11 +78,10 @@ const authorDisplay = coauthors.length > 0 ? `with ${coauthors.join(', ')}` : ''
   .pub-year {
     display: inline-block;
     margin-bottom: 0.5rem;
-    border-radius: 0.25rem;
-    background: rgba(126, 161, 114, 0.15);
-    padding: 0.125rem 0.5rem;
-    color: var(--color-moss-green);
+    color: var(--marigold-text);
+    font-weight: 500;
     font-size: 0.75rem;
+    letter-spacing: var(--tracking-label);
     font-family: var(--font-mono);
   }
 
@@ -127,10 +126,10 @@ const authorDisplay = coauthors.length > 0 ? `with ${coauthors.join(', ')}` : ''
   }
 
   .tag {
-    border-radius: 0.25rem;
-    background: rgba(126, 161, 114, 0.1);
-    padding: 0.125rem 0.375rem;
-    color: var(--color-moss-green);
+    border: 1px solid var(--hairline-on-paper);
+    border-radius: 999px;
+    padding: 0.125rem 0.5rem;
+    color: var(--ink-soft);
     font-size: 0.7rem;
     font-family: var(--font-mono);
   }
@@ -144,22 +143,20 @@ const authorDisplay = coauthors.length > 0 ? `with ${coauthors.join(', ')}` : ''
     transition:
       background 0.2s ease,
       color 0.2s ease;
-    border: 1px solid var(--color-living-teal);
-    border-radius: 0.25rem;
+    border: 1px solid var(--crimson-deep);
+    border-radius: 999px;
     padding: 0.25rem 0.75rem;
-    color: var(--color-living-teal);
+    color: var(--crimson-text);
     font-weight: 500;
     font-size: 0.8rem;
+    letter-spacing: var(--tracking-label);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
     text-decoration: none;
 
     &:hover {
-      background: var(--color-living-teal);
-      color: var(--color-deep-moss);
-    }
-
-    &:focus-visible {
-      outline: 2px solid var(--color-living-teal);
-      outline-offset: 2px;
+      background: var(--crimson-deep);
+      color: var(--paper);
     }
   }
 </style>

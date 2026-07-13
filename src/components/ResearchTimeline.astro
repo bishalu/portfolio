@@ -1,0 +1,298 @@
+---
+/**
+ * ResearchTimeline — publications as events on the spike train
+ * (docs/design/DESIGN.md §5.4). The rail is earned here: these papers are
+ * literally about electrical signals in neurons. Open content, no gates —
+ * cards expand in place via native <details>. The pruning paper carries the
+ * research↔production cross-link to Choon's 48M-param model.
+ */
+import { getCollection } from 'astro:content'
+
+const publications = (await getCollection('publications', ({ id }) => !id.startsWith('_'))).sort(
+  (a, b) => b.data.year - a.data.year,
+)
+
+const slugOf = (id: string) => id.replace(/\.mdx$/, '')
+const isPruning = (id: string) => slugOf(id) === 'structured-pruning'
+---
+
+<section class="rt" id="research">
+  <div class="rt-inner">
+    <header class="rt-head" data-reveal>
+      <p class="label-mono">Research — where the signal started</p>
+      <h2 class="rt-title">Neurons first, models second.</h2>
+      <p class="rt-lede">
+        Before I built AI systems I studied the original ones — electrical synapses in living circuits. Four
+        peer-reviewed papers, from <em>C.&nbsp;elegans</em> connectomes to making deep networks radically smaller.
+      </p>
+    </header>
+
+    <ol class="rt-list" data-reveal-stagger>
+      {
+        publications.map((pub) => (
+          <li class="rt-item" id={`paper-${slugOf(pub.id)}`} data-reveal>
+            <span class="rt-spike" aria-hidden="true">
+              <svg viewBox="0 0 24 48" width="24" height="48" fill="none">
+                <path
+                  d="M12 0 V16 L8 20 L16 26 L12 30 V48"
+                  stroke="url(#rt-grad)"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </span>
+            <details class="rt-card">
+              <summary>
+                <span class="rt-year label-mono">{pub.data.year}</span>
+                <span class="rt-card-main">
+                  <span class="rt-card-title">{pub.data.title}</span>
+                  {pub.data.journal && <span class="rt-journal">{pub.data.journal}</span>}
+                </span>
+                <span class="rt-toggle" aria-hidden="true">
+                  +
+                </span>
+              </summary>
+              <div class="rt-body">
+                <p class="rt-abstract">{pub.data.abstract}</p>
+                {pub.data.coauthors.length > 0 && (
+                  <p class="rt-authors label-mono">with {pub.data.coauthors.join(', ')}</p>
+                )}
+                {isPruning(pub.id) && (
+                  <p class="rt-crosslink">
+                    <span class="rt-crosslink-glyph" aria-hidden="true">
+                      ↳
+                    </span>
+                    Applied in production: <a href="#vibeset">Choon</a> matches 330M-parameter foundation models with a
+                    48M-parameter network — this paper is why I believed it could.
+                  </p>
+                )}
+                <p class="rt-links">
+                  {pub.data.doi && (
+                    <a href={`https://doi.org/${pub.data.doi}`} target="_blank" rel="noopener noreferrer">
+                      DOI ↳
+                    </a>
+                  )}
+                  {pub.data.pdf && (
+                    <a href={pub.data.pdf} target="_blank" rel="noopener noreferrer">
+                      PDF ↳
+                    </a>
+                  )}
+                </p>
+              </div>
+            </details>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+
+  <svg width="0" height="0" aria-hidden="true">
+    <defs>
+      <linearGradient id="rt-grad" x1="0" y1="0" x2="0" y2="48" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stop-color="#d64553"></stop>
+        <stop offset="1" stop-color="#efa33b"></stop>
+      </linearGradient>
+    </defs>
+  </svg>
+</section>
+
+<style lang="scss">
+  .rt {
+    background: var(--paper);
+    padding: var(--space-3xl) 0;
+  }
+
+  .rt-inner {
+    margin: 0 auto;
+    padding: 0 var(--space-l);
+    max-width: 900px;
+  }
+
+  .rt-head {
+    margin-bottom: var(--space-xl);
+  }
+
+  .rt-title {
+    margin: var(--space-xs) 0 var(--space-s);
+    font-size: clamp(2rem, 4.5vw, 3.25rem);
+    letter-spacing: -0.015em;
+    line-height: 1.02;
+  }
+
+  .rt-lede {
+    margin: 0;
+    max-width: 640px;
+    color: var(--ink-soft);
+    font-size: 1.05rem;
+    line-height: 1.65;
+  }
+
+  .rt-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .rt-item {
+    display: grid;
+    grid-template-columns: 24px 1fr;
+    gap: var(--space-m);
+    align-items: start;
+  }
+
+  .rt-spike {
+    display: flex;
+    justify-content: center;
+    padding-top: 0.9rem;
+    height: 100%;
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
+
+  .rt-card {
+    border-top: 1px solid var(--hairline-on-paper);
+    padding: var(--space-m) 0;
+
+    summary {
+      display: flex;
+      align-items: baseline;
+      gap: var(--space-m);
+      cursor: pointer;
+      list-style: none;
+
+      &::-webkit-details-marker {
+        display: none;
+      }
+
+      &:hover .rt-card-title {
+        color: var(--crimson-text);
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--crimson);
+        outline-offset: 4px;
+        border-radius: 4px;
+      }
+    }
+  }
+
+  .rt-year {
+    flex-shrink: 0;
+    color: var(--marigold-text);
+    font-weight: 500;
+  }
+
+  .rt-card-main {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: 0.2rem;
+    min-width: 0;
+  }
+
+  .rt-card-title {
+    transition: color var(--dur-base) ease;
+    color: var(--ink);
+    font-weight: 600;
+    font-size: clamp(1.05rem, 1.8vw, 1.3rem);
+    line-height: 1.3;
+    font-family: var(--font-display);
+  }
+
+  .rt-journal {
+    color: var(--ink-soft);
+    font-size: 0.85rem;
+    font-style: italic;
+  }
+
+  .rt-toggle {
+    flex-shrink: 0;
+    transition: transform var(--dur-base) var(--ease-out);
+    color: var(--crimson-text);
+    font-weight: 400;
+    font-size: 1.4rem;
+    line-height: 1;
+    font-family: var(--font-mono);
+  }
+
+  .rt-card[open] .rt-toggle {
+    transform: rotate(45deg);
+  }
+
+  .rt-body {
+    animation: sig-arrive var(--dur-base) var(--ease-out) both;
+    padding: var(--space-s) 0 0 calc(var(--space-m) + 2.6rem);
+  }
+
+  .rt-abstract {
+    margin: 0 0 var(--space-s);
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+    line-height: 1.7;
+  }
+
+  .rt-authors {
+    margin: 0 0 var(--space-s);
+    text-transform: none;
+    letter-spacing: 0.03em;
+  }
+
+  .rt-crosslink {
+    margin: 0 0 var(--space-s);
+    border-left: 2px solid var(--marigold);
+    padding-left: var(--space-s);
+    color: var(--ink);
+    font-size: 0.92rem;
+    line-height: 1.6;
+
+    a {
+      font-weight: 700;
+    }
+  }
+
+  .rt-crosslink-glyph {
+    color: var(--marigold);
+    margin-right: 0.3rem;
+  }
+
+  .rt-links {
+    display: flex;
+    gap: var(--space-s);
+    margin: 0;
+
+    a {
+      font-size: 0.8rem;
+      letter-spacing: var(--tracking-label);
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .rt-item {
+      grid-template-columns: 16px 1fr;
+      gap: var(--space-s);
+    }
+
+    .rt-spike svg {
+      width: 16px;
+    }
+
+    .rt-body {
+      padding-left: 0;
+    }
+
+    .rt-card summary {
+      gap: var(--space-s);
+    }
+  }
+
+  @media (max-width: 479px) {
+    .rt-inner {
+      padding: 0 var(--space-m);
+    }
+  }
+</style>

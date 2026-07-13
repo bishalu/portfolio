@@ -5,28 +5,25 @@ import { Icon } from 'astro-icon/components'
 
 /**
  * Header Component - Bishal Upadhyaya Portfolio
- * Clean, focused navigation: Home, Vibeset, Research, About
- * Note: Dark mode support removed - site defaults to light mode
+ * Transparent → frosted-glass compressed bar on scroll (dvdrod.com pattern).
+ * All links are #section anchors within the single homepage.
  */
 ---
 
-<header>
+<header id="site-header">
   <SkipLink />
   <Navigation>
     <li class="menu-item">
-      <Link href="/">Home</Link>
+      <a href="#hero" class="nav-anchor">Home</a>
     </li>
     <li class="menu-item">
-      <Link href="/vibeset/">Vibeset</Link>
+      <a href="#vibeset" class="nav-anchor">Vibeset</a>
     </li>
     <li class="menu-item">
-      <Link href="/research/">Research</Link>
+      <a href="#research" class="nav-anchor">Research</a>
     </li>
     <li class="menu-item">
-      <Link href="/about/">About</Link>
-    </li>
-    <li class="menu-item">
-      <Link href="/contact/">Contact</Link>
+      <a href="#contact" class="nav-anchor">Contact</a>
     </li>
     <li class="menu-item type-icon animate-rotate">
       <Link href="https://github.com/bishalu">
@@ -37,21 +34,94 @@ import { Icon } from 'astro-icon/components'
   </Navigation>
 </header>
 
+<script>
+  document.addEventListener('astro:page-load', () => {
+    const header = document.getElementById('site-header') as HTMLElement | null
+    if (!header) return
+
+    // Non-home pages sit on paper — keep the ink frost permanently so the
+    // header is always legible. Home starts transparent over the ink hero.
+    const isHome = window.location.pathname === '/'
+
+    // Scroll compression — add .scrolled when past 60px
+    const onScroll = () => {
+      if (!isHome || window.scrollY > 60) {
+        header.classList.add('scrolled')
+      } else {
+        header.classList.remove('scrolled')
+      }
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true })
+    onScroll() // run once on load
+
+    // Smooth-scroll all anchor links in the nav
+    const anchors = header.querySelectorAll<HTMLAnchorElement>('a.nav-anchor')
+    anchors.forEach((anchor) => {
+      anchor.addEventListener('click', (e) => {
+        const href = anchor.getAttribute('href')
+        if (!href || !href.startsWith('#')) return
+        const target = document.querySelector(href)
+        if (target) {
+          e.preventDefault()
+          target.scrollIntoView({ behavior: 'smooth' })
+          history.pushState(null, '', href)
+        }
+      })
+    })
+  })
+</script>
+
 <style lang="scss" is:global>
-  header {
-    position: absolute;
+  #site-header {
+    position: fixed;
     width: 100%;
     top: 0;
-    z-index: 100;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 200;
+    transition:
+      padding 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+      background 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+      box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+      backdrop-filter 0.35s ease;
     background-color: transparent;
     border: none;
     box-shadow: none;
+    padding: 0;
 
-    a {
-      color: var(--color-charcoal-text) !important;
+    /* ── Compressed state (after scroll): ink frost, works over both canvases ── */
+    &.scrolled {
+      background: rgba(24, 28, 48, 0.82);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--hairline-on-ink);
+
+      /* Tighten inner padding */
+      > .container {
+        padding-top: 0.55rem;
+        padding-bottom: 0.55rem;
+      }
+
+      /* Shrink logo slightly */
+      .logo-text {
+        font-size: 1.2rem;
+      }
+
+      /* Shrink nav text slightly */
+      nav a,
+      nav button {
+        font-size: 0.68rem;
+      }
+    }
+
+    a,
+    button {
+      color: var(--paper) !important;
       opacity: 1 !important;
       font-weight: 500;
+      font-size: 0.72rem;
+      letter-spacing: var(--tracking-label);
+      font-family: var(--font-mono);
+      text-transform: uppercase;
 
       &:hover,
       &:focus-visible {
@@ -65,9 +135,9 @@ import { Icon } from 'astro-icon/components'
       margin-inline: -7px;
 
       svg {
-        inline-size: 30px;
-        block-size: 30px;
-        color: var(--color-charcoal-text) !important;
+        inline-size: 26px;
+        block-size: 26px;
+        color: var(--paper) !important;
         fill: currentColor;
       }
     }

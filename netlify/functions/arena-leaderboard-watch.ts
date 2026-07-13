@@ -89,6 +89,18 @@ const runWatcher: Handler = async (_event, context) => {
   const runId = scheduledEvent?.event?.id ?? "manual";
   const scrapedAt = new Date().toISOString();
 
+  // Piggyback: keep the Vibeset demo Lambda warm so the landing page's
+  // vibe-search widget hits the LIVE path instead of replay fixtures.
+  // Fire-and-forget — a failure here must never affect the watcher.
+  const demoBase =
+    process.env.VIBESET_API_BASE ||
+    "https://5vboufmeboomn64dgugikyqez40tunvp.lambda-url.us-east-2.on.aws";
+  fetch(`${demoBase}/api/v3/autocomplete`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query: "aa" }),
+  }).catch(() => {});
+
   try {
     if (fixtureNotify) {
       await sendSlackTest(makeFixtureParsed(scrapedAt));

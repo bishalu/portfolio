@@ -1,0 +1,25 @@
+---
+name: Choon
+eyebrow: PROVE
+tagline: Audio fingerprinting and provenance, built for repeated scanning
+description: >-
+  A hybrid identifier: Shazam-style spectral landmarks for the fast path, a
+  custom 48M-parameter Conformer embedding model (FAISS + RANSAC alignment)
+  when the audio has been mangled — plus dual audio watermarking with C2PA
+  signed manifests for provenance. Runs on Cloud Run behind a private API.
+accent: '#D64553'
+liveUrl: https://choon.vibeset.ai
+liveLabel: Run the real stress test
+stats:
+  - label: recall@1
+    value: 0.8455 @ 48M params
+  - label: vs
+    value: 330M-param foundation models
+  - label: mp3 128k
+    value: '99.7%'
+studios:
+  - Audio Fingerprint
+order: 3
+---
+
+Choon proves what a piece of audio is — even after the internet has chewed on it.

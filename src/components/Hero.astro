@@ -1,55 +1,75 @@
 ---
 /**
- * Hero Component — 2026 Cover-Led Cinematic Layout
- * A layered hero scene built entirely from the landing cover, with the
- * chat portal taking over only after the first interaction.
+ * Hero — typographic, signal-led (docs/design/DESIGN.md, MOTION.md).
+ * Name in macro display type over ink; a live oscilloscope trace under the
+ * name doubles as Balgo's status indicator (idle breathing → excited while
+ * thinking). The Balgo console is the page's first interactive moment; on
+ * first submit it blooms into a chat surface (WAAPI — the one scene move).
+ * Phones get a full-screen sheet instead of the bloom. No animation library.
  */
-import landingCover from '@assets/img/landingpage_cover.jpg'
 ---
 
-<section class="kinetic-hero" id="hero">
-  <div class="hero-scene" aria-hidden="true">
-    <img class="scene-backdrop" src={landingCover.src} alt="" />
-  </div>
+<section class="hero on-ink" id="hero">
+  <div class="hero-container">
+    <p class="hero-kicker label-mono" id="hero-kicker">AI systems architect · research → production</p>
 
-  <div class="container cinematic" id="kinetic-container">
-    <div class="macro-wrapper horizontal-header">
-      <p class="hero-kicker">AI systems architect · research to production</p>
-      <h1 class="macro-title macro-title--solid">
-        <span class="mask-text">Bishal Upadhyaya.</span>
-      </h1>
+    <h1 class="hero-name" id="hero-name">
+      <span class="name-line"><span class="name-word">Bishal</span></span>
+      <span class="name-line"><span class="name-word">Upadhyaya.</span></span>
+    </h1>
+
+    <div class="hero-scope" id="hero-scope" aria-hidden="true">
+      <canvas id="hero-osc"></canvas>
     </div>
 
-    <div class="split-layout" id="split-layout">
-      <div class="hero-left-column">
-
+    <div class="hero-split" id="split-layout">
+      <div class="hero-left-column" id="hero-left">
+        <p class="hero-tagline">
+          I build AI systems end-to-end —<br />
+          from peer-reviewed research to products people use.<br />
+          <strong>Currently: Vibeset.</strong>
+        </p>
       </div>
 
       <div class="hero-right-column">
         <div class="balgo-portal" id="balgo-portal" data-state="collapsed">
+          <div class="portal-header" id="portal-header">
+            <span class="live-dot" aria-hidden="true"></span>
+            <span class="portal-status label-mono">Available for work</span>
+          </div>
+
+          <button type="button" class="portal-close" id="portal-close" aria-label="Close chat">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M18 6 6 18M6 6l12 12"></path>
+            </svg>
+          </button>
+
           <div class="balgo-chat-history" id="balgo-chat-history" aria-live="polite">
             <!-- Messages appear here -->
           </div>
 
-          <form id="kinetic-balgo-form" class="kinetic-balgo-form">
+          <form id="kinetic-balgo-form" class="balgo-form">
             <textarea
               id="kinetic-input"
-              class="massive-input"
+              class="balgo-input"
               placeholder="What are we building today?"
               rows="1"
-              aria-label="Ask Balgo a question"
-            ></textarea>
-            
-            <div class="form-footer" id="form-footer">
-              <button type="submit" class="kinetic-send-btn" id="kinetic-send-btn" aria-label="Send message">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M5 12h14"/>
-                  <path d="m12 5 7 7-7 7"/>
-                </svg>
-              </button>
-            </div>
+              aria-label="Ask Balgo a question"></textarea>
+            <button type="submit" class="balgo-send" id="kinetic-send-btn" aria-label="Send message">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M5 12h14"></path>
+                <path d="m12 5 7 7-7 7"></path>
+              </svg>
+            </button>
           </form>
-
         </div>
       </div>
     </div>
@@ -57,52 +77,191 @@ import landingCover from '@assets/img/landingpage_cover.jpg'
 </section>
 
 <script>
-  import { gsap } from 'gsap'
-
   document.addEventListener('astro:page-load', () => {
-    /* ═══════════════════════════════════════════════════════════════════════════
-       GSAP ENTRY ANIMATIONS (2026 Kinetic Layout)
-       ═══════════════════════════════════════════════════════════════════════════ */
-    // Cinematic Load Sequence: Animate both layers simultaneously
-    const solidTexts = document.querySelectorAll('.macro-title--solid .mask-text')
-    const manifestoBox = document.querySelector('.consulting-manifesto')
-    const balgoPortal = document.getElementById('balgo-portal') as HTMLDivElement | null
+    const hero = document.getElementById('hero')
+    if (!hero) return
+
+    const rm = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const isPhone = () => window.matchMedia('(max-width: 767px)').matches
+    const d = (x: number) => (rm ? 1 : x)
+    const EXPO_OUT = 'cubic-bezier(0.16, 1, 0.3, 1)'
+    const EASE_INOUT = 'cubic-bezier(0.65, 0, 0.35, 1)'
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       OSCILLOSCOPE — the site's heartbeat. One rAF loop, paused offscreen.
+       Idle: quiet breathing line. Thinking: the signal gets excited.
+       ═══════════════════════════════════════════════════════════════════════ */
+    const canvas = document.getElementById('hero-osc') as HTMLCanvasElement | null
+    const scopeBox = document.getElementById('hero-scope') as HTMLElement | null
+
+    let energyTarget = 0.26
+    let energy = 0.26
+
+    const scope = (() => {
+      if (!canvas || !scopeBox) return { setState: (_: string) => {} }
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return { setState: (_: string) => {} }
+
+      const dpr = Math.min(window.devicePixelRatio || 1, 2)
+      let w = 0
+      let h = 0
+      let t = 0
+      let raf = 0
+      let visible = true
+
+      const resize = () => {
+        w = scopeBox.clientWidth
+        h = scopeBox.clientHeight
+        canvas.width = w * dpr
+        canvas.height = h * dpr
+        canvas.style.width = `${w}px`
+        canvas.style.height = `${h}px`
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      }
+
+      const wave = (x: number, time: number, amp: number) => {
+        const k = x / w
+        // calm at the edges, lively in the middle
+        const envelope = 0.25 + 0.75 * Math.sin(Math.PI * k) ** 1.5
+        return (
+          amp *
+          envelope *
+          (Math.sin(k * 7 + time * 1.6) * 0.55 +
+            Math.sin(k * 17 - time * 2.3) * 0.3 +
+            Math.sin(k * 41 + time * 3.7) * 0.15)
+        )
+      }
+
+      const drawFrame = () => {
+        ctx.clearRect(0, 0, w, h)
+        const mid = h / 2
+        const amp = mid * 0.82 * energy
+
+        const grad = ctx.createLinearGradient(0, 0, w, 0)
+        grad.addColorStop(0, '#d64553')
+        grad.addColorStop(1, '#efa33b')
+
+        // soft under-glow pass
+        ctx.beginPath()
+        for (let x = 0; x <= w; x += 3) {
+          const y = mid + wave(x, t, amp)
+          x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
+        }
+        ctx.strokeStyle = grad
+        ctx.globalAlpha = 0.22
+        ctx.lineWidth = 5
+        ctx.stroke()
+
+        // main line
+        ctx.beginPath()
+        for (let x = 0; x <= w; x += 2) {
+          const y = mid + wave(x, t, amp)
+          x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
+        }
+        ctx.globalAlpha = 1
+        ctx.lineWidth = 1.8
+        ctx.stroke()
+      }
+
+      const loop = () => {
+        energy += (energyTarget - energy) * 0.04
+        t += 0.016 * (0.6 + energy * 2.2)
+        drawFrame()
+        raf = requestAnimationFrame(loop)
+      }
+
+      const start = () => {
+        if (!raf && !rm) raf = requestAnimationFrame(loop)
+      }
+      const stop = () => {
+        cancelAnimationFrame(raf)
+        raf = 0
+      }
+
+      resize()
+      window.addEventListener('resize', () => {
+        resize()
+        if (rm) drawFrame()
+      })
+
+      if (rm) {
+        // one static frame — complete, just still
+        energy = 0.3
+        t = 2.2
+        drawFrame()
+      } else {
+        new IntersectionObserver(
+          (entries) => {
+            visible = entries[0].isIntersecting
+            visible && !document.hidden ? start() : stop()
+          },
+          { threshold: 0 },
+        ).observe(scopeBox)
+        document.addEventListener('visibilitychange', () => {
+          document.hidden || !visible ? stop() : start()
+        })
+        start()
+      }
+
+      return {
+        setState: (state: string) => {
+          energyTarget = state === 'thinking' ? 0.85 : 0.26
+        },
+      }
+    })()
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       ENTRY — begins when the loading screen hands off (bishal:hero-go)
+       ═══════════════════════════════════════════════════════════════════════ */
+    const kicker = document.getElementById('hero-kicker')!
+    const nameWords = hero.querySelectorAll('.hero-name .name-word')
+    const scopeEl = document.getElementById('hero-scope')!
+    const heroLeft = document.getElementById('hero-left')!
+    const balgoPortal = document.getElementById('balgo-portal') as HTMLDivElement
+
+    const playEntry = () => {
+      kicker.animate([{ opacity: 0 }, { opacity: 1 }], { duration: d(400), easing: EXPO_OUT, fill: 'both' })
+      nameWords.forEach((word, i) => {
+        word.animate([{ transform: 'translateY(105%)' }, { transform: 'translateY(0%)' }], {
+          duration: d(550),
+          delay: d(50 + i * 120),
+          easing: EXPO_OUT,
+          fill: 'both',
+        })
+      })
+      scopeEl.animate([{ clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)' }], {
+        duration: d(600),
+        delay: d(300),
+        easing: EASE_INOUT,
+        fill: 'both',
+      })
+      ;[heroLeft, balgoPortal].forEach((el, i) => {
+        el?.animate([{ transform: 'translateY(24px)', opacity: 0 }, { transform: 'translateY(0)', opacity: 1 }], {
+          duration: d(500),
+          delay: d(550 + i * 100),
+          easing: EXPO_OUT,
+          fill: 'both',
+        })
+      })
+    }
+
+    if ((window as any).__introDone) playEntry()
+    else document.addEventListener('bishal:hero-go', playEntry, { once: true })
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       BALGO CHAT — loading states themed to the pulse (MOTION.md §4)
+       ═══════════════════════════════════════════════════════════════════════ */
     const form = document.getElementById('kinetic-balgo-form') as HTMLFormElement | null
     const input = document.getElementById('kinetic-input') as HTMLTextAreaElement | null
     const sendBtn = document.getElementById('kinetic-send-btn') as HTMLButtonElement | null
     const chatHistory = document.getElementById('balgo-chat-history') as HTMLDivElement | null
+    const closeBtn = document.getElementById('portal-close') as HTMLButtonElement | null
 
-    const kicker = document.querySelector('.hero-kicker')
-    
-    const tl = gsap.timeline({ defaults: { ease: "power4.out" } })
-    
-    tl.fromTo(kicker,
-      { y: 20, opacity: 0 },
-      { y: 0, opacity: 1, duration: 1, delay: 0.2 }
-    )
-    .fromTo(solidTexts,
-      { y: 150, opacity: 0 }, 
-      { y: 0, opacity: 1, duration: 1.2, stagger: 0.1 },
-      "-=0.7"
-    )
-    .fromTo([manifestoBox, balgoPortal],
-      { y: 40, opacity: 0 }, 
-      { y: 0, opacity: 1, duration: 1.2, stagger: 0.1 },
-      "-=0.9" // Sharp overlap
-    )
-
-    // Spotlight logic removed
-
-    /* ═══════════════════════════════════════════════════════════════════════════
-       CHAT FUNCTIONALITY & MORPHING LOGIC
-       ═══════════════════════════════════════════════════════════════════════════ */
-
-    if (!form || !input || !sendBtn || !chatHistory || !balgoPortal) return
+    if (!form || !input || !sendBtn || !chatHistory || !balgoPortal || !closeBtn) return
 
     let isFirstMessage = true
     let isSubmitting = false
 
-    // Auto-resize input
     input.addEventListener('input', () => {
       input.style.height = 'auto'
       input.style.height = Math.min(input.scrollHeight, 120) + 'px'
@@ -111,129 +270,169 @@ import landingCover from '@assets/img/landingpage_cover.jpg'
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault()
-        form.requestSubmit()
+        handleChatSubmit()
       }
     })
 
-    // Cinematic morph on first submit
-    const triggerCinematicChatMode = async () => {
-      // 1. Dim the editorial scene and intro before promoting the chat.
-      await Promise.all([
-        gsap.to('.hero-left-column', {
-          opacity: 0,
-          x: -40,
-          scale: 0.98,
-          duration: 0.4,
-          ease: "power2.inOut"
-        }),
-        gsap.to('.horizontal-header', {
-          opacity: 0.1,
-          scale: 0.95,
-          y: -20,
-          duration: 0.6,
-          ease: "expo.out"
-        }),
-        gsap.to('.scene-backdrop, .scene-overlay', {
-          opacity: 0.4,
-          duration: 0.45,
-          ease: "power2.inOut"
-        })
-      ])
-      
-      // 2. Hide left column to make room in the layout
-      const leftCol = document.querySelector('.hero-left-column') as HTMLElement;
-      if (leftCol) leftCol.style.display = 'none';
+    const animDone = (a: Animation) => a.finished.catch(() => {})
 
-      // 3. Update structure for chat mode
+    // Desktop bloom — the one scene-scale move (MOTION.md §7), FLIP-style
+    const bloomDesktop = async () => {
+      const heroName = document.getElementById('hero-name')!
+
+      heroLeft.animate(
+        [{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: 'translateX(-32px)' }],
+        { duration: d(350), easing: EASE_INOUT, fill: 'both' },
+      )
+      heroName.animate([{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0.12, transform: 'translateY(-16px)' }], {
+        duration: d(500),
+        easing: EASE_INOUT,
+        fill: 'both',
+      })
+      const dim = kicker.animate([{ opacity: 1 }, { opacity: 0.25 }], {
+        duration: d(400),
+        easing: EASE_INOUT,
+        fill: 'both',
+      })
+      await animDone(dim)
+
+      // FLIP: measure, switch layout, measure again, animate the difference
+      const start = balgoPortal.getBoundingClientRect()
+      heroLeft.style.display = 'none'
       balgoPortal.classList.add('expanded')
+      document.getElementById('split-layout')?.classList.add('chat-active')
       chatHistory.style.display = 'flex'
-      
-      // 4. Concurrently expand Balgo and choreograph the vertical 'bloom'
-      await Promise.all([
-        gsap.to('.split-layout', {
-          minHeight: "75vh",
-          paddingTop: "0",
-          duration: 1,
-          ease: "expo.out"
-        }),
-        gsap.to('.hero-right-column', {
-          paddingBottom: "0",
-          paddingRight: "0", // Center focus
-          justifyContent: "center",
-          duration: 1,
-          ease: "expo.out"
-        }),
-        gsap.to(input, { fontSize: "1.05rem", padding: "0.5rem 0", duration: 0.4 }),
-        gsap.to(balgoPortal, {
-          width: "100%",
-          maxWidth: "800px",
-          height: "min(600px, 75vh)",
-          padding: "1.5rem 1.65rem",
-          borderRadius: "30px",
-          duration: 1.2,
-          ease: "expo.out"
-        })
-      ])
+      const end = balgoPortal.getBoundingClientRect()
 
-      // 5. Finalize state
-      document.querySelector('.split-layout')?.classList.add('chat-active')
+      const grow = balgoPortal.animate(
+        [
+          { width: `${start.width}px`, height: `${start.height}px` },
+          { width: `${end.width}px`, height: `${end.height}px` },
+        ],
+        { duration: d(900), easing: EXPO_OUT },
+      )
+      const sweep = chatHistory.animate(
+        [
+          { clipPath: 'inset(100% 0 0 0)', opacity: 0 },
+          { clipPath: 'inset(0% 0 0 0)', opacity: 1 },
+        ],
+        { duration: d(450), delay: d(450), easing: EXPO_OUT, fill: 'both' },
+      )
+      await Promise.all([animDone(grow), animDone(sweep)])
     }
 
-    // Helper to format simple markdown (bold/italic)
-    const markdownToHtml = (text: string) => {
-      return text
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    // Phone sheet — slides up full-screen instead of blooming
+    const openSheet = async () => {
+      balgoPortal.classList.add('expanded', 'sheet')
+      chatHistory.style.display = 'flex'
+      document.body.style.overflow = 'hidden'
+      await animDone(
+        balgoPortal.animate([{ transform: 'translateY(100%)' }, { transform: 'translateY(0%)' }], {
+          duration: d(400),
+          easing: EXPO_OUT,
+        }),
+      )
     }
 
-    // Helper to type text (restored since it's needed for AI replies)
-    const typeText = async (element: HTMLElement, text: string, speed = 20) => {
-      element.innerHTML = ''
-      
-      // We process the text to identify HTML vs plain text for typing
-      // For simplicity, we'll type the text but apply the bolding properly
-      // A more robust way is to type the parsed HTML but only show content
-      const htmlText = markdownToHtml(text)
-      
-      // Quick approach: Just set innerHTML and fade in or reveal
-      // to avoid breaking HTML tags during typing
-      element.innerHTML = htmlText
-      gsap.fromTo(element, { opacity: 0 }, { opacity: 1, duration: 0.5 })
-      
-      /* 
-      // If we really want typing effect for HTML:
-      const words = text.split(' ')
-      for (let i = 0; i < words.length; i++) {
-        element.innerHTML = markdownToHtml(words.slice(0, i + 1).join(' '))
-        await new Promise(resolve => setTimeout(resolve, speed + Math.random() * 5))
+    const closeSheet = async () => {
+      await animDone(
+        balgoPortal.animate([{ transform: 'translateY(0%)' }, { transform: 'translateY(100%)' }], {
+          duration: d(300),
+          easing: 'cubic-bezier(0.45, 0, 0.7, 0.2)',
+        }),
+      )
+      balgoPortal.classList.remove('sheet')
+      document.body.style.overflow = ''
+    }
+
+    closeBtn.addEventListener('click', () => void closeSheet())
+
+    // Reopen the sheet when returning to the input on a phone
+    input.addEventListener('focus', () => {
+      if (isPhone() && balgoPortal.classList.contains('expanded') && !balgoPortal.classList.contains('sheet')) {
+        void openSheet()
       }
-      */
+    })
+
+    const markdownToHtml = (text: string) =>
+      text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>')
+
+    const smoothScrollChat = () =>
+      chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: rm ? 'auto' : 'smooth' })
+
+    // Wrap words in spans so replies can arrive as a staggered cascade
+    const wrapWords = (el: HTMLElement) => {
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT)
+      const nodes: Text[] = []
+      while (walker.nextNode()) nodes.push(walker.currentNode as Text)
+      nodes.forEach((node) => {
+        const parts = node.textContent?.split(/(\s+)/) ?? []
+        const frag = document.createDocumentFragment()
+        parts.forEach((part) => {
+          if (/^\s+$/.test(part)) {
+            frag.appendChild(document.createTextNode(part))
+          } else if (part) {
+            const s = document.createElement('span')
+            s.className = 'tw'
+            s.textContent = part
+            frag.appendChild(s)
+          }
+        })
+        node.parentNode?.replaceChild(frag, node)
+      })
+    }
+
+    const typeText = async (element: HTMLElement, text: string) => {
+      element.innerHTML = markdownToHtml(text)
+      if (rm) return
+      wrapWords(element)
+      const spans = element.querySelectorAll('.tw')
+      let last: Animation | null = null
+      spans.forEach((s, i) => {
+        last = s.animate(
+          [
+            { opacity: 0, transform: 'translateY(4px)' },
+            { opacity: 1, transform: 'translateY(0)' },
+          ],
+          { duration: 250, delay: Math.min(i * 16, 2400), easing: 'ease-out', fill: 'both' },
+        )
+      })
+      if (last) await animDone(last)
     }
 
     const appendUserMessage = (text: string) => {
       const wrapper = document.createElement('div')
-      wrapper.className = 'msg msg-user fade-up'
+      wrapper.className = 'msg msg-user'
       const bubble = document.createElement('div')
       bubble.className = 'msg-bubble msg-bubble-user'
       bubble.textContent = text
       wrapper.appendChild(bubble)
       chatHistory.appendChild(wrapper)
-      setTimeout(() => chatHistory.scrollTop = chatHistory.scrollHeight, 50)
+      wrapper.animate(
+        [
+          { opacity: 0, transform: 'translateY(8px)' },
+          { opacity: 1, transform: 'translateY(0)' },
+        ],
+        { duration: d(300), easing: 'ease-out', fill: 'both' },
+      )
+      smoothScrollChat()
     }
 
     const appendAILoading = () => {
       const wrapper = document.createElement('div')
-      wrapper.className = 'msg msg-ai fade-up ai-loading-wrapper'
+      wrapper.className = 'msg msg-ai ai-loading-wrapper'
       const header = document.createElement('div')
       header.className = 'msg-ai-header'
-      header.innerHTML = '<span class="msg-ai-glyph">✦</span><span class="msg-ai-name">Balgo</span>'
+      header.innerHTML = '<span class="msg-ai-name label-mono">Balgo</span>'
       const bubble = document.createElement('div')
-      bubble.className = 'msg-bubble msg-bubble-ai'
-      bubble.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>'
+      bubble.className = 'msg-bubble msg-bubble-ai msg-bubble-loading'
+      bubble.innerHTML =
+        '<div class="pulse-line" role="status" aria-label="Balgo is thinking"></div><div class="pulse-caption">Waking the model…</div>'
       wrapper.appendChild(header)
       wrapper.appendChild(bubble)
       chatHistory.appendChild(wrapper)
-      setTimeout(() => chatHistory.scrollTop = chatHistory.scrollHeight, 50)
+      wrapper.animate([{ opacity: 0 }, { opacity: 1 }], { duration: d(300), fill: 'both' })
+      smoothScrollChat()
       return wrapper
     }
 
@@ -241,24 +440,37 @@ import landingCover from '@assets/img/landingpage_cover.jpg'
       const bubble = loadingWrapper.querySelector('.msg-bubble-ai') as HTMLElement
       if (!bubble) return
 
+      bubble.classList.remove('msg-bubble-loading')
       bubble.innerHTML = ''
       const textEl = document.createElement('div')
       textEl.className = 'msg-text'
       bubble.appendChild(textEl)
       await typeText(textEl, data.reply)
+      smoothScrollChat()
 
       if (data.links && data.links.length > 0) {
         const linksEl = document.createElement('div')
-        linksEl.className = 'msg-links fade-up'
-        linksEl.innerHTML = data.links.map((link: any) => `
+        linksEl.className = 'msg-links'
+        linksEl.innerHTML = data.links
+          .map(
+            (link: any) => `
           <a href="${link.href}" class="msg-link smooth-scroll" data-target="${link.href}">
-            <span class="msg-link-emoji">${link.emoji || '✦'}</span>
+            <span class="msg-link-glyph" aria-hidden="true">↳</span>
             <span>${link.title}</span>
           </a>
-        `).join('')
+        `,
+          )
+          .join('')
         bubble.appendChild(linksEl)
+        linksEl.animate(
+          [
+            { opacity: 0, transform: 'translateY(8px)' },
+            { opacity: 1, transform: 'translateY(0)' },
+          ],
+          { duration: d(350), easing: 'ease-out', fill: 'both' },
+        )
 
-        linksEl.querySelectorAll('.msg-link.smooth-scroll').forEach(anchor => {
+        linksEl.querySelectorAll('.msg-link.smooth-scroll').forEach((anchor) => {
           anchor.addEventListener('click', (e) => {
             const targetId = anchor.getAttribute('data-target')
             if (targetId && targetId.startsWith('#')) {
@@ -268,66 +480,65 @@ import landingCover from '@assets/img/landingpage_cover.jpg'
               else if (targetId.startsWith('#paper-')) scrollTargetId = targetId
               const targetElement = document.querySelector(scrollTargetId)
               if (targetElement) {
-                targetElement.scrollIntoView({ behavior: 'smooth' })
+                if (balgoPortal.classList.contains('sheet')) void closeSheet()
+                targetElement.scrollIntoView({ behavior: rm ? 'auto' : 'smooth' })
                 history.pushState(null, '', targetId)
               }
             }
           })
         })
+
+        smoothScrollChat()
       }
 
       loadingWrapper.classList.remove('ai-loading-wrapper')
-      setTimeout(() => chatHistory.scrollTop = chatHistory.scrollHeight, 50)
     }
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault()
+    const handleChatSubmit = async () => {
       if (isSubmitting) return
-      
+
       const idea = input.value.trim()
       if (!idea) return
 
       isSubmitting = true
       sendBtn.disabled = true
+      scope.setState('thinking')
 
       try {
         if (isFirstMessage) {
-          await triggerCinematicChatMode()
           isFirstMessage = false
+          await (isPhone() ? openSheet() : bloomDesktop())
         }
 
-        appendUserMessage(idea)
         input.value = ''
         input.style.height = 'auto'
-        
+
+        appendUserMessage(idea)
         const loadingEl = appendAILoading()
 
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 10000)
 
         const res = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: idea }),
-          signal: controller.signal
+          signal: controller.signal,
         })
-        clearTimeout(timeoutId);
+        clearTimeout(timeoutId)
 
         const rawData = await res.json()
         let data = { reply: "Let's connect directly.", links: [] as any[] }
         try {
           if (rawData.reply) {
             if (rawData.links !== undefined) {
-              // Direct JSON match 
               data = { ...rawData }
             } else {
-              // Try parsing reply, but if it fails, just use the reply string as the message
               try {
                 const parsed = JSON.parse(rawData.reply)
                 if (parsed.reply) data.reply = parsed.reply
                 if (parsed.links) data.links = parsed.links
               } catch {
-                // If it's just a fallback string (like backend 500s), adopt it
                 data.reply = rawData.reply
               }
             }
@@ -335,572 +546,389 @@ import landingCover from '@assets/img/landingpage_cover.jpg'
         } catch {}
         await replaceAILoadingWithMessage(loadingEl, data)
       } catch (e: any) {
-        let errorMsg = "Systems offline. Contact directly."
+        let errorMsg = 'Balgo is unreachable right now — email **bishal@vibeset.ai** instead.'
         if (e.name === 'AbortError') {
-          errorMsg = "Request timed out connecting to the neural network."
+          errorMsg = 'That took too long. Try again, or email **bishal@vibeset.ai**.'
         }
-        
-        const els = chatHistory.querySelectorAll('.ai-loading-wrapper');
-        const errorEl = els[els.length - 1] as HTMLElement;
+
+        const els = chatHistory.querySelectorAll('.ai-loading-wrapper')
+        const errorEl = els[els.length - 1] as HTMLElement
         if (errorEl) {
           await replaceAILoadingWithMessage(errorEl, { reply: errorMsg, links: [] })
         }
       } finally {
         isSubmitting = false
         sendBtn.disabled = false
+        scope.setState('idle')
       }
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault()
+      handleChatSubmit()
     })
   })
 </script>
 
 <style lang="scss">
-  /* ═══════════════════════════════════════════════════════════════════════════
-     BOUNDED HERO SPATIAL LAYOUT
-     ═══════════════════════════════════════════════════════════════════════════ */
-  .kinetic-hero {
-    position: relative;
-    width: 100%;
-    height: 100vh;
-    min-height: 720px;
-    max-height: 980px;
+  .hero {
     display: flex;
-    align-items: center;
-    justify-content: center;
+    position: relative;
+    align-items: stretch;
+    width: 100%;
+    min-height: 100svh;
     overflow: hidden;
-    isolation: isolate;
+  }
 
-    &::after {
-      content: '';
-      position: absolute;
-      inset: auto 0 0;
-      height: 28%;
-      background: linear-gradient(180deg, transparent 0%, rgba(245, 241, 232, 0.74) 70%, rgba(245, 241, 232, 0.96) 100%);
-      z-index: 2;
-      pointer-events: none;
+  .hero-container {
+    display: flex;
+    flex-direction: column;
+    margin: 0 auto;
+    padding: clamp(5.5rem, 12vh, 8rem) var(--space-l) clamp(2rem, 5vh, 3.5rem);
+    width: 100%;
+    max-width: 1240px;
+  }
+
+  .hero-kicker {
+    opacity: 0;
+    margin: 0 0 var(--space-s);
+  }
+
+  .hero-name {
+    margin: 0;
+    color: var(--paper);
+    font-weight: 600;
+    font-size: clamp(3.2rem, 11.5vw, 8.5rem);
+    line-height: 0.98;
+    letter-spacing: -0.02em;
+    font-family: var(--font-display);
+
+    .name-line {
+      display: block;
+      overflow: hidden;
+    }
+
+    .name-word {
+      display: inline-block;
+      transform: translateY(105%);
+      will-change: transform;
     }
   }
 
-  .hero-scene {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    overflow: hidden;
-    background-color: #f5f1e8; // Warm Stone Foundation
-  }
-
-  .scene-backdrop {
-    position: absolute;
-    inset: 0;
+  .hero-scope {
+    margin: clamp(1.25rem, 3vh, 2.5rem) 0;
     width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center 56%;
-    filter: saturate(1.1) contrast(1.1) brightness(1.02);
-    
-    // Radical Editorial Mask
-    // 1. Softened radial focus on the face (50% 45%) — extremely gradual falloff
-    // 2. Symmetrical vertical fade to blend into the beige page foundation above and below
-    -webkit-mask-image: 
-      radial-gradient(circle at 50% 44%, black 0%, rgba(0,0,0,0.85) 28%, transparent 92%),
-      linear-gradient(to bottom, transparent 0%, black 18%, black 82%, transparent 100%);
-    mask-image: 
-      radial-gradient(circle at 50% 44%, black 0%, rgba(0,0,0,0.85) 28%, transparent 92%),
-      linear-gradient(to bottom, transparent 0%, black 18%, black 82%, transparent 100%);
-    
-    -webkit-mask-composite: source-in;
-    mask-composite: intersect;
+    height: clamp(72px, 12vh, 150px);
+    clip-path: inset(0 100% 0 0);
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
   }
 
-
-  .kinetic-container {
-    position: relative;
-    z-index: 10;
-    width: 100%;
-    max-width: 1500px;
-    padding: 0 var(--space-xl);
-    margin: 0 auto;
+  /* reduced motion / no-JS: everything visible without the entrance */
+  @media (prefers-reduced-motion: reduce) {
+    .hero-scope {
+      clip-path: none;
+    }
+    .hero-name .name-word {
+      transform: none;
+    }
+    .hero-kicker,
+    .hero-left-column,
+    .balgo-portal {
+      opacity: 1;
+    }
+  }
+  :global(html.no-js) .hero-scope {
+    clip-path: none;
+  }
+  :global(html.no-js) .hero-name .name-word {
+    transform: none;
+  }
+  :global(html.no-js) .hero-kicker,
+  :global(html.no-js) .hero-left-column,
+  :global(html.no-js) .balgo-portal {
+    opacity: 1;
   }
 
-  /* ═══════════════════════════════════════════════════════════════════════════
-     ASYMMETRIC SPLIT-SCREEN GRID
-     ═══════════════════════════════════════════════════════════════════════════ */
-  .split-layout {
+  .hero-split {
     display: grid;
-    grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.8fr);
-    gap: clamp(2rem, 4vw, 5rem);
+    grid-template-columns: minmax(0, 1.05fr) minmax(340px, 0.8fr);
     align-items: end;
-    min-height: 52vh;
-    padding-top: 0;
-    margin-top: -1rem;
+    gap: clamp(2rem, 4vw, 5rem);
+    margin-top: auto;
 
     &.chat-active {
       display: flex;
       justify-content: center;
-      width: 100%;
       align-items: center;
-      min-height: 75vh; 
-
-      .hero-right-column {
-        justify-content: center;
-        align-items: center;
-        padding-bottom: 0;
-        padding-right: 0;
-      }
-      
-      .balgo-portal {
-        margin: 0 auto;
-      }
+      width: 100%;
     }
   }
 
   .hero-left-column {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 1.5rem;
-    max-width: 850px;
-    padding-bottom: clamp(3rem, 8vh, 5.5rem);
-    position: relative;
-    z-index: 2;
+    opacity: 0;
   }
 
-
-
-  .hero-kicker {
-    margin: 0 0 0.25rem 0;
-    color: var(--color-charcoal-text);
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    font-family: var(--font-body);
-    text-align: left;
-    position: relative;
-    z-index: 15;
-    opacity: 0.8;
-  }
-
-  .mask-line {
-    overflow: hidden;
-    line-height: 0.9;
-    padding-bottom: 0.1em;
-  }
-
-  .mask-text {
-    display: inline-block;
-    will-change: transform, opacity;
-  }
-
-  .macro-wrapper {
-    position: relative;
-    display: grid;
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto; // Separate rows for kicker and title
-    z-index: 10;
-    width: 100%;
-    margin-bottom: 0.5rem;
-
-    &.horizontal-header {
-      margin-top: -1.75rem; // Controlled pull-up of the entire brand block
-    }
-  }
-
-  .macro-title {
-    grid-area: 1 / 1;
+  .hero-tagline {
     margin: 0;
-    font-family: var(--font-heading);
-    font-weight: 900;
-    font-size: clamp(3rem, 10.5vw, 11rem);
-    text-align: left;
-    margin: 0;
-    padding: 0;
-    display: block; // Ensure it doesn't default to center-aligning within a flex/grid cell
-    margin-left: -8px; // Deeper optical correction for the 'B'
+    color: var(--paper-soft);
+    font-size: clamp(1rem, 1.4vw, 1.15rem);
+    line-height: 1.65;
 
-    letter-spacing: -0.075em;
-    text-transform: uppercase;
-    width: 100%;
-    white-space: nowrap;
-    transition: all 0.8s cubic-bezier(0.25, 1, 0.5, 1);
-    pointer-events: none;
-    line-height: 1;
-
-    &--solid {
-      color: var(--color-charcoal-text);
-      z-index: 2;
-    }
-
-    &--solid {
-      // ... same as before but without hover styles below
-    }
-  }
-
-  /* Interaction hook removed as per user request */
-
-  .consulting-manifesto {
-    display: flex;
-    flex-direction: column;
-    gap: 1.1rem;
-    max-width: 34rem;
-    padding: 1.15rem 0;
-  }
-
-  .manifesto-text {
-    font-family: var(--font-body);
-    font-size: clamp(1.2rem, 1.8vw, 1.5rem);
-    line-height: 1.42;
-    color: var(--color-charcoal-text);
-    font-weight: 500;
-    margin: 0;
-    letter-spacing: -0.01em;
-
-    .highlight {
+    strong {
+      color: var(--paper);
       font-weight: 700;
     }
   }
 
-  .text-gradient-accent {
-    background: linear-gradient(100deg, var(--color-google-blue) 0%, var(--color-living-teal) 50%, var(--color-moss-green) 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    filter: drop-shadow(0 4px 15px rgba(0, 212, 170, 0.35));
-  }
-
-  .hero-right-column {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    align-items: flex-end;
-    gap: 1rem;
-    width: 100%;
-    // Tighter corner docking with a minimal buffer (halved from previous)
-    padding-bottom: 0.6rem; 
-    padding-right: 1.25rem;
-    position: relative;
-    z-index: 3;
-    transition: justify-content 0.8s ease, padding 0.8s ease;
-  }
-
+  /* ── Balgo console — quiet glass on ink ─────────────────────────────────── */
   .balgo-portal {
-    background: rgba(255, 255, 255, 0.65);
-    backdrop-filter: blur(48px) saturate(200%);
-    -webkit-backdrop-filter: blur(48px) saturate(200%);
-    border: 1px solid rgba(255, 255, 255, 0.55);
-    box-shadow: 
-      0 20px 50px -10px rgba(33, 28, 24, 0.12),
-      inset 0 1px 0 rgba(255, 255, 255, 0.8);
-    border-radius: 100px;
-    padding: 0.8rem 1.2rem;
     display: flex;
+    position: relative;
     flex-direction: column;
-    justify-content: flex-end;
+    opacity: 0;
+    transition: box-shadow 0.35s ease;
+    border: 1px solid var(--hairline-on-ink);
+    border-radius: 16px;
+    background: var(--console-bg);
+    padding: 1rem 1.15rem;
     width: 100%;
-    max-width: 440px;
-    height: 72px;
-    min-height: auto;
-    transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+
+    @media (min-width: 768px) {
+      backdrop-filter: blur(var(--console-blur));
+      -webkit-backdrop-filter: blur(var(--console-blur));
+    }
+
+    /* focus lift — pure CSS, no JS */
+    &:not(.expanded):focus-within {
+      box-shadow: var(--ring-crimson);
+    }
 
     &.expanded {
-      background: rgba(255, 255, 255, 0.98);
-      border-color: rgba(255, 255, 255, 1);
-      box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.15);
+      max-width: 800px;
+      height: min(560px, 70vh);
+
+      .portal-header {
+        display: none;
+      }
     }
 
-    &:hover:not(.expanded) {
-      box-shadow: 
-        0 30px 60px -10px rgba(0, 212, 170, 0.15),
-        inset 0 1px 0 rgba(255, 255, 255, 0.85);
-      border-color: rgba(255, 255, 255, 0.85);
-      background: rgba(255, 255, 255, 0.45);
+    /* phone: full-screen sheet */
+    &.sheet {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      border: none;
+      border-radius: 0;
+      background: var(--ink);
+      padding: 1rem;
+      padding-top: calc(1rem + env(safe-area-inset-top));
+      max-width: none;
+      height: 100dvh;
+
+      .portal-close {
+        display: flex;
+      }
     }
   }
 
-  .kinetic-balgo-form {
+  .portal-header {
     display: flex;
-    flex-direction: row;
     align-items: center;
-    width: 100%;
-    gap: 1rem;
-    justify-content: center;
-    margin-top: auto;
+    gap: 0.6rem;
+    margin-bottom: 0.75rem;
   }
 
-  .massive-input {
-    width: 100%;
+  .portal-status {
+    color: var(--paper-soft);
+  }
+
+  .portal-close {
+    display: none;
+    position: absolute;
+    top: calc(0.75rem + env(safe-area-inset-top));
+    right: 0.75rem;
+    justify-content: center;
+    align-items: center;
+    z-index: 2;
+    border: 1px solid var(--hairline-on-ink);
+    border-radius: 50%;
     background: transparent;
+    width: 36px;
+    height: 36px;
+    color: var(--paper-soft);
+  }
+
+  .balgo-chat-history {
+    display: none;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.9rem;
+    margin-bottom: 0.75rem;
+    padding-right: 0.25rem;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--hairline-on-ink) transparent;
+  }
+
+  .balgo-form {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.6rem;
+  }
+
+  .balgo-input {
+    flex: 1;
     border: none;
-    font-family: var(--font-heading);
-    font-size: 1.15rem;
-    font-weight: 500;
-    color: var(--color-charcoal-text);
-    line-height: 1.2;
+    background: transparent;
+    padding: 0.4rem 0;
+    color: var(--paper);
+    font-size: 1rem;
+    line-height: 1.5;
+    font-family: var(--font-body);
     resize: none;
-    padding: 0.5rem 0;
-    margin-bottom: 0;
 
     &::placeholder {
-      color: rgba(0, 0, 0, 0.24);
+      color: var(--paper-soft);
+      opacity: 0.75;
     }
-    
+
     &:focus {
       outline: none;
     }
   }
 
-  .form-footer {
+  .balgo-send {
     display: flex;
-    align-items: center;
     flex-shrink: 0;
-  }
-
-  .kinetic-send-btn {
-    width: 3.35rem;
-    height: 3.35rem;
-    border-radius: 50%;
-    border: none;
-    background: var(--color-charcoal-text);
-    color: white;
-    display: flex;
     justify-content: center;
     align-items: center;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    border: none;
+    border-radius: 50%;
+    background: var(--crimson-deep);
+    width: 40px;
+    height: 40px;
+    color: var(--paper);
 
     &:hover:not(:disabled) {
-      background: var(--color-google-blue);
-      transform: scale(1.08) rotate(-15deg);
-      box-shadow: 0 10px 20px rgba(66, 133, 244, 0.2);
+      box-shadow: var(--glow-crimson);
     }
 
     &:disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
+      opacity: 0.55;
     }
   }
 
-  /* ═══════════════════════════════════════════════════════════════════════════
-     CHAT HISTORY (Revealed after transition)
-     ═══════════════════════════════════════════════════════════════════════════ */
-  .balgo-chat-history {
-    display: none; 
+  /* ── Messages ───────────────────────────────────────────────────────────── */
+  :global(.msg) {
+    display: flex;
     flex-direction: column;
-    gap: 1.5rem;
-    flex: 1;
-    overflow-y: auto;
-    margin-bottom: 2rem;
-    padding-right: 1rem;
-    scrollbar-width: thin;
-
-    &::-webkit-scrollbar { width: 5px; }
-    &::-webkit-scrollbar-thumb {
-      background: rgba(0, 0, 0, 0.1);
-      border-radius: 10px;
-    }
+    max-width: 88%;
   }
 
-  .msg-ai-header {
-    display: flex; align-items: center; gap: 0.5rem;
-    margin-bottom: 0.5rem;
-  }
-  .msg-ai-glyph { color: var(--color-living-teal); font-size: 1.1rem; }
-  .msg-ai-name { color: var(--color-charcoal-text); font-weight: 700; font-family: var(--font-heading); font-size: 0.9rem; }
-
-  .msg { display: flex; flex-direction: column; max-width: 88%; }
-  .msg-user { align-self: flex-end; }
-  .msg-ai { align-self: flex-start; }
-
-  .msg-bubble {
-    padding: 0.9rem 1.3rem; font-size: 1.05rem; line-height: 1.6;
-  }
-  
-  .msg-bubble-user {
-    background: var(--color-charcoal-text);
-    color: white;
-    border-radius: 1.5rem 1.5rem 0.5rem 1.5rem;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-  }
-  
-  .msg-bubble-ai {
-    background: white;
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    color: var(--color-charcoal-text);
-    border-radius: 1.5rem 1.5rem 1.5rem 0.5rem;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+  :global(.msg-user) {
+    align-self: flex-end;
+    align-items: flex-end;
   }
 
-  .typing-dots {
-    display: flex; align-items: center; gap: 4px;
-    span {
-      display: inline-block; width: 5px; height: 5px;
-      background-color: var(--color-living-teal); border-radius: 50%;
-      animation: dot-pulse 1.4s infinite ease-in-out both;
-      &:nth-child(1) { animation-delay: -0.32s; }
-      &:nth-child(2) { animation-delay: -0.16s; }
-    }
+  :global(.msg-ai) {
+    align-self: flex-start;
   }
 
-  @keyframes dot-pulse {
-    0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
-    40% { transform: scale(1); opacity: 1; }
+  :global(.msg-bubble) {
+    border-radius: 12px;
+    padding: 0.65rem 0.9rem;
+    font-size: 0.95rem;
+    line-height: 1.55;
   }
 
-  .msg-links {
-    display: flex; flex-wrap: wrap; gap: 0.5rem;
-    margin-top: 1rem; padding-top: 1rem;
-    border-top: 1px solid rgba(0, 0, 0, 0.05);
+  :global(.msg-bubble-user) {
+    background: rgba(250, 247, 241, 0.12);
+    color: var(--paper);
+  }
+
+  :global(.msg-bubble-ai) {
+    border: 1px solid var(--hairline-on-ink);
+    background: var(--ink-2);
+    color: var(--paper-soft);
+  }
+
+  :global(.msg-bubble-ai strong) {
+    color: var(--paper);
+  }
+
+  :global(.msg-bubble-loading) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    border: none;
+    background: transparent;
+    padding: 0.4rem 0;
+    min-width: 180px;
+  }
+
+  :global(.msg-ai-header) {
+    margin-bottom: 0.3rem;
+  }
+
+  :global(.msg-ai-name) {
+    color: var(--marigold);
+  }
+
+  :global(.msg-links) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
   }
 
   :global(.msg-link) {
-    display: inline-flex; align-items: center; gap: 0.5rem;
-    border: 1px solid rgba(0, 212, 170, 0.25);
-    border-radius: 1rem; background: rgba(0, 212, 170, 0.06);
-    padding: 0.4rem 0.9rem; color: var(--color-living-teal);
-    font-size: 0.9rem; font-weight: 600; text-decoration: none;
-    transition: all 0.2s ease;
-    &:hover { background: var(--color-living-teal); color: white; transform: translateY(-2px); }
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition:
+      border-color var(--dur-base) ease,
+      color var(--dur-base) ease;
+    border: 1px solid var(--hairline-on-ink);
+    border-radius: 999px;
+    padding: 0.3rem 0.8rem;
+    color: var(--paper);
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+    font-family: var(--font-mono);
   }
 
-  .fade-up {
-    animation: fade-up 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  }
-  @keyframes fade-up {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+  :global(.msg-link:hover) {
+    border-color: var(--marigold);
+    color: var(--marigold);
   }
 
-  /* ═══════════════════════════════════════════════════════════════════════════
-     DARK MODE SUPPORT
-     ═══════════════════════════════════════════════════════════════════════════ */
-  :global(.darkmode) {
-    .macro-title { color: #f3f4f6; }
-    .hero-kicker { color: rgba(255, 255, 255, 0.58); }
-    .manifesto-text { color: rgba(255, 255, 255, 0.85); }
-    .scene-backdrop { filter: saturate(0.72) contrast(1.02) brightness(0.56); }
-    .scene-backdrop-tint {
-      background:
-        linear-gradient(95deg, rgba(14, 18, 17, 0.92) 0%, rgba(14, 18, 17, 0.78) 28%, rgba(14, 18, 17, 0.16) 55%, rgba(8, 11, 10, 0.36) 100%),
-        radial-gradient(circle at 74% 24%, rgba(95, 179, 161, 0.18), transparent 38%);
-    }
-    .kinetic-hero::after {
-      background: linear-gradient(180deg, transparent 0%, rgba(10, 14, 13, 0.44) 68%, rgba(10, 14, 13, 0.88) 100%);
-    }
-    .balgo-portal {
-      background: rgba(30, 30, 32, 0.6);
-      border-color: rgba(255, 255, 255, 0.08);
-      box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.4);
-    }
-    
-    .massive-input { color: #f3f4f6; }
-    .massive-input::placeholder { color: rgba(255, 255, 255, 0.15); }
-    .kinetic-chip {
-      border-color: rgba(255, 255, 255, 0.12);
-      color: rgba(255, 255, 255, 0.7);
-      &:hover { background: var(--color-living-teal); color: white; border-color: var(--color-living-teal); }
-    }
-    .kinetic-send-btn { background: #f3f4f6; color: #111; }
-    
-    .msg-bubble-user { background: var(--color-living-teal); color: white; }
-    .msg-bubble-ai { background: rgba(255, 255, 255, 0.04); border-color: rgba(255, 255, 255, 0.06); color: #f3f4f6; }
-    .msg-ai-name { color: #f3f4f6; }
+  :global(.msg-link-glyph) {
+    color: var(--marigold);
   }
 
-  /* ═══════════════════════════════════════════════════════════════════════════
-     RESPONSIVE BREAKPOINTS (Fluid grid adapting down to Mobile)
-     ═══════════════════════════════════════════════════════════════════════════ */
-  
-  /* TIGHT DESKTOP / TABLET LANDSCAPE */
-  @media (max-width: 1200px) {
-    .split-layout { grid-template-columns: minmax(0, 1fr) minmax(320px, 0.82fr); }
-    .scene-focus-glow { inset: 16% 12% 12% 38%; }
-    .macro-title { font-size: clamp(3.6rem, 7.5vw, 7rem); }
-  }
-
-  @media (max-width: 960px) {
-    .kinetic-hero {
-      height: auto;
-      min-height: 100vh;
-      max-height: none;
-      padding: calc(var(--space-2xl) + 1rem) 0 var(--space-xl);
+  /* ── Responsive ─────────────────────────────────────────────────────────── */
+  @media (max-width: 767px) {
+    .hero-container {
+      padding-top: clamp(5rem, 14vh, 7rem);
     }
 
-    .split-layout { 
+    .hero-split {
       grid-template-columns: 1fr;
-      gap: 2rem;
-      margin-top: 0;
-      align-items: start;
-      min-height: auto;
-      padding-top: 0;
-    }
-
-    .scene-backdrop { object-position: 62% 56%; }
-    .scene-focus-glow { inset: 18% 8% 18% 48%; opacity: 0.72; }
-
-    .hero-left-column { 
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      justify-content: flex-start;
-      gap: 1.35rem;
-      max-width: 560px;
-      padding-bottom: 0;
-    }
-
-    .hero-right-column {
-      align-items: flex-start;
-      padding-bottom: 0;
-    }
-
-    .chat-dock-copy {
-      text-align: left;
-      max-width: 26rem;
-      padding-right: 0;
-    }
-
-    .macro-title { font-size: clamp(3.35rem, 12vw, 5.2rem); }
-    .consulting-manifesto { max-width: 32rem; }
-    .balgo-portal { max-width: min(100%, 620px); }
-  }
-
-  /* MOBILE */
-  @media (max-width: 600px) {
-    .kinetic-container {
-      padding-inline: 1rem;
-    }
-
-    .kinetic-hero {
-      min-height: 0;
-      padding-top: calc(var(--space-xl) + 1rem);
-    }
-
-    .scene-backdrop { object-position: 68% 54%; }
-    .scene-focus-glow {
-      inset: 22% 2% 26% 52%;
-      opacity: 0.56;
-      filter: blur(34px);
-    }
-
-    .hero-left-column {
-      max-width: none;
-    }
-
-    .macro-title { font-size: 3rem; }
-
-    .balgo-portal { 
-      min-height: 290px; 
-      padding: 1.15rem 1.1rem;
-      border-radius: 24px;
-    }
-
-    .massive-input { font-size: 1.22rem; margin-bottom: 1rem; }
-    .kinetic-send-btn { width: 3.2rem; height: 3.2rem; }
-    .msg-bubble { font-size: 1rem; padding: 0.8rem 1rem; }
-    .form-footer {
-      flex-direction: column;
       align-items: stretch;
-      gap: 0.9rem;
+      gap: var(--space-l);
     }
-    .chip-row { width: 100%; }
-    .kinetic-send-btn { align-self: flex-end; }
+
+    .balgo-chat-history {
+      max-height: 40vh;
+    }
+
+    .balgo-portal.expanded:not(.sheet) {
+      height: auto;
+    }
   }
 </style>

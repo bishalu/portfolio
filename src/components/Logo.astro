@@ -6,9 +6,9 @@ import { Link } from 'accessible-astro-components'
  */
 ---
 
-<Link href="/" class="logo-link">
+<a href="#hero" class="logo-link">
   <span class="logo-text">bishal<span>.ai</span></span>
-</Link>
+</a>
 
 <style>
   .logo-link {
@@ -24,21 +24,18 @@ import { Link } from 'accessible-astro-components'
   }
 
   .logo-text {
-    font-weight: 800;
+    font-weight: 700;
     font-size: 1.5rem;
-    font-family: var(--font-heading);
-    color: var(--color-charcoal-text);
-    letter-spacing: -0.04em;
+    font-family: var(--font-display);
+    color: var(--paper);
+    letter-spacing: -0.03em;
     line-height: 1;
     display: flex;
     align-items: baseline;
+    text-transform: none;
 
     span {
-      background: linear-gradient(135deg, var(--color-google-blue), var(--color-living-teal));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      font-weight: 900;
+      color: var(--marigold);
     }
   }
 

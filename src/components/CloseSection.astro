@@ -1,0 +1,337 @@
+---
+/**
+ * CloseSection — the ink closing band (docs/design/DESIGN.md §5.6).
+ * Work-with-me tiers (decluttered) + a real inline contact form. The signal
+ * terminates here: a final trace runs into the form's submit button.
+ */
+import { Icon } from 'astro-icon/components'
+
+const tiers = [
+  {
+    name: 'Consultation',
+    price: 'Free',
+    line: "A quick call to explore fit. If I can't help, I'll say so and point you somewhere better.",
+    cta: 'Book a chat',
+  },
+  {
+    name: 'Retainer',
+    price: 'Monthly',
+    line: 'Ongoing AI advisory — architecture reviews, prototype builds, an extension of your team.',
+    cta: 'Get started',
+    popular: true,
+  },
+  {
+    name: 'Project',
+    price: 'Custom',
+    line: 'Full-scope build, concept to deployment. I own the AI system you need to ship.',
+    cta: "Let's scope it",
+  },
+]
+---
+
+<section class="cs on-ink" id="contact">
+  <div class="cs-inner">
+    <span id="work-with-me" class="cs-anchor" aria-hidden="true"></span>
+
+    <header class="cs-head" data-reveal>
+      <p class="label-mono">Work with me</p>
+      <h2 class="cs-title">Bring me the hard part.</h2>
+    </header>
+
+    <div class="cs-tiers" data-reveal-stagger>
+      {
+        tiers.map((tier) => (
+          <article class={`cs-tier ${tier.popular ? 'cs-tier-popular' : ''}`} data-reveal>
+            <p class="cs-tier-head label-mono">
+              {tier.name} · <span class="cs-tier-price">{tier.price}</span>
+              {tier.popular && <span class="cs-tier-badge">most chosen</span>}
+            </p>
+            <p class="cs-tier-line">{tier.line}</p>
+            <a class="cs-tier-cta" href="#cs-form">{tier.cta} ↓</a>
+          </article>
+        ))
+      }
+    </div>
+
+    <div class="cs-bottom">
+      <div class="cs-form-wrap" data-reveal>
+        <div class="cs-terminal" aria-hidden="true">
+          <svg viewBox="0 0 300 24" preserveAspectRatio="none" fill="none">
+            <path
+              d="M0 12 H180 L192 12 198 4 204 20 210 8 216 14 222 12 H300"
+              stroke="url(#cs-grad)"
+              stroke-width="2"
+              stroke-linecap="round"></path>
+            <defs>
+              <linearGradient id="cs-grad" x1="0" y1="0" x2="300" y2="0" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stop-color="#d64553"></stop>
+                <stop offset="1" stop-color="#efa33b"></stop>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+
+        <form id="cs-form" class="cs-form" name="quick-contact" method="POST" action="/thank-you" data-netlify="true">
+          <input type="hidden" name="form-name" value="quick-contact" />
+          <div class="cs-form-row">
+            <label>
+              <span class="label-mono">Name</span>
+              <input type="text" name="firstname" required autocomplete="name" />
+            </label>
+            <label>
+              <span class="label-mono">Email</span>
+              <input type="email" name="email" required autocomplete="email" />
+            </label>
+          </div>
+          <label>
+            <span class="label-mono">What are we building?</span>
+            <textarea name="message" rows="4" required></textarea>
+          </label>
+          <button type="submit" class="cs-send btn">Send it ↳</button>
+        </form>
+      </div>
+
+      <div class="cs-direct" data-reveal>
+        <p class="cs-direct-line">
+          Forms too slow? Ask <a href="#hero" class="cs-balgo-link">Balgo</a> upstairs, or go direct:
+        </p>
+        <ul class="cs-links">
+          <li>
+            <a href="mailto:bishal@vibeset.ai">
+              <Icon aria-hidden="true" name="lucide:mail" size={16} />
+              bishal@vibeset.ai
+            </a>
+          </li>
+          <li>
+            <a href="https://github.com/bishalu" target="_blank" rel="noopener noreferrer">
+              <Icon aria-hidden="true" name="lucide:github" size={16} />
+              github.com/bishalu
+            </a>
+          </li>
+          <li>
+            <a href="https://www.linkedin.com/in/bishaluc" target="_blank" rel="noopener noreferrer">
+              <Icon aria-hidden="true" name="lucide:linkedin" size={16} />
+              linkedin.com/in/bishaluc
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style lang="scss">
+  .cs {
+    padding: var(--space-3xl) 0;
+  }
+
+  .cs-inner {
+    position: relative;
+    margin: 0 auto;
+    padding: 0 var(--space-l);
+    max-width: 1200px;
+  }
+
+  .cs-anchor {
+    position: absolute;
+    top: -80px;
+  }
+
+  .cs-head {
+    margin-bottom: var(--space-xl);
+  }
+
+  .cs-title {
+    margin: var(--space-xs) 0 0;
+    font-size: clamp(2rem, 4.5vw, 3.25rem);
+    letter-spacing: -0.015em;
+    line-height: 1.02;
+  }
+
+  /* ── Tiers ─────────────────────────────────────────────────────────── */
+  .cs-tiers {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-m);
+    margin-bottom: var(--space-2xl);
+  }
+
+  .cs-tier {
+    border: 1px solid var(--hairline-on-ink);
+    border-radius: 12px;
+    background: var(--ink-2);
+    padding: var(--space-m);
+  }
+
+  .cs-tier-popular {
+    border-color: var(--marigold);
+  }
+
+  .cs-tier-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.4rem;
+    margin: 0 0 var(--space-s);
+  }
+
+  .cs-tier-price {
+    color: var(--marigold);
+  }
+
+  .cs-tier-badge {
+    margin-left: auto;
+    border: 1px solid var(--marigold);
+    border-radius: 999px;
+    padding: 0.1rem 0.5rem;
+    color: var(--marigold);
+    font-size: 0.6rem;
+  }
+
+  .cs-tier-line {
+    margin: 0 0 var(--space-s);
+    color: var(--paper-soft);
+    font-size: 0.92rem;
+    line-height: 1.6;
+  }
+
+  .cs-tier-cta {
+    color: var(--marigold);
+    font-size: 0.8rem;
+    letter-spacing: var(--tracking-label);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+  }
+
+  /* ── Form + direct ─────────────────────────────────────────────────── */
+  .cs-bottom {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+    gap: clamp(2rem, 5vw, 5rem);
+    align-items: start;
+  }
+
+  .cs-terminal {
+    margin-bottom: var(--space-s);
+    height: 24px;
+
+    svg {
+      width: 100%;
+      height: 100%;
+    }
+  }
+
+  .cs-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s);
+  }
+
+  .cs-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-s);
+  }
+
+  .cs-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .cs-form input,
+  .cs-form textarea {
+    transition: border-color var(--dur-base) ease;
+    border: 1px solid var(--hairline-on-ink);
+    border-radius: 10px;
+    background: var(--ink-2);
+    padding: 0.65rem 0.85rem;
+    color: var(--paper);
+    font-size: 0.95rem;
+    font-family: var(--font-body);
+
+    &:focus {
+      outline: none;
+      border-color: var(--crimson);
+    }
+  }
+
+  .cs-send {
+    align-self: flex-start;
+    border: none;
+    border-radius: 999px;
+    background: var(--crimson-deep);
+    padding: 0.7rem 1.6rem;
+    color: var(--paper);
+    font-weight: 500;
+    font-size: 0.85rem;
+    letter-spacing: var(--tracking-label);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    cursor: pointer;
+
+    &:hover {
+      box-shadow: var(--glow-crimson);
+    }
+  }
+
+  .cs-direct-line {
+    margin: 0 0 var(--space-m);
+    color: var(--paper-soft);
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  .cs-balgo-link {
+    font-weight: 700;
+  }
+
+  .cs-links {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    a {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      color: var(--paper);
+      font-size: 0.9rem;
+      font-family: var(--font-mono);
+
+      &:hover {
+        color: var(--marigold);
+      }
+
+      svg {
+        color: var(--marigold);
+      }
+    }
+  }
+
+  /* ── Responsive ────────────────────────────────────────────────────── */
+  @media (max-width: 1023px) {
+    .cs-tiers {
+      grid-template-columns: 1fr;
+    }
+
+    .cs-bottom {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 599px) {
+    .cs-form-row {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 479px) {
+    .cs-inner {
+      padding: 0 var(--space-m);
+    }
+  }
+</style>

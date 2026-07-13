@@ -1,101 +1,17 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// STRUCTURAL SCALES ONLY — fluid type/space (Utopia), grid, elevation, z-index.
+// All color, font-family, and motion tokens live in src/styles/tokens.css
+// (single source of truth — see docs/design/DESIGN.md). Do not add colors here.
+// ═══════════════════════════════════════════════════════════════════════════
+
 :root {
-  color-scheme: light; // Default to light mode (Modern Organic)
   interpolate-size: allow-keywords;
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // MODERN ORGANIC PALETTE - Bishal Upadhyaya
-  // Warm. Inviting. Alive.
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  // Foundation colors (backgrounds)
-  --color-deep-moss: #1a2f1a;
-  --color-soft-charcoal: #2c2c2e;
-  --color-warm-stone: #f5f1e8;
-
-  // Accent colors (life)
-  --color-living-teal: #5fb3a1;
-  --color-moss-green: #7ea172;
-  --color-sunset-coral: #e8a87c;
-  --color-google-blue: #4285f4;
-  /* Ensure Google Blue is explicit */
-
-  // Text colors
-  --color-cream: #faf8f3;
-  --color-warm-gray: #a8a29e;
-  --color-charcoal-text: #44403c;
-
-  // Map to existing brand system for compatibility
-  --brand-primary: var(--color-living-teal);
-  --brand-secondary: var(--color-sunset-coral);
-  --brand-neutral: var(--color-warm-gray);
-
-  // pallet brand (using oklch from our organic colors)
-  --color-primary-100: oklch(from var(--brand-primary) 90% c h);
-  --color-primary-200: oklch(from var(--brand-primary) 80% c h);
-  --color-primary-300: oklch(from var(--brand-primary) 70% c h);
-  --color-primary-400: oklch(from var(--brand-primary) 60% c h);
-  --color-primary-500: oklch(from var(--brand-primary) 50% c h);
-  --color-secondary-100: oklch(from var(--brand-secondary) 90% c h);
-  --color-secondary-200: oklch(from var(--brand-secondary) 80% c h);
-  --color-secondary-300: oklch(from var(--brand-secondary) 70% c h);
-  --color-secondary-400: oklch(from var(--brand-secondary) 60% c h);
-  --color-secondary-500: oklch(from var(--brand-secondary) 50% c h);
-
-  // pallet neutral (moss-gray tones)
-  --color-neutral-100: var(--color-cream);
-  --color-neutral-200: oklch(from var(--color-warm-gray) 95% c h);
-  --color-neutral-300: oklch(from var(--color-warm-gray) 90% c h);
-  --color-neutral-400: oklch(from var(--color-warm-gray) 85% c h);
-  --color-neutral-500: oklch(from var(--color-warm-gray) 80% c h);
-  --color-neutral-600: oklch(from var(--color-warm-gray) 60% c h);
-  --color-neutral-700: oklch(from var(--color-warm-gray) 40% c h);
-  --color-neutral-800: var(--color-soft-charcoal);
-  --color-neutral-900: var(--color-deep-moss);
-
-  // Color scheme - supports both light (Warm Stone) and dark (Deep Moss) modes
-  // Uses CSS light-dark() function for automatic switching
-  // Default is light mode via color-scheme: light above
-
-  // Light mode: Warm Stone background, Charcoal text, readable links
-  // Dark mode: Deep Moss background, Cream text, bright accents
-  --foreground-color: light-dark(var(--color-charcoal-text), var(--color-cream));
-  --background-color: light-dark(var(--color-warm-stone), var(--color-deep-moss));
-
-  --icon-color: light-dark(var(--color-charcoal-text), var(--color-cream));
-
-  --link-color: light-dark(#2a7a6a, var(--color-living-teal));
-  --link-hover-color: light-dark(#4d7645, var(--color-moss-green));
-
-  --border-color: light-dark(rgba(44, 44, 46, 0.15), rgba(168, 162, 158, 0.2));
-  --border-color-subtle: light-dark(rgba(44, 44, 46, 0.1), rgba(168, 162, 158, 0.15));
-
-  --text-decoration-color: light-dark(var(--color-warm-gray), var(--color-warm-gray));
-  --text-decoration-color-hover: light-dark(var(--color-living-teal), var(--color-cream));
-
-  // Card/panel backgrounds for each mode
-  // Light: Clean white glass
-  // Dark: Deep moss glass
-  --card-background: light-dark(rgba(255, 255, 255, 0.65), rgba(26, 47, 26, 0.6));
-  --card-border: light-dark(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.1));
-
-  // Featured card (Vibeset) - coral works in both modes
-  --featured-border-color: light-dark(#d4956a, var(--color-sunset-coral));
-  --featured-badge-bg: light-dark(#d4956a, var(--color-sunset-coral));
-  --featured-badge-text: light-dark(var(--color-cream), var(--color-deep-moss));
 
   // theme settings
   --radius-small: 8px;
   --radius-large: 16px;
   --gap-default: 2rem;
   --font-measure: 70ch;
-
-  // Typography - Modern Organic fonts
-  --font-family-default: 'Inter', 'Atkinson Hyperlegible', system-ui, sans-serif;
-  --font-family-special: 'Outfit', 'Atkinson Hyperlegible', system-ui, sans-serif;
-
-  // font families
-  --font-heading: var(--font-family-special);
-  --font-body: var(--font-family-default);
 
   // font sizes
   // @link https://utopia.fyi/type/calculator?c=320,16,1.2,1240,18,1.25,6,2,&s=0.75|0.5|0.25,1.5|2|3|4|6,s-l&g=s,l,xl,12
@@ -168,8 +84,8 @@
   --ratio-widescreen: 16/9;
   --ratio-ultrawide: 18/5;
 
-  // animations
-  --cubic-bezier: cubic-bezier(0.1, 0.1, 0, 1);
+  // legacy animation aliases → tokens.css motion tokens
+  --cubic-bezier: var(--ease-out);
   --animation-speed-slow: 0.4s;
   --animation-speed-medium: 0.3s;
   --animation-speed-fast: 0.2s;
@@ -181,20 +97,4 @@
   --target-size-max: 44px;
   --backdrop-color: hsl(0deg 100% 0% / 0.75);
   --backdrop-blur: blur(3px);
-
-  // kbd
-  --kbd-color-text: light-dark(var(--color-gray-200), var(--color-gray-800));
-  --kbd-color-border: light-dark(var(--color-gray-700), var(--color-gray-300));
-  --kbd-color-background: light-dark(var(--color-gray-1000), var(--color-gray-200));
-}
-
-// Theme toggle overrides
-// Default: Light (Modern Organic)
-.darkmode {
-  color-scheme: dark;
-}
-
-// Ensure html gets light scheme by default if no class presence
-html:not(.darkmode) {
-  color-scheme: light;
 }

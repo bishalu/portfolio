@@ -1,0 +1,99 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   ALPENGLOW — design tokens, single source of truth
+   Bishal Upadhyaya · bishal.ai
+   Spec: docs/design/DESIGN.md (theme) · docs/design/MOTION.md (motion)
+
+   Himalayan dawn light on ink. Two canvases (bone paper / twilight ink),
+   one gradient (the signal), emphasis by glow — never by drop shadow.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  color-scheme: light;
+
+  /* ── Canvases ─────────────────────────────────────────────────────────── */
+  --paper: #faf7f1; /* bone — light canvas */
+  --paper-2: #f1ece2; /* cards & wells on paper */
+  --ink: #181c30; /* twilight ink — dark canvas, text on paper */
+  --ink-2: #222741; /* raised surfaces on ink */
+
+  /* ── Accents ──────────────────────────────────────────────────────────── */
+  --crimson: #d64553; /* rhododendron — accents, focus rings, pulse start */
+  --crimson-deep: #b4353f; /* button/interactive surfaces (AA with paper text) */
+  --crimson-text: #b4353f; /* AA-safe crimson for text on paper */
+  --marigold: #efa33b; /* pulse end, highlights (sparingly) */
+  --marigold-text: #8f5c10; /* AA-safe marigold for text on paper */
+  --glacier: #4ca8a2; /* live/success dots and non-text accents */
+  --glacier-text: #37817c; /* AA-safe glacier for LIVE badge text on paper */
+
+  /* Muted middle tones (derived, for secondary text) */
+  --ink-soft: #4c5169; /* secondary text on paper */
+  --paper-soft: #b8bccd; /* secondary text on ink */
+
+  /* ── The signal ───────────────────────────────────────────────────────── */
+  --grad-signal: linear-gradient(90deg, var(--crimson), var(--marigold));
+
+  /* ── Hairlines & glow ─────────────────────────────────────────────────── */
+  --hairline-on-paper: rgba(24, 28, 48, 0.12);
+  --hairline-on-ink: rgba(250, 247, 241, 0.14);
+  --glow-crimson: 0 0 24px rgba(214, 69, 83, 0.25);
+  --glow-marigold: 0 0 24px rgba(239, 163, 59, 0.22);
+  --glow-glacier: 0 0 20px rgba(76, 168, 162, 0.25);
+  --ring-crimson: 0 0 0 4px rgba(214, 69, 83, 0.16);
+
+  /* ── Type roles ───────────────────────────────────────────────────────── */
+  --font-display: 'Bricolage Grotesque Variable', 'Atkinson Hyperlegible', system-ui, sans-serif;
+  --font-body: 'Atkinson Hyperlegible', system-ui, sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  /* Eyebrows/labels/data: always --font-mono, UPPERCASE, tracked wide */
+  --tracking-label: 0.08em;
+
+  /* ── Motion (spec: docs/design/MOTION.md) ─────────────────────────────── */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1); /* default — expo-out */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* rare, playful */
+  --ease-exit: cubic-bezier(0.45, 0, 0.7, 0.2);
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 400ms;
+
+  /* ── Surfaces (quiet glass — used only on ink) ────────────────────────── */
+  --console-bg: rgba(34, 39, 65, 0.55);
+  --console-blur: 14px;
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     COMPAT LAYER — legacy names remapped onto Alpenglow.
+     Consumers are rewritten section by section; delete entries as they die.
+     ═══════════════════════════════════════════════════════════════════════ */
+  --foreground-color: var(--ink);
+  --background-color: var(--paper);
+  --icon-color: var(--ink);
+  --link-color: var(--crimson-text);
+  --link-hover-color: var(--crimson);
+  --border-color: var(--hairline-on-paper);
+  --border-color-subtle: rgba(24, 28, 48, 0.08);
+  --text-decoration-color: var(--hairline-on-paper);
+  --text-decoration-color-hover: var(--crimson);
+  --card-background: rgba(255, 255, 255, 0.6);
+  --card-border: var(--hairline-on-paper);
+  --featured-border-color: var(--marigold);
+  --featured-badge-bg: var(--marigold);
+  --featured-badge-text: var(--ink);
+
+  --color-living-teal: var(--glacier);
+  --color-moss-green: var(--glacier);
+  --color-sunset-coral: var(--marigold);
+  --color-google-blue: var(--glacier);
+  --color-cream: var(--paper);
+  --color-warm-stone: var(--paper);
+  --color-warm-gray: var(--ink-soft);
+  --color-charcoal-text: var(--ink);
+  --color-deep-moss: var(--ink);
+  --color-soft-charcoal: var(--ink-2);
+
+  --brand-primary: var(--crimson);
+  --brand-secondary: var(--marigold);
+  --brand-neutral: var(--ink-soft);
+
+  --font-heading: var(--font-display);
+  --font-family-default: var(--font-body);
+  --font-family-special: var(--font-display);
+}

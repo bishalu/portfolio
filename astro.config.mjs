@@ -92,7 +92,7 @@ if (isLinked) {
 export default defineConfig({
   output: 'server',
   compressHTML: true,
-  site: 'https://accessible-astro-starter.incluud.dev',
+  site: 'https://bishal.ai',
   integrations: [compress(), icon(), mdx(), sitemap(), react()],
   vite: viteConfig,
   adapter: netlify(),

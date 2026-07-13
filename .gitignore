@@ -46,3 +46,5 @@ blueprint/
 
 # Development docs
 docs/
+scripts/verify/out/
+deno.lock

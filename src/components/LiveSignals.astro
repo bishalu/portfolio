@@ -1,0 +1,87 @@
+---
+/**
+ * LiveSignals — the ambient proof-of-life strip at the hero's ink seam
+ * (docs/design/DESIGN.md §5.2). Not interactive; three true facts in mono.
+ * Server-rendered fallbacks update in place from /api/live-signals — if the
+ * sources are down, the fallbacks simply stay (never blank, never a spinner).
+ */
+const FALLBACK_TRACKS = '19,995'
+---
+
+<aside class="lsig on-ink" aria-label="Live signals">
+  <div class="lsig-inner label-mono">
+    <p class="lsig-item">
+      <span class="live-dot" aria-hidden="true"></span>
+      <span>lmarena #1 right now:&nbsp;</span>
+      <span id="lsig-arena" class="lsig-value">watching…</span>
+    </p>
+    <p class="lsig-item">
+      <span>vibeset catalog:&nbsp;</span>
+      <span id="lsig-catalog" class="lsig-value">{FALLBACK_TRACKS} tracks</span>
+    </p>
+    <p class="lsig-item lsig-item-quiet">
+      <span>this page: no spinners, no skeletons — just the signal</span>
+    </p>
+  </div>
+</aside>
+
+<script>
+  document.addEventListener('astro:page-load', async () => {
+    const arenaEl = document.getElementById('lsig-arena')
+    const catalogEl = document.getElementById('lsig-catalog')
+    if (!arenaEl || !catalogEl) return
+    try {
+      const res = await fetch('/api/live-signals')
+      if (!res.ok) throw new Error()
+      const data = await res.json()
+      if (data.arena?.model) {
+        arenaEl.textContent = data.arena.org ? `${data.arena.model} (${data.arena.org})` : data.arena.model
+      } else {
+        arenaEl.textContent = 'the big three, trading places'
+      }
+      if (typeof data.catalog?.songs === 'number') {
+        catalogEl.textContent = `${data.catalog.songs.toLocaleString()} tracks`
+      }
+    } catch {
+      arenaEl.textContent = 'the big three, trading places'
+    }
+  })
+</script>
+
+<style lang="scss">
+  .lsig {
+    border-top: 1px solid var(--hairline-on-ink);
+  }
+
+  .lsig-inner {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-s) var(--space-xl);
+    margin: 0 auto;
+    padding: 0.8rem var(--space-l);
+    max-width: 1240px;
+  }
+
+  .lsig-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    color: var(--paper-soft);
+  }
+
+  .lsig-value {
+    color: var(--marigold);
+  }
+
+  .lsig-item-quiet {
+    opacity: 0.65;
+    margin-left: auto;
+  }
+
+  @media (max-width: 767px) {
+    .lsig-item-quiet {
+      display: none;
+    }
+  }
+</style>

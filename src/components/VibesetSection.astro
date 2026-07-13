@@ -1,0 +1,694 @@
+---
+/**
+ * Vibeset — the lifecycle triptych (docs/design/DESIGN.md §5–6).
+ * Three stations on the signal: FIND (Curation, live search demo),
+ * FIT (Cue, the shipped app), PROVE (Choon, in-browser stress test).
+ * Eyebrows encode the real music lifecycle — not decoration.
+ */
+import { getCollection } from 'astro:content'
+import VibeFinder from '@components/VibeFinder.tsx'
+import ChoonStressTest from '@components/ChoonStressTest.tsx'
+
+const products = (await getCollection('products')).sort((a, b) => a.data.order - b.data.order)
+const bySlug = Object.fromEntries(products.map((p) => [p.id.replace(/\.mdx$/, ''), p.data]))
+const curation = bySlug['curation']
+const cue = bySlug['cue']
+const choon = bySlug['choon']
+---
+
+<section class="vs" id="vibeset">
+  <div class="vs-inner">
+    <header class="vs-head" data-reveal>
+      <p class="label-mono">Vibeset — my company</p>
+      <h2 class="vs-title">One catalog, three products.</h2>
+      <p class="vs-lede">
+        I co-own and build <a href="https://vibeset.ai" rel="noopener">Vibeset</a> — AI music tooling that finds the right
+        track, fits it to picture, and proves what it is. Everything below is real: two of the three panels are wired to
+        production systems.
+      </p>
+    </header>
+
+    <!-- ── FIND · Curation ─────────────────────────────────────────────── -->
+    <article class="vs-station" data-reveal="settle">
+      <div class="vs-copy">
+        <p class="vs-eyebrow label-mono"><span class="vs-eyebrow-stage">Find</span> · {curation.name}</p>
+        <h3 class="vs-name">{curation.tagline}</h3>
+        <p class="vs-desc">{curation.description}</p>
+        <p class="vs-stats label-mono">
+          {curation.stats.map((s, i) => <span>{i > 0 && <span class="vs-stat-dot"> · </span>}{s.label} {s.value}</span>)}
+        </p>
+        <p class="vs-ctas">
+          <a class="vs-cta btn" href={curation.liveUrl} rel="noopener">{curation.liveLabel} ↳</a>
+          <a class="vs-cta-quiet" href="/vibeset/curation">More on Curation</a>
+        </p>
+      </div>
+      <div class="vs-demo">
+        <p class="vs-demo-label label-mono"><span class="live-dot"></span> live demo — searches the production catalog</p>
+        <VibeFinder client:visible />
+      </div>
+    </article>
+
+    <!-- ── FIT · Cue ───────────────────────────────────────────────────── -->
+    <article class="vs-station" data-reveal="settle">
+      <div class="vs-copy">
+        <p class="vs-eyebrow label-mono"><span class="vs-eyebrow-stage">Fit</span> · {cue.name}</p>
+        <h3 class="vs-name">{cue.tagline}</h3>
+        <p class="vs-desc">{cue.description}</p>
+        <p class="vs-stats label-mono">
+          {cue.stats.map((s, i) => <span>{i > 0 && <span class="vs-stat-dot"> · </span>}{s.label} {s.value}</span>)}
+        </p>
+        <p class="vs-ctas">
+          <a class="vs-cta btn" href={cue.liveUrl} rel="noopener">{cue.liveLabel} ↳</a>
+          <a class="vs-cta-quiet" href="/vibeset/cue">More on Cue</a>
+        </p>
+      </div>
+      <div class="vs-demo">
+        <p class="vs-demo-label label-mono">the shipped app — the link is the demo</p>
+        <a class="vs-shots" href={cue.liveUrl} rel="noopener" aria-label="Open Cue at cue.vibeset.ai">
+          <img src="/vibeset/cue-signin.webp" alt="Cue sign-in screen: “Music perfectly synced to picture.”" width="1200" height="750" loading="lazy" />
+          <img class="vs-shot-back" src="/vibeset/cue-curate.webp" alt="Cue's curation setup with a video analyzed and ready" width="1200" height="750" loading="lazy" />
+        </a>
+      </div>
+    </article>
+
+    <!-- ── PROVE · Choon ───────────────────────────────────────────────── -->
+    <article class="vs-station" data-reveal="settle">
+      <div class="vs-copy">
+        <p class="vs-eyebrow label-mono"><span class="vs-eyebrow-stage">Prove</span> · {choon.name}</p>
+        <h3 class="vs-name">{choon.tagline}</h3>
+        <p class="vs-desc">{choon.description}</p>
+        <p class="vs-stats label-mono">
+          {choon.stats.map((s, i) => <span>{i > 0 && <span class="vs-stat-dot"> · </span>}{s.label} {s.value}</span>)}
+        </p>
+        <p class="vs-ctas">
+          <a class="vs-cta btn" href={choon.liveUrl} rel="noopener">{choon.liveLabel} ↳</a>
+          <a class="vs-cta-quiet" href="/vibeset/choon">More on Choon</a>
+        </p>
+      </div>
+      <div class="vs-demo">
+        <p class="vs-demo-label label-mono">in-browser workbench — mangle it, then identify it</p>
+        <ChoonStressTest client:visible />
+      </div>
+    </article>
+
+    <!-- ── The pipeline underneath all three ───────────────────────────── -->
+    <aside class="vs-pipe" data-reveal>
+      <p class="label-mono vs-pipe-title">The pipeline underneath</p>
+      <ol class="vs-pipe-flow">
+        <li><span class="vs-pipe-node">setlist scrapers</span></li>
+        <li><span class="vs-pipe-node">ETL + LLM enrichment</span></li>
+        <li><span class="vs-pipe-node vs-pipe-node-em">pgvector catalog · 19,995 tracks</span></li>
+        <li><span class="vs-pipe-node">LLM ensemble</span></li>
+        <li><span class="vs-pipe-node">three products</span></li>
+      </ol>
+    </aside>
+  </div>
+</section>
+
+<style lang="scss">
+  .vs {
+    background: var(--paper);
+    padding: var(--space-3xl) 0;
+  }
+
+  .vs-inner {
+    margin: 0 auto;
+    padding: 0 var(--space-l);
+    max-width: 1200px;
+  }
+
+  .vs-head {
+    margin-bottom: var(--space-2xl);
+    max-width: 720px;
+  }
+
+  .vs-title {
+    margin: var(--space-xs) 0 var(--space-s);
+    font-size: clamp(2rem, 4.5vw, 3.25rem);
+    letter-spacing: -0.015em;
+    line-height: 1.02;
+  }
+
+  .vs-lede {
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 1.05rem;
+    line-height: 1.65;
+  }
+
+  /* ── Stations ───────────────────────────────────────────────────────── */
+  .vs-station {
+    display: grid;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    gap: clamp(1.5rem, 4vw, 4rem);
+    border-top: 1px solid var(--hairline-on-paper);
+    padding: var(--space-2xl) 0;
+  }
+
+  .vs-eyebrow {
+    margin: 0 0 var(--space-s);
+  }
+
+  .vs-eyebrow-stage {
+    color: var(--crimson-text);
+    font-weight: 500;
+  }
+
+  .vs-name {
+    margin: 0 0 var(--space-s);
+    font-size: clamp(1.4rem, 2.4vw, 1.9rem);
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+  }
+
+  .vs-desc {
+    margin: 0 0 var(--space-m);
+    color: var(--ink-soft);
+    font-size: 0.98rem;
+    line-height: 1.7;
+  }
+
+  .vs-stats {
+    margin: 0 0 var(--space-m);
+    color: var(--ink-soft);
+  }
+
+  .vs-stat-dot {
+    color: var(--marigold);
+  }
+
+  .vs-ctas {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-s);
+    margin: 0;
+  }
+
+  .vs-cta {
+    display: inline-block;
+    border-radius: 999px;
+    background: var(--crimson-deep);
+    padding: 0.55rem 1.2rem;
+    color: var(--paper);
+    font-weight: 500;
+    font-size: 0.8rem;
+    letter-spacing: var(--tracking-label);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+
+    &:hover {
+      box-shadow: var(--glow-crimson);
+      color: var(--paper);
+    }
+  }
+
+  .vs-cta-quiet {
+    color: var(--crimson-text);
+    font-size: 0.9rem;
+
+    &:hover {
+      color: var(--crimson);
+    }
+  }
+
+  .vs-demo-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 var(--space-s);
+  }
+
+  /* ── Cue screenshots ────────────────────────────────────────────────── */
+  .vs-shots {
+    display: block;
+    position: relative;
+    transition: transform 0.22s var(--ease-out);
+    padding-bottom: 14%;
+
+    img {
+      display: block;
+      box-shadow: 0 18px 44px rgba(24, 28, 48, 0.18);
+      border: 1px solid var(--hairline-on-paper);
+      border-radius: 12px;
+      width: 82%;
+      height: auto;
+    }
+
+    .vs-shot-back {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      z-index: -1;
+      width: 62%;
+      opacity: 0.92;
+    }
+
+    &:hover {
+      transform: translateY(-2px);
+    }
+  }
+
+  /* ── Pipeline strip ─────────────────────────────────────────────────── */
+  .vs-pipe {
+    border-top: 1px solid var(--hairline-on-paper);
+    padding-top: var(--space-l);
+  }
+
+  .vs-pipe-title {
+    margin: 0 0 var(--space-s);
+  }
+
+  .vs-pipe-flow {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0;
+    padding: 0.25rem 0;
+    overflow-x: auto;
+    list-style: none;
+
+    li {
+      display: flex;
+      flex-shrink: 0;
+      align-items: center;
+      gap: 0.75rem;
+
+      &:not(:last-child)::after {
+        display: block;
+        border-radius: 999px;
+        background: var(--grad-signal);
+        width: clamp(1.25rem, 3vw, 3rem);
+        height: 2px;
+        content: '';
+      }
+    }
+  }
+
+  .vs-pipe-node {
+    border: 1px solid var(--hairline-on-paper);
+    border-radius: 999px;
+    padding: 0.35rem 0.9rem;
+    color: var(--ink-soft);
+    font-size: 0.72rem;
+    letter-spacing: var(--tracking-label);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .vs-pipe-node-em {
+    border-color: var(--marigold);
+    color: var(--ink);
+  }
+
+  /* ── Responsive ─────────────────────────────────────────────────────── */
+  @media (max-width: 1023px) {
+    .vs-station {
+      grid-template-columns: 1fr;
+      gap: var(--space-l);
+    }
+  }
+
+  @media (max-width: 479px) {
+    .vs-inner {
+      padding: 0 var(--space-m);
+    }
+  }
+</style>
+
+<style is:global lang="scss">
+  /* ═══ VibeFinder (island) ═══════════════════════════════════════════ */
+  .vf {
+    border: 1px solid var(--hairline-on-paper);
+    border-radius: 16px;
+    background: var(--paper-2);
+    padding: 1.1rem;
+  }
+
+  .vf-input-row {
+    display: flex;
+    gap: 0.6rem;
+  }
+
+  .vf-input-wrap {
+    position: relative;
+    flex: 1;
+  }
+
+  .vf-input {
+    transition: border-color var(--dur-base) ease;
+    border: 1px solid var(--hairline-on-paper);
+    border-radius: 10px;
+    background: var(--paper);
+    padding: 0.6rem 0.85rem;
+    width: 100%;
+    color: var(--ink);
+    font-size: 0.95rem;
+    font-family: var(--font-body);
+
+    &::placeholder {
+      color: var(--ink-soft);
+      opacity: 0.7;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: var(--crimson);
+    }
+  }
+
+  .vf-suggestions {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    left: 0;
+    z-index: 20;
+    box-shadow: 0 12px 32px rgba(24, 28, 48, 0.14);
+    border: 1px solid var(--hairline-on-paper);
+    border-radius: 10px;
+    background: var(--paper);
+    padding: 0.25rem;
+    margin: 0;
+    list-style: none;
+    animation: sig-pop var(--dur-fast) var(--ease-out) both;
+  }
+
+  .vf-sug {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.75rem;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    padding: 0.5rem 0.65rem;
+    width: 100%;
+    color: var(--ink);
+    font-size: 0.9rem;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover,
+    &.vf-sug-active {
+      background: var(--paper-2);
+    }
+  }
+
+  .vf-sug-meta {
+    flex-shrink: 0;
+  }
+
+  .vf-go {
+    flex-shrink: 0;
+    border: none;
+    border-radius: 10px;
+    background: var(--crimson-deep);
+    padding: 0 1.1rem;
+    color: var(--paper);
+    font-weight: 500;
+    font-size: 0.8rem;
+    letter-spacing: var(--tracking-label);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      box-shadow: var(--glow-crimson);
+    }
+
+    &:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+  }
+
+  .vf-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.75rem;
+  }
+
+  .vf-chip,
+  .ch-chip {
+    transition:
+      border-color var(--dur-base) ease,
+      background-color var(--dur-base) ease,
+      color var(--dur-base) ease;
+    border: 1px solid var(--hairline-on-paper);
+    border-radius: 999px;
+    background: transparent;
+    padding: 0.28rem 0.8rem;
+    color: var(--ink-soft);
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  .vf-chip-on,
+  .ch-chip-on {
+    border-color: var(--crimson-deep);
+    background: var(--crimson-deep);
+    color: var(--paper);
+  }
+
+  .vf-chip-divider {
+    background: var(--hairline-on-paper);
+    width: 1px;
+    height: 1.1rem;
+  }
+
+  .vf-results {
+    margin-top: 0.9rem;
+  }
+
+  .vf-loading,
+  .ch-loading {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+  }
+
+  .vf-meta {
+    margin-bottom: 0.6rem;
+  }
+
+  .vf-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
+  .vf-badge-live {
+    color: var(--glacier-text);
+  }
+
+  .vf-badge-replay {
+    color: var(--marigold);
+  }
+
+  .vf-empty {
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 0.9rem;
+  }
+
+  .vf-tracks {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .vf-track {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    border-top: 1px solid var(--hairline-on-paper);
+    padding: 0.55rem 0;
+  }
+
+  .vf-track-main {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    min-width: 0;
+  }
+
+  .vf-track-name {
+    overflow: hidden;
+    color: var(--ink);
+    font-weight: 700;
+    font-size: 0.92rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .vf-track-artist {
+    flex-shrink: 0;
+    color: var(--ink-soft);
+    font-size: 0.85rem;
+  }
+
+  .vf-track-meta {
+    flex-shrink: 0;
+    text-align: right;
+  }
+
+  @media (max-width: 479px) {
+    .vf-input-row {
+      flex-direction: column;
+    }
+
+    .vf-go {
+      padding: 0.6rem 1.1rem;
+    }
+
+    .vf-track-meta {
+      display: none;
+    }
+  }
+
+  /* ═══ ChoonStressTest (island) ══════════════════════════════════════ */
+  .ch {
+    border: 1px solid var(--hairline-on-paper);
+    border-radius: 16px;
+    background: var(--paper-2);
+    padding: 1.1rem;
+  }
+
+  .ch-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .ch-clips,
+  .ch-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .ch-presets {
+    margin-top: 0.6rem;
+  }
+
+  .ch-play {
+    flex-shrink: 0;
+    border: none;
+    border-radius: 50%;
+    background: var(--crimson-deep);
+    width: 42px;
+    height: 42px;
+    color: var(--paper);
+    font-size: 0.8rem;
+    cursor: pointer;
+
+    &:hover {
+      box-shadow: var(--glow-crimson);
+    }
+  }
+
+  .ch-scope-wrap {
+    display: flex;
+    position: relative;
+    justify-content: center;
+    align-items: center;
+    margin-top: 0.9rem;
+    border: 1px solid var(--hairline-on-paper);
+    border-radius: 10px;
+    background: var(--paper);
+    height: 110px;
+    overflow: hidden;
+  }
+
+  .ch-scope {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .ch-scope-hint {
+    position: relative;
+    margin: 0;
+    padding: 0 1rem;
+    text-align: center;
+  }
+
+  .ch-id-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.9rem;
+  }
+
+  .ch-identify {
+    border: none;
+    border-radius: 999px;
+    background: var(--ink);
+    padding: 0.5rem 1.1rem;
+    color: var(--paper);
+    font-weight: 500;
+    font-size: 0.8rem;
+    letter-spacing: var(--tracking-label);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    cursor: pointer;
+
+    &:disabled {
+      opacity: 0.55;
+      cursor: default;
+    }
+  }
+
+  .ch-note {
+    font-size: 0.65rem;
+  }
+
+  .ch-result-zone {
+    min-height: 3.2rem;
+    margin-top: 0.6rem;
+  }
+
+  .ch-result {
+    animation: sig-pop var(--dur-fast) var(--ease-out) both;
+    border-top: 1px solid var(--hairline-on-paper);
+    padding-top: 0.6rem;
+  }
+
+  .ch-result-top {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+
+  .ch-check {
+    color: var(--glacier);
+    font-weight: 700;
+  }
+
+  .ch-result-name {
+    color: var(--ink);
+    font-weight: 700;
+    font-size: 0.95rem;
+  }
+
+  .ch-result-sub {
+    color: var(--ink-soft);
+    font-weight: 400;
+    font-size: 0.85rem;
+  }
+
+  .ch-result-meta {
+    margin-top: 0.25rem;
+  }
+</style>

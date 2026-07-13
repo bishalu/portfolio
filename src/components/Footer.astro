@@ -1,81 +1,49 @@
 ---
-import { Link } from 'accessible-astro-components'
-import { Icon } from 'astro-icon/components'
 /**
- * Footer Component
- *
- * @description Personal portfolio footer with navigation and social links
+ * Footer — one quiet line on ink (docs/design/DESIGN.md §5.7).
+ * Contact lives in CloseSection (#contact); this is just the sign-off.
  */
 const currentYear = new Date().getFullYear()
 ---
 
-<footer class="glass-footer">
-  <!-- Copyright -->
-  <section class="copyright py-6 md:py-8">
-    <div class="container flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-      <p>&copy; {currentYear} Bishal Upadhyaya. All rights reserved.</p>
-      <p class="built-with">
-        Built with <Icon name="lucide:heart" size="1rem" class="heart-icon" aria-label="love" /> and <Link
-          href="https://astro.build/">Astro</Link
-        >
-      </p>
-    </div>
-  </section>
+<footer class="footer on-ink">
+  <div class="footer-inner">
+    <p class="label-mono">© {currentYear} Bishal Upadhyaya</p>
+    <p class="label-mono footer-right">
+      <a href="https://github.com/bishalu" rel="noopener noreferrer" target="_blank">GitHub</a>
+      <span aria-hidden="true"> · </span>
+      <a href="https://www.linkedin.com/in/bishaluc" rel="noopener noreferrer" target="_blank">LinkedIn</a>
+      <span aria-hidden="true"> · </span>
+      <a href="mailto:bishal@vibeset.ai">Email</a>
+    </p>
+  </div>
 </footer>
 
 <style lang="scss">
-  .glass-footer {
-    position: relative;
-    z-index: 10;
-    backdrop-filter: blur(16px) saturate(180%);
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
-    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.02);
-    border-top: 1px solid rgba(255, 255, 255, 0.4);
-    background: var(--glass-bg, rgba(255, 255, 255, 0.7));
+  .footer {
+    border-top: 1px solid var(--hairline-on-ink);
   }
 
-  :global(.darkmode .glass-footer) {
-    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.2);
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-    background: rgba(15, 15, 18, 0.65);
-  }
-
-  section {
-    border-top: 1px solid var(--border-color-subtle);
-  }
-
-  /* Copyright */
-  .copyright {
-    color: var(--color-warm-gray);
-    font-size: 0.875rem;
-
-    a {
-      color: var(--color-living-teal);
-    }
-  }
-
-  .built-with {
+  .footer-inner {
     display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
     align-items: center;
-    gap: 0.25rem;
+    gap: var(--space-s);
+    margin: 0 auto;
+    padding: var(--space-m) var(--space-l);
+    max-width: 1200px;
   }
 
-  .heart-icon {
-    animation: pulse 2s ease-in-out infinite;
-    color: var(--color-sunset-coral);
+  .footer p {
+    margin: 0;
   }
 
-  @keyframes pulse {
-    0%,
-    100% {
-      transform: scale(1);
+  .footer a {
+    color: var(--paper-soft);
+
+    &:hover {
+      color: var(--marigold);
     }
-    50% {
-      transform: scale(1.1);
-    }
-  }
-
-  @media (max-width: 768px) {
-    /* Mobile styles if needed */
   }
 </style>

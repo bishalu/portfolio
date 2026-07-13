@@ -1,0 +1,128 @@
+---
+/**
+ * RangeStrip — proof of breadth, deliberately quiet (docs/design/DESIGN.md §5.5).
+ * Three non-interactive cards, one line each. No demos here — the restraint
+ * is the point.
+ */
+const items = [
+  {
+    label: 'Voice · LLM psychology',
+    name: 'Golo',
+    line: 'Voice-first onboarding that turns a spoken story into a structured personality profile — Big Five scoring, dual public/private personas, multi-provider LLM backend.',
+    tags: ['Web Speech API', 'Azure OpenAI', 'Cohere'],
+    href: 'https://github.com/bishalu/veer',
+  },
+  {
+    label: 'Quant · LLM sentiment',
+    name: 'KTM Capital',
+    line: 'A news-sentiment trading bot: seven days of financial headlines, LLM scoring, conservative position management, paper-traded through Alpaca.',
+    tags: ['Alpaca', 'GPT sentiment', 'Risk mgmt'],
+    href: 'https://github.com/bishalu/ktm_capital',
+  },
+  {
+    label: 'Infrastructure',
+    name: 'Production discipline',
+    line: 'Terraform-managed AWS, SOC2-minded audit logging, documented cost-governance sweeps with verified-recoverable deletions. The unglamorous part, done properly.',
+    tags: ['Terraform', 'Lambda + SQS', 'Cost governance'],
+    href: null,
+  },
+]
+---
+
+<section class="rs">
+  <div class="rs-inner">
+    <p class="label-mono rs-eyebrow" data-reveal>Beyond music</p>
+    <div class="rs-grid" data-reveal-stagger>
+      {
+        items.map((item) => (
+          <article class="rs-card" data-reveal>
+            <p class="rs-label label-mono">{item.label}</p>
+            <h3 class="rs-name">{item.name}</h3>
+            <p class="rs-line">{item.line}</p>
+            <p class="rs-tags label-mono">{item.tags.join(' · ')}</p>
+            {item.href && (
+              <a class="rs-link" href={item.href} target="_blank" rel="noopener noreferrer">
+                Source ↳
+              </a>
+            )}
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style lang="scss">
+  .rs {
+    background: var(--paper);
+    padding: 0 0 var(--space-3xl);
+  }
+
+  .rs-inner {
+    margin: 0 auto;
+    padding: var(--space-2xl) var(--space-l) 0;
+    border-top: 1px solid var(--hairline-on-paper);
+    max-width: 1200px;
+  }
+
+  .rs-eyebrow {
+    margin: 0 0 var(--space-l);
+  }
+
+  .rs-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-l);
+  }
+
+  .rs-card {
+    border: 1px solid var(--hairline-on-paper);
+    border-radius: 12px;
+    background: var(--paper-2);
+    padding: var(--space-m);
+  }
+
+  .rs-label {
+    margin: 0 0 var(--space-s);
+    color: var(--crimson-text);
+  }
+
+  .rs-name {
+    margin: 0 0 var(--space-2xs);
+    font-size: 1.15rem;
+    letter-spacing: -0.01em;
+  }
+
+  .rs-line {
+    margin: 0 0 var(--space-s);
+    color: var(--ink-soft);
+    font-size: 0.9rem;
+    line-height: 1.65;
+  }
+
+  .rs-tags {
+    margin: 0;
+    font-size: 0.65rem;
+  }
+
+  .rs-link {
+    display: inline-block;
+    margin-top: var(--space-s);
+    font-size: 0.8rem;
+    letter-spacing: var(--tracking-label);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 1023px) {
+    .rs-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 479px) {
+    .rs-inner {
+      padding-inline: var(--space-m);
+    }
+  }
+</style>

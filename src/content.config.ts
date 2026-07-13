@@ -63,5 +63,24 @@ const studios = defineCollection({
   }),
 })
 
+// Products - the three Vibeset product brands (single source of truth for
+// the landing triptych AND /vibeset/[product] pages)
+const products = defineCollection({
+  loader: glob({ pattern: '**/*.mdx', base: './src/content/products' }),
+  schema: z.object({
+    name: z.string(),
+    eyebrow: z.string(), // lifecycle stage: FIND / FIT / PROVE
+    tagline: z.string(),
+    description: z.string(),
+    accent: z.string(), // Alpenglow family color for product pages
+    liveUrl: z.string().optional(), // the real, verified product URL
+    liveLabel: z.string().optional(), // CTA label for liveUrl
+    blogUrl: z.string().optional(),
+    stats: z.array(z.object({ label: z.string(), value: z.string() })).default([]),
+    studios: z.array(z.string()).default([]),
+    order: z.number().default(0),
+  }),
+})
+
 // 4. Export collections
-export const collections = { projects, publications, studios }
+export const collections = { projects, publications, studios, products }

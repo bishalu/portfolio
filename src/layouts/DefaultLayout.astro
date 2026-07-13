@@ -1,10 +1,13 @@
 ---
+import '@fontsource-variable/bricolage-grotesque'
+import '@fontsource/dm-mono/400.css'
+import '@fontsource/dm-mono/500.css'
 import '../styles/tailwind.css'
 import '../assets/scss/index.scss'
 import SiteMeta from '@components/SiteMeta.astro'
 import Header from '@components/Header.astro'
 import Footer from '@components/Footer.astro'
-import GlobalBackground from '@components/GlobalBackground.astro'
+import LoadingScreen from '@components/LoadingScreen.astro'
 import { ClientRouter } from 'astro:transitions'
 
 const {
@@ -16,7 +19,7 @@ const {
 } = Astro.props
 ---
 
-<html lang="en" dir="ltr">
+<html lang="en" dir="ltr" class="no-js">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -27,11 +30,15 @@ const {
 
     <SiteMeta title={title} description={description.substring(0, 100)} url={url} image={image} author={author} />
 
+    <script>
+      import '../scripts/reveal.ts'
+    </script>
+
     <!-- Enable Astro View Transitions for all browsers -->
     <ClientRouter />
   </head>
   <body>
-    <GlobalBackground />
+    <LoadingScreen />
     <Header />
     <main id="main-content" transition:animate="fade">
       <slot />
@@ -52,7 +59,6 @@ const {
         flex-direction: column;
         overflow-x: clip;
         overflow-y: auto;
-        scroll-snap-type: y mandatory;
 
         main {
           flex: 1 0 auto;
@@ -60,18 +66,6 @@ const {
 
         footer {
           flex-shrink: 0;
-          scroll-snap-align: end; // Footer snaps at the end
-        }
-      }
-
-      // Reduced motion: disable smooth scrolling and snap
-      @media (prefers-reduced-motion: reduce) {
-        html,
-        body {
-          scroll-behavior: auto;
-        }
-        body {
-          scroll-snap-type: none;
         }
       }
 

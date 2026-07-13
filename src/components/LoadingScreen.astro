@@ -1,0 +1,205 @@
+---
+/**
+ * LoadingScreen — the page-load sequence (docs/design/MOTION.md §5).
+ * Ink field → the signal trace draws itself → name arrives → dissolve.
+ * Once per session, ≤1.6s, skippable by click/key, instant under reduced motion.
+ * Dispatches `bishal:hero-go` (and sets window.__introDone) so the hero
+ * entrance begins exactly as the overlay dissolves — the trace hands off.
+ * Pure WAAPI — no animation library.
+ */
+---
+
+<div id="loading-screen" aria-hidden="true" role="presentation">
+  <div class="ls-inner">
+    <p class="ls-label" id="ls-label">AI systems architect</p>
+    <div class="ls-name-line"><span class="ls-word" id="ls-word-1">Bishal</span></div>
+    <div class="ls-name-line"><span class="ls-word" id="ls-word-2">Upadhyaya.</span></div>
+
+    <svg class="ls-trace" viewBox="0 0 600 60" fill="none" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="ls-grad" x1="0" y1="0" x2="600" y2="0" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="#d64553"></stop>
+          <stop offset="1" stop-color="#efa33b"></stop>
+        </linearGradient>
+      </defs>
+      <path
+        id="ls-trace-path"
+        pathLength="1"
+        d="M0 30 H210 L228 30 234 12 240 44 246 22 252 34 258 30 H370 L382 26 388 33 394 30 H600"
+        stroke="url(#ls-grad)"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"></path>
+    </svg>
+
+    <p class="ls-tagline" id="ls-tagline">Research to production.</p>
+  </div>
+</div>
+
+<script>
+  const STORAGE_KEY = 'bishal_intro_seen'
+  const EXPO_OUT = 'cubic-bezier(0.16, 1, 0.3, 1)'
+
+  declare global {
+    interface Window {
+      __introDone?: boolean
+    }
+  }
+
+  const signalDone = () => {
+    if (window.__introDone) return
+    window.__introDone = true
+    document.dispatchEvent(new CustomEvent('bishal:hero-go'))
+  }
+
+  document.addEventListener('astro:page-load', () => {
+    const screen = document.getElementById('loading-screen') as HTMLElement | null
+    if (!screen) {
+      signalDone()
+      return
+    }
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const alreadySeen = sessionStorage.getItem(STORAGE_KEY)
+
+    if (alreadySeen || reducedMotion) {
+      sessionStorage.setItem(STORAGE_KEY, 'true')
+      screen.style.display = 'none'
+      signalDone()
+      return
+    }
+
+    document.body.style.overflow = 'hidden'
+
+    const label = document.getElementById('ls-label')!
+    const word1 = document.getElementById('ls-word-1')!
+    const word2 = document.getElementById('ls-word-2')!
+    const tagline = document.getElementById('ls-tagline')!
+    const trace = document.getElementById('ls-trace-path')!
+
+    let done = false
+    const timeouts: ReturnType<typeof setTimeout>[] = []
+    const finalize = () => {
+      if (done) return
+      done = true
+      timeouts.forEach(clearTimeout)
+      sessionStorage.setItem(STORAGE_KEY, 'true')
+      document.body.style.overflow = ''
+      screen.style.display = 'none'
+      signalDone()
+      cleanup()
+    }
+
+    // ① the trace draws itself
+    trace.style.strokeDasharray = '1'
+    trace.animate([{ strokeDashoffset: '1' }, { strokeDashoffset: '0' }], {
+      duration: 600,
+      easing: 'ease-in-out',
+      fill: 'both',
+    })
+    // ② the name arrives
+    label.animate([{ opacity: 0 }, { opacity: 0.7 }], { duration: 300, delay: 150, fill: 'both' })
+    word1.animate([{ transform: 'translateY(34px)', opacity: 0 }, { transform: 'translateY(0)', opacity: 1 }], {
+      duration: 400,
+      delay: 350,
+      easing: EXPO_OUT,
+      fill: 'both',
+    })
+    word2.animate([{ transform: 'translateY(34px)', opacity: 0 }, { transform: 'translateY(0)', opacity: 1 }], {
+      duration: 400,
+      delay: 500,
+      easing: EXPO_OUT,
+      fill: 'both',
+    })
+    tagline.animate([{ opacity: 0 }, { opacity: 0.65 }], { duration: 300, delay: 700, fill: 'both' })
+    // ③ one pulse along the finished trace…
+    trace.animate([{ opacity: 1 }, { opacity: 0.4 }, { opacity: 1 }], { duration: 240, delay: 1000 })
+
+    // …then dissolve into the hero (entrance starts under the fade)
+    timeouts.push(
+      setTimeout(async () => {
+        signalDone()
+        try {
+          await screen.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, easing: 'ease-in', fill: 'both' })
+            .finished
+        } catch {}
+        finalize()
+      }, 1200),
+    )
+
+    // Skip: any click or key jumps to the end
+    const skip = () => finalize()
+    const cleanup = () => {
+      screen.removeEventListener('click', skip)
+      window.removeEventListener('keydown', skip)
+    }
+    screen.addEventListener('click', skip)
+    window.addEventListener('keydown', skip)
+  })
+</script>
+
+<style lang="scss">
+  #loading-screen {
+    display: flex;
+    position: fixed;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    inset: 0;
+    cursor: pointer;
+    background-color: var(--ink);
+    pointer-events: all;
+  }
+
+  .ls-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: min(88vw, 640px);
+  }
+
+  .ls-label {
+    opacity: 0;
+    margin: 0 0 0.75rem;
+    color: var(--paper-soft);
+    font-weight: 500;
+    font-size: 0.7rem;
+    letter-spacing: var(--tracking-label);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+  }
+
+  .ls-name-line {
+    line-height: 0.98;
+    overflow: hidden;
+  }
+
+  .ls-word {
+    display: inline-block;
+    opacity: 0;
+    color: var(--paper);
+    font-weight: 600;
+    font-size: clamp(3rem, 10vw, 7rem);
+    letter-spacing: -0.02em;
+    font-family: var(--font-display);
+    will-change: transform, opacity;
+  }
+
+  .ls-trace {
+    display: block;
+    margin-top: 1.75rem;
+    width: 100%;
+    height: 60px;
+    overflow: visible;
+  }
+
+  .ls-tagline {
+    opacity: 0;
+    margin: 1rem 0 0;
+    color: var(--paper-soft);
+    font-size: 0.8rem;
+    letter-spacing: var(--tracking-label);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+  }
+</style>

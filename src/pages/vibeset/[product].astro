@@ -1,0 +1,281 @@
+---
+import DefaultLayout from '@layouts/DefaultLayout.astro'
+import { getCollection, render } from 'astro:content'
+
+export const prerender = true
+
+export async function getStaticPaths() {
+  const products = await getCollection('products')
+  return products.map((p) => ({
+    params: { product: p.id.replace(/\.mdx$/, '') },
+    props: { entry: p },
+  }))
+}
+
+const { entry } = Astro.props
+const data = entry.data
+const slug = entry.id.replace(/\.mdx$/, '')
+
+// Per-product media (visual artifacts live here, not in the collection)
+type Media =
+  | { type: 'image'; src: string; alt: string; href?: string }
+  | { type: 'article'; href: string; headline: string; excerpt: string }
+  | { type: 'gradient' }
+
+const media: Record<string, Media> = {
+  curation: { type: 'gradient' },
+  cue: {
+    type: 'image',
+    src: '/vibeset/cue-signin.webp',
+    alt: 'Cue sign-in screen: “Music perfectly synced to picture.”',
+    href: data.liveUrl,
+  },
+  choon: {
+    type: 'article',
+    href: data.blogUrl ?? 'https://www.vibeset.ai/blog/vibeset-choon-protect-your-musical-assets',
+    headline: 'Protect Your Musical Assets with Vibeset Choon',
+    excerpt:
+      'How Choon fingerprints tracks, stems, and motifs to protect catalogs when generic audio matching falls short.',
+  },
+}
+const m = media[slug] ?? { type: 'gradient' }
+---
+
+<DefaultLayout title={`Vibeset ${data.name} — Bishal Upadhyaya`} description={data.tagline}>
+  <!-- Media zone -->
+  <div class="vbp-media" style={`--accent: ${data.accent}`}>
+    {
+      m.type === 'image' && (
+        <a href={m.href ?? '#'} rel="noopener" class="vbp-shot-link">
+          <img class="vbp-shot" src={m.src} alt={m.alt} width="1200" height="750" />
+        </a>
+      )
+    }
+    {
+      m.type === 'article' && (
+        <a class="vbp-article-card" href={m.href} target="_blank" rel="noopener noreferrer">
+          <p class="vbp-article-headline">{m.headline}</p>
+          <p class="vbp-article-excerpt">{m.excerpt}</p>
+          <span class="vbp-article-cta label-mono">Read the story ↳</span>
+        </a>
+      )
+    }
+    {m.type === 'gradient' && <div class="vbp-gradient" />}
+  </div>
+
+  <!-- Info zone -->
+  <article class="vbp-info" style={`--accent: ${data.accent}`}>
+    <div class="container">
+      <nav class="vbp-nav" aria-label="Breadcrumb">
+        <a href="/#vibeset" class="vbp-back label-mono">← Vibeset</a>
+      </nav>
+
+      <p class="label-mono vbp-eyebrow">{data.eyebrow} · Vibeset</p>
+      <h1 class="vbp-name">{data.name}</h1>
+      <p class="vbp-tagline">{data.tagline}</p>
+      <p class="vbp-description">{data.description}</p>
+
+      {
+        data.stats.length > 0 && (
+          <p class="vbp-stats label-mono">
+            {data.stats.map((s, i) => (
+              <span>
+                {i > 0 && ' · '}
+                {s.label} {s.value}
+              </span>
+            ))}
+          </p>
+        )
+      }
+
+      {
+        data.liveUrl && (
+          <p class="vbp-cta-row">
+            <a class="vbp-cta btn" href={data.liveUrl} rel="noopener">
+              {data.liveLabel ?? 'Open'} ↳
+            </a>
+          </p>
+        )
+      }
+
+      <div class="vbp-studios">
+        <h2 class="vbp-studios-label label-mono">Studios included</h2>
+        <ul class="vbp-studios-list">
+          {data.studios.map((s) => <li>{s}</li>)}
+        </ul>
+      </div>
+    </div>
+  </article>
+</DefaultLayout>
+
+<style lang="scss">
+  .vbp-media {
+    display: flex;
+    position: relative;
+    justify-content: center;
+    align-items: center;
+    background: var(--ink);
+    padding-top: 72px; /* clear the fixed header */
+    width: 100%;
+    min-height: 40vh;
+    overflow: hidden;
+  }
+
+  .vbp-shot-link {
+    display: block;
+    padding: var(--space-l);
+    max-width: 900px;
+  }
+
+  .vbp-shot {
+    display: block;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--hairline-on-ink);
+    border-radius: 12px;
+    width: 100%;
+    height: auto;
+  }
+
+  .vbp-gradient {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 30% 40%, color-mix(in srgb, var(--accent) 30%, transparent) 0%, transparent 60%),
+      var(--ink);
+  }
+
+  .vbp-article-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--space-m);
+    padding: var(--space-2xl);
+    width: 100%;
+    min-height: 40vh;
+
+    &:hover .vbp-article-headline {
+      color: var(--marigold);
+    }
+  }
+
+  .vbp-article-headline {
+    transition: color var(--dur-base) ease;
+    margin: 0;
+    max-width: 20ch;
+    color: var(--paper);
+    font-weight: 600;
+    font-size: clamp(1.5rem, 3vw, 2.5rem);
+    line-height: 1.15;
+    font-family: var(--font-display);
+  }
+
+  .vbp-article-excerpt {
+    margin: 0;
+    max-width: 52ch;
+    color: var(--paper-soft);
+    font-size: clamp(0.9rem, 1.5vw, 1.05rem);
+    line-height: 1.6;
+  }
+
+  .vbp-article-cta {
+    color: var(--marigold);
+  }
+
+  .vbp-info {
+    padding: var(--space-2xl) 0 var(--space-3xl);
+  }
+
+  .vbp-nav {
+    margin-bottom: var(--space-xl);
+  }
+
+  .vbp-back {
+    color: var(--ink-soft);
+
+    &:hover {
+      color: var(--crimson);
+    }
+  }
+
+  .vbp-eyebrow {
+    margin: 0 0 var(--space-s);
+    color: var(--crimson-text);
+  }
+
+  .vbp-name {
+    margin: 0 0 var(--space-s);
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+
+  .vbp-tagline {
+    margin: 0 0 var(--space-l);
+    color: var(--ink);
+    font-weight: 600;
+    font-size: clamp(1rem, 2vw, 1.3rem);
+    line-height: 1.4;
+  }
+
+  .vbp-description {
+    margin: 0 0 var(--space-m);
+    max-width: 65ch;
+    color: var(--ink-soft);
+    font-size: 1.05rem;
+    line-height: 1.7;
+  }
+
+  .vbp-stats {
+    margin: 0 0 var(--space-l);
+    color: var(--ink-soft);
+  }
+
+  .vbp-cta-row {
+    margin: 0 0 var(--space-xl);
+  }
+
+  .vbp-cta {
+    display: inline-block;
+    border-radius: 999px;
+    background: var(--crimson-deep);
+    padding: 0.6rem 1.4rem;
+    color: var(--paper);
+    font-weight: 500;
+    font-size: 0.8rem;
+    letter-spacing: var(--tracking-label);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+
+    &:hover {
+      box-shadow: var(--glow-crimson);
+      color: var(--paper);
+    }
+  }
+
+  .vbp-studios {
+    border-top: 1px solid var(--hairline-on-paper);
+    padding-top: var(--space-l);
+  }
+
+  .vbp-studios-label {
+    margin: 0 0 var(--space-m);
+  }
+
+  .vbp-studios-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.625rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      border: 1px solid var(--hairline-on-paper);
+      border-radius: 999px;
+      padding: 0.3rem 0.875rem;
+      color: var(--ink-soft);
+      font-size: 0.8rem;
+      font-family: var(--font-mono);
+    }
+  }
+</style>
