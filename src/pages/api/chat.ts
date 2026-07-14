@@ -60,9 +60,11 @@ export const POST: APIRoute = async ({ request }) => {
       })
     }
 
-    const accessKeyId = import.meta.env.AWS_ID
-    const secretAccessKey = import.meta.env.AWS_SEC
-    const region = import.meta.env.AWS_DEFAULT_REGION || 'us-east-2'
+    // process.env is the runtime source on Netlify functions;
+    // import.meta.env covers local `astro dev` (Vite loads .env)
+    const accessKeyId = process.env.AWS_ID || import.meta.env.AWS_ID
+    const secretAccessKey = process.env.AWS_SEC || import.meta.env.AWS_SEC
+    const region = process.env.AWS_DEFAULT_REGION || import.meta.env.AWS_DEFAULT_REGION || 'us-east-2'
 
     const client = new BedrockRuntimeClient({
       region,
@@ -74,7 +76,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     const command = new ConverseCommand({
       // gpt-oss emits reasoning before its tool call — give it headroom
-      modelId: import.meta.env.BALGO_MODEL_ID || 'openai.gpt-oss-120b-1:0',
+      modelId: process.env.BALGO_MODEL_ID || import.meta.env.BALGO_MODEL_ID || 'openai.gpt-oss-120b-1:0',
       messages: [{ role: 'user', content: [{ text: message }] }],
       system: [{ text: BISHAL_CONTEXT }],
       inferenceConfig: {
