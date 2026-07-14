@@ -82,7 +82,7 @@ const choon = bySlug['choon']
         </p>
         <p class="vs-ctas">
           <a class="vs-cta btn" href={choon.liveUrl} rel="noopener">{choon.liveLabel} ↳</a>
-          <a class="vs-cta-quiet" href="/vibeset/choon">More on Choon</a>
+          <a class="vs-cta-quiet" href="/notes/choon">Read the 66k-track case note</a>
         </p>
       </div>
       <div class="vs-demo">
@@ -107,7 +107,7 @@ const choon = bySlug['choon']
 
 <style lang="scss">
   .vs {
-    background: var(--paper);
+    background: transparent;
     padding: var(--space-3xl) 0;
   }
 
@@ -228,7 +228,7 @@ const choon = bySlug['choon']
 
     img {
       display: block;
-      box-shadow: 0 18px 44px rgba(24, 28, 48, 0.18);
+      box-shadow: 0 24px 56px rgba(0, 0, 0, 0.5);
       border: 1px solid var(--hairline-on-paper);
       border-radius: 12px;
       width: 82%;
@@ -299,7 +299,7 @@ const choon = bySlug['choon']
 
   .vs-pipe-node-em {
     border-color: var(--marigold);
-    color: var(--ink);
+    color: var(--paper);
   }
 
   /* ── Responsive ─────────────────────────────────────────────────────── */
@@ -340,10 +340,10 @@ const choon = bySlug['choon']
     transition: border-color var(--dur-base) ease;
     border: 1px solid var(--hairline-on-paper);
     border-radius: 10px;
-    background: var(--paper);
+    background: var(--ink-2);
     padding: 0.6rem 0.85rem;
     width: 100%;
-    color: var(--ink);
+    color: var(--paper);
     font-size: 0.95rem;
     font-family: var(--font-body);
 
@@ -364,10 +364,10 @@ const choon = bySlug['choon']
     right: 0;
     left: 0;
     z-index: 20;
-    box-shadow: 0 12px 32px rgba(24, 28, 48, 0.14);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
     border: 1px solid var(--hairline-on-paper);
     border-radius: 10px;
-    background: var(--paper);
+    background: var(--ink-2);
     padding: 0.25rem;
     margin: 0;
     list-style: none;
@@ -384,14 +384,14 @@ const choon = bySlug['choon']
     background: transparent;
     padding: 0.5rem 0.65rem;
     width: 100%;
-    color: var(--ink);
+    color: var(--paper);
     font-size: 0.9rem;
     text-align: left;
     cursor: pointer;
 
     &:hover,
     &.vf-sug-active {
-      background: var(--paper-2);
+      background: rgba(250, 247, 241, 0.08);
     }
   }
 
@@ -466,6 +466,27 @@ const choon = bySlug['choon']
     margin-top: 0.9rem;
   }
 
+  .vf-example {
+    transition:
+      border-color var(--dur-base) ease,
+      color var(--dur-base) ease;
+    cursor: pointer;
+    border: 1px dashed var(--hairline-on-ink);
+    border-radius: 999px;
+    background: transparent;
+    padding: 0.35rem 0.9rem;
+    color: var(--paper-soft);
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+
+    &:hover {
+      border-color: var(--marigold);
+      color: var(--marigold);
+    }
+  }
+
   .vf-loading,
   .ch-loading {
     display: flex;
@@ -522,7 +543,7 @@ const choon = bySlug['choon']
 
   .vf-track-name {
     overflow: hidden;
-    color: var(--ink);
+    color: var(--paper);
     font-weight: 700;
     font-size: 0.92rem;
     text-overflow: ellipsis;
@@ -604,7 +625,7 @@ const choon = bySlug['choon']
     margin-top: 0.9rem;
     border: 1px solid var(--hairline-on-paper);
     border-radius: 10px;
-    background: var(--paper);
+    background: var(--void);
     height: 110px;
     overflow: hidden;
   }
@@ -634,7 +655,7 @@ const choon = bySlug['choon']
   .ch-identify {
     border: none;
     border-radius: 999px;
-    background: var(--ink);
+    background: var(--crimson-deep);
     padding: 0.5rem 1.1rem;
     color: var(--paper);
     font-weight: 500;
@@ -677,7 +698,7 @@ const choon = bySlug['choon']
   }
 
   .ch-result-name {
-    color: var(--ink);
+    color: var(--paper);
     font-weight: 700;
     font-size: 0.95rem;
   }

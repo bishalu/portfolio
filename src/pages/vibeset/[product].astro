@@ -94,6 +94,11 @@ const m = media[slug] ?? { type: 'gradient' }
             <a class="vbp-cta btn" href={data.liveUrl} rel="noopener">
               {data.liveLabel ?? 'Open'} ↳
             </a>
+            {slug === 'choon' && (
+              <a class="vbp-note-link" href="/notes/choon">
+                The 66k-track case note ↳
+              </a>
+            )}
           </p>
         )
       }
@@ -211,7 +216,7 @@ const m = media[slug] ?? { type: 'gradient' }
 
   .vbp-tagline {
     margin: 0 0 var(--space-l);
-    color: var(--ink);
+    color: var(--paper);
     font-weight: 600;
     font-size: clamp(1rem, 2vw, 1.3rem);
     line-height: 1.4;
@@ -231,7 +236,16 @@ const m = media[slug] ?? { type: 'gradient' }
   }
 
   .vbp-cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-m);
     margin: 0 0 var(--space-xl);
+  }
+
+  .vbp-note-link {
+    color: var(--crimson-text);
+    font-size: 0.9rem;
   }
 
   .vbp-cta {

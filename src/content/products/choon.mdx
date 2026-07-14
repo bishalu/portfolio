@@ -4,19 +4,20 @@ eyebrow: PROVE
 tagline: Audio fingerprinting and provenance, built for repeated scanning
 description: >-
   A hybrid identifier: Shazam-style spectral landmarks for the fast path, a
-  custom 48M-parameter Conformer embedding model (FAISS + RANSAC alignment)
-  when the audio has been mangled — plus dual audio watermarking with C2PA
-  signed manifests for provenance. Runs on Cloud Run behind a private API.
+  27.7M-parameter Conformer embedding model (FAISS + temporal alignment) when
+  the audio has been mangled — plus audio watermarking with C2PA signed
+  manifests for provenance. Benchmarked at 66,000-track scale for a major
+  music label evaluation.
 accent: '#D64553'
 liveUrl: https://choon.vibeset.ai
 liveLabel: Run the real stress test
 stats:
-  - label: recall@1
-    value: 0.8455 @ 48M params
-  - label: vs
-    value: 330M-param foundation models
-  - label: mp3 128k
-    value: '99.7%'
+  - label: recall@1 @ 66k tracks
+    value: '76.9%'
+  - label: params
+    value: 27.7M (−42%)
+  - label: core conditions
+    value: '93.8%'
 studios:
   - Audio Fingerprint
 order: 3

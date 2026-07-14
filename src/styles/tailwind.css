@@ -31,15 +31,15 @@
   --radius-pill: 999px;
 }
 
-/* ─── Base ──────────────────────────────────────────────────────────────── */
+/* ─── Base — one night canvas (Atmosphere.astro paints beneath) ─────────── */
 html {
-  background-color: var(--paper);
-  color: var(--ink);
+  background-color: var(--void);
+  color: var(--paper);
   font-family: var(--font-body);
 }
 
 body {
-  background-color: var(--paper);
+  background-color: transparent;
   min-height: 100vh;
 }
 
@@ -49,7 +49,7 @@ h3,
 h4,
 h5,
 h6 {
-  color: var(--ink);
+  color: var(--paper);
   font-weight: 600;
   font-family: var(--font-display);
 }
@@ -67,12 +67,12 @@ a {
 }
 
 a:hover {
-  color: var(--crimson);
+  color: var(--marigold);
 }
 
 /* Mono label — eyebrows, data, badges. The site's labeling voice. */
 .label-mono {
-  color: var(--ink-soft);
+  color: var(--paper-soft);
   font-weight: 500;
   font-size: 0.75rem;
   letter-spacing: var(--tracking-label);
@@ -80,28 +80,10 @@ a:hover {
   text-transform: uppercase;
 }
 
-.on-ink .label-mono {
-  color: var(--paper-soft);
-}
-
-/* Ink sections — the dark canvas. Wrap full-bleed bands in .on-ink. */
+/* Legacy: full-bleed "ink bands" — now transparent; the night is everywhere.
+   Kept so section markup and .on-ink descendants don't need touching. */
 .on-ink {
-  background-color: var(--ink);
-  color: var(--paper);
-}
-
-.on-ink h1,
-.on-ink h2,
-.on-ink h3,
-.on-ink h4 {
-  color: var(--paper);
-}
-
-.on-ink a {
-  color: var(--marigold);
-}
-
-.on-ink a:hover {
+  background-color: transparent;
   color: var(--paper);
 }
 
@@ -112,22 +94,22 @@ a:hover {
 
 .glass-card,
 .liquid-glass-bright {
-  border: 1px solid var(--hairline-on-paper);
+  border: 1px solid var(--hairline-on-ink);
   border-radius: 16px;
   background: var(--card-background);
 }
 
 .liquid-glass-strong {
-  border: 1px solid var(--hairline-on-paper);
+  border: 1px solid var(--hairline-on-ink);
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(24, 28, 48, 0.85);
 }
 
 .liquid-glass-nav {
-  backdrop-filter: blur(12px) saturate(140%);
-  -webkit-backdrop-filter: blur(12px) saturate(140%);
-  border-bottom: 1px solid var(--hairline-on-paper);
-  background: rgba(250, 247, 241, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--hairline-on-ink);
+  background: rgba(14, 17, 36, 0.8);
 }
 
 .featured-card {

@@ -85,18 +85,21 @@ export default function VibeFinder() {
 
   const canSearch = query.trim().length > 0 || genres.length > 0 || moods.length > 0 || tempo >= 0
 
-  const search = async () => {
-    if (!canSearch || status === 'loading') return
+  const search = async (override?: { genres?: string[]; tempo?: number }) => {
+    const g = override?.genres ?? genres
+    const t = override?.tempo ?? tempo
+    if (!override && (!canSearch || status === 'loading')) return
+    if (override && status === 'loading') return
     setStatus('loading')
     setSugOpen(false)
     try {
       const body: Record<string, unknown> = { kind: 'search', limit: 6 }
-      if (query.trim()) body.artist = query.trim()
-      if (genres.length) body.genres = genres
+      if (!override && query.trim()) body.artist = query.trim()
+      if (g.length) body.genres = g
       if (moods.length) body.moods = moods.map((m) => m.toLowerCase())
-      if (tempo >= 0) {
-        body.tempo_min = TEMPOS[tempo].min
-        body.tempo_max = TEMPOS[tempo].max
+      if (t >= 0) {
+        body.tempo_min = TEMPOS[t].min
+        body.tempo_max = TEMPOS[t].max
       }
       const res = await fetch('/api/vibeset-demo', {
         method: 'POST',
@@ -145,6 +148,13 @@ export default function VibeFinder() {
   const chip = (active: boolean) =>
     `vf-chip btn ${active ? 'vf-chip-on' : ''}`
 
+  // One-tap example — the first success should cost one click (DESIGN.md §6)
+  const runExample = () => {
+    setGenres(['melodic techno'])
+    setTempo(1)
+    void search({ genres: ['melodic techno'], tempo: 1 })
+  }
+
   return (
     <div className="vf" ref={boxRef}>
       <div className="vf-input-row">
@@ -185,7 +195,7 @@ export default function VibeFinder() {
             </ul>
           )}
         </div>
-        <button type="button" className="vf-go btn" onClick={search} disabled={!canSearch || status === 'loading'}>
+        <button type="button" className="vf-go btn" onClick={() => search()} disabled={!canSearch || status === 'loading'}>
           Find tracks
         </button>
       </div>
@@ -210,6 +220,12 @@ export default function VibeFinder() {
       </div>
 
       <div className="vf-results" aria-live="polite">
+        {status === 'idle' && (
+          <button type="button" className="vf-example btn" onClick={runExample}>
+            ▶ try it — melodic techno at 124–128 bpm
+          </button>
+        )}
+
         {status === 'loading' && (
           <div className="vf-loading">
             <div className="pulse-line" role="status" aria-label="Searching the catalog"></div>

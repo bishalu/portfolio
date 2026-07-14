@@ -70,6 +70,12 @@
               </svg>
             </button>
           </form>
+
+          <div class="balgo-starters" id="balgo-starters" aria-label="Suggested questions">
+            <button type="button" class="balgo-starter btn" data-prompt="What is Vibeset?">What is Vibeset?</button>
+            <button type="button" class="balgo-starter btn" data-prompt="Tell me about the research behind this site.">The research</button>
+            <button type="button" class="balgo-starter btn" data-prompt="How do I work with Bishal?">Work with Bishal</button>
+          </div>
         </div>
       </div>
     </div>
@@ -148,8 +154,8 @@
           x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
         }
         ctx.strokeStyle = grad
-        ctx.globalAlpha = 0.22
-        ctx.lineWidth = 5
+        ctx.globalAlpha = 0.32
+        ctx.lineWidth = 8
         ctx.stroke()
 
         // main line
@@ -567,6 +573,16 @@
       e.preventDefault()
       handleChatSubmit()
     })
+
+    // One-tap starters — the first success should cost one click (DESIGN.md §6)
+    const starters = document.getElementById('balgo-starters')
+    starters?.querySelectorAll<HTMLButtonElement>('.balgo-starter').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        input.value = chip.dataset.prompt ?? chip.textContent ?? ''
+        starters.remove()
+        handleChatSubmit()
+      })
+    })
   })
 </script>
 
@@ -724,7 +740,7 @@
       z-index: 200;
       border: none;
       border-radius: 0;
-      background: var(--ink);
+      background: var(--void);
       padding: 1rem;
       padding-top: calc(1rem + env(safe-area-inset-top));
       max-width: none;
@@ -820,6 +836,38 @@
 
     &:disabled {
       opacity: 0.55;
+    }
+  }
+
+  .balgo-starters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.7rem;
+  }
+
+  .balgo-portal.expanded .balgo-starters {
+    display: none;
+  }
+
+  .balgo-starter {
+    transition:
+      border-color var(--dur-base) ease,
+      color var(--dur-base) ease;
+    cursor: pointer;
+    border: 1px solid var(--hairline-on-ink);
+    border-radius: 999px;
+    background: transparent;
+    padding: 0.28rem 0.75rem;
+    color: var(--paper-soft);
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+
+    &:hover {
+      border-color: var(--marigold);
+      color: var(--marigold);
     }
   }
 

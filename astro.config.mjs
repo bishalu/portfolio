@@ -93,7 +93,25 @@ export default defineConfig({
   output: 'server',
   compressHTML: true,
   site: 'https://bishal.ai',
-  integrations: [compress(), icon(), mdx(), sitemap(), react()],
+  integrations: [
+    compress({
+      // Keep the HTML minifier from reordering attributes/classes inside
+      // React islands — React 19 hydration compares them literally.
+      HTML: {
+        'html-minifier-terser': {
+          sortAttributes: false,
+          sortClassName: false,
+          // React SSR uses empty <!-- --> comments to separate adjacent text
+          // nodes; stripping them breaks hydration on prerendered islands.
+          removeComments: false,
+        },
+      },
+    }),
+    icon(),
+    mdx(),
+    sitemap(),
+    react(),
+  ],
   vite: viteConfig,
   adapter: netlify(),
 })

@@ -1,0 +1,447 @@
+---
+/**
+ * Case note — Choon at 66,000-track scale.
+ * Public engineering story built from internal benchmarks (2026-07).
+ * IP boundary: results, architecture at block level, and honest failures are
+ * public; training recipes, retrieval configs, and the client's identity are
+ * not. Charts are inline SVG computed from the real eval numbers.
+ */
+import DefaultLayout from '@layouts/DefaultLayout.astro'
+
+export const prerender = true
+
+// ── Chart 1: recall@1 at 66k tracks, prior 48M model vs shipped 27.7M ──────
+const conditions = [
+  { name: 'Overall', prior: 50.0, now: 76.9 },
+  { name: 'Pitch shift', prior: 68.0, now: 94.7 },
+  { name: 'Added noise', prior: 60.7, now: 94.0 },
+  { name: 'Tempo + pitch', prior: 33.3, now: 93.3 },
+  { name: 'Reverb', prior: 41.3, now: 86.0 },
+  { name: 'Reverb + noise', prior: 30.7, now: 78.7 },
+  { name: 'High-pass filter', prior: 8.0, now: 15.3, weak: true },
+]
+const C1 = { label: 170, x0: 180, scale: 4.3, rowH: 56, barH: 14, top: 28 }
+const c1Height = C1.top + conditions.length * C1.rowH + 16
+
+// ── Chart 2: PCA compression sweep at 66k — where "free" ends ───────────────
+const sweep = [
+  { dim: 256, recall: 76.9, size: '67.6 MB' },
+  { dim: 128, recall: 76.7, size: '33.8 MB' },
+  { dim: 64, recall: 76.6, size: '16.9 MB' },
+  { dim: 32, recall: 76.7, size: '8.4 MB', mark: 'sweet spot' },
+  { dim: 16, recall: 74.7, size: '4.2 MB' },
+  { dim: 8, recall: 46.6, size: '4.2 MB', mark: 'collapse' },
+]
+const C2 = { x0: 70, xStep: 100, yTop: 30, yBottom: 230 }
+const yOf = (r: number) => C2.yBottom - ((r - 40) / 60) * (C2.yBottom - C2.yTop)
+const xOf = (i: number) => C2.x0 + i * C2.xStep
+const linePoints = sweep.map((s, i) => `${xOf(i)},${yOf(s.recall).toFixed(1)}`).join(' ')
+---
+
+<DefaultLayout
+  title="The 66,000-track stress test — Bishal Upadhyaya"
+  description="How Choon's 27M-parameter model learned to recognize mangled audio at RIAA scale — real numbers, honest failure rows, and why small-on-purpose wins repeated scanning."
+>
+  <article class="note">
+    <div class="note-inner">
+      <header class="note-head" data-reveal>
+        <p class="label-mono note-eyebrow"><a href="/#vibeset">← Vibeset</a> · case note · Choon · 2026</p>
+        <h1 class="note-title">The 66,000-track stress test.</h1>
+        <p class="note-standfirst">
+          Music identification demos look sharp on clean clips and collapse the minute real degradation hits them.
+          We ran the opposite playbook — distortion as the default, not the edge case — and benchmarked it at
+          RIAA scale for an evaluation with a major music label. The catalog is anonymized. The numbers are real.
+        </p>
+      </header>
+
+      <section class="note-section" data-reveal>
+        <h2 class="note-h2"><span class="label-mono note-no">The problem</span>Repeated scanning, not demo theater</h2>
+        <p>
+          The economics of audio fingerprinting aren't set by peak accuracy on a leaderboard. They're set by scanning
+          enormous catalogs over and over — every upload, every edit, every re-encode — without exploding latency or
+          compute cost. A model that's slightly lower on a headline benchmark but dramatically cheaper and faster
+          dominates real deployments. That constraint shaped every decision below.
+        </p>
+      </section>
+
+      <section class="note-section" data-reveal>
+        <h2 class="note-h2"><span class="label-mono note-no">The system</span>Two speeds, one ear</h2>
+        <p>
+          Choon is tiered. A classical spectral-landmark pass — cheap, sub-second, deadly accurate on clean and
+          filtered audio — handles the broad scan. When confidence drops, a compact neural pass takes over: a
+          Conformer encoder distilled from a 300M+-parameter foundation teacher into a <strong>27.7M-parameter
+          student</strong>, serving embeddings from a FAISS index with temporal alignment on top. Each tier owns the
+          failure modes the other can't: classical owns filters, neural owns pitch, tempo, reverb, and codec damage.
+        </p>
+        <ol class="note-pipe label-mono" aria-label="Pipeline">
+          <li><span class="note-pipe-node">audio in</span></li>
+          <li><span class="note-pipe-node">classical landmarks · fast pass</span></li>
+          <li><span class="note-pipe-node note-pipe-em">neural embedding · robust pass</span></li>
+          <li><span class="note-pipe-node">match + alignment</span></li>
+        </ol>
+      </section>
+
+      <section class="note-section" data-reveal="settle">
+        <h2 class="note-h2"><span class="label-mono note-no">The wall</span>Small catalogs flatter everyone</h2>
+        <p>
+          At a few thousand tracks, everything looks great. At 66,000 tracks with <em>real</em> distractor songs —
+          not synthetic padding — our previous 48M-parameter model fell to 50% recall under attack. The fix wasn't a
+          bigger model. It was better training against production-realistic distortions, plus a query-time
+          calibration correcting a known pathology of high-dimensional retrieval (hubness — some references soak up
+          matches they shouldn't). No retraining, no classical crutch: <strong>50.0% → 76.9% overall, and 93.8%
+          averaged over the core distortion conditions.</strong> With 42% fewer parameters.
+        </p>
+
+        <figure class="note-chart">
+          <figcaption class="label-mono">Recall@1 · 66,000-track catalog, real distractors · prior 48M model vs shipped 27.7M</figcaption>
+          <svg viewBox={`0 0 640 ${c1Height}`} role="img" aria-label="Bar chart comparing recall at one across distortion conditions: the shipped 27.7M model beats the prior 48M model on every condition, including an honest weak row for high-pass filtering.">
+            <defs>
+              <linearGradient id="cn-grad" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stop-color="#d64553"></stop>
+                <stop offset="1" stop-color="#efa33b"></stop>
+              </linearGradient>
+            </defs>
+            {
+              conditions.map((c, i) => {
+                const y = C1.top + i * C1.rowH
+                return (
+                  <g>
+                    <text x="0" y={y + 22} class="cn-label" fill={c.weak ? '#f07a84' : '#b0b5ca'}>
+                      {c.name}
+                    </text>
+                    <rect x={C1.x0} y={y} width={c.prior * C1.scale} height={C1.barH} rx="3" fill="#3a3f5c"></rect>
+                    <text x={C1.x0 + c.prior * C1.scale + 8} y={y + 11} class="cn-val" fill="#b0b5ca">{c.prior.toFixed(1)}</text>
+                    <rect x={C1.x0} y={y + C1.barH + 6} width={c.now * C1.scale} height={C1.barH} rx="3" fill="url(#cn-grad)"></rect>
+                    <text x={C1.x0 + c.now * C1.scale + 8} y={y + C1.barH + 17} class="cn-val" fill="#faf7f1">
+                      {c.now.toFixed(1)}
+                    </text>
+                  </g>
+                )
+              })
+            }
+          </svg>
+          <p class="note-chart-note label-mono">
+            high-pass filtering stays weak on purpose — that's the classical tier's job. if someone shows you only
+            the good rows, they are hiding risk.
+          </p>
+        </figure>
+      </section>
+
+      <section class="note-section" data-reveal="settle">
+        <h2 class="note-h2"><span class="label-mono note-no">The bet</span>Small on purpose</h2>
+        <p>
+          This is my structured-pruning research thesis in production: capacity in large networks is misplaced, not
+          missing. The shipped model is <strong>27.7M parameters (110.6 MB)</strong> — 42% smaller than its
+          predecessor and 26.9 points better at scale. Students as small as 12M beat the original at small scale.
+          And the embeddings compress: at 32 dimensions the index shrinks <strong>8× (67.6 → 8.4 MB)</strong> and
+          search runs several times faster, for a recall cost of 0.2 points. Compression is free until 32
+          dimensions. Below that, it isn't — and we publish that cliff too.
+        </p>
+
+        <figure class="note-chart">
+          <figcaption class="label-mono">Recall@1 vs embedding dimension · 66k catalog · index size per 66k tracks</figcaption>
+          <svg viewBox="0 0 640 290" role="img" aria-label="Line chart of recall against embedding dimensionality: flat from 256 down to 32 dimensions, a small drop at 16, and a collapse at 8 dimensions.">
+            <line x1={C2.x0 - 20} y1={yOf(76.9)} x2="620" y2={yOf(76.9)} stroke="rgba(250,247,241,0.1)" stroke-dasharray="4 5"></line>
+            <polyline points={linePoints} fill="none" stroke="url(#cn-grad)" stroke-width="2.5" stroke-linejoin="round"></polyline>
+            {
+              sweep.map((s, i) => (
+                <g>
+                  <circle cx={xOf(i)} cy={yOf(s.recall)} r="5" fill={s.mark === 'collapse' ? '#f07a84' : '#efa33b'}></circle>
+                  <text x={xOf(i)} y={yOf(s.recall) - 14} text-anchor="middle" class="cn-val" fill="#faf7f1">
+                    {s.recall.toFixed(1)}
+                  </text>
+                  <text x={xOf(i)} y="262" text-anchor="middle" class="cn-label" fill="#b0b5ca">
+                    {s.dim}d
+                  </text>
+                  <text x={xOf(i)} y="280" text-anchor="middle" class="cn-tick" fill="#7c8199">
+                    {s.size}
+                  </text>
+                  {s.mark && (
+                    <text
+                      x={xOf(i)}
+                      y={yOf(s.recall) + 26}
+                      text-anchor="middle"
+                      class="cn-tick"
+                      fill={s.mark === 'collapse' ? '#f07a84' : '#6fc7c1'}
+                    >
+                      {s.mark}
+                    </text>
+                  )}
+                </g>
+              ))
+            }
+          </svg>
+        </figure>
+
+        <p class="note-stats label-mono">
+          single cpu core, no gpu: 285 ms per neural query · faiss search at 66k: 0.04–0.2 ms · end-to-end bound by
+          inference, not search
+        </p>
+      </section>
+
+      <section class="note-section" data-reveal>
+        <h2 class="note-h2"><span class="label-mono note-no">What breaks</span>The rows we don't hide</h2>
+        <ul class="note-breaks">
+          <li><strong>High-pass filtered audio</strong> — the neural tier's persistent blind spot; classical fusion exists because of it.</li>
+          <li><strong>32 kbps MP3</strong> — 128k and 64k hold above 99%; 32k collapses. Codec damage has a floor.</li>
+          <li><strong>Extreme pitch (±4 semitones) and heavy noise (SNR ≤ 5 dB)</strong> — near-zero, disclosed, and priced into the tiering.</li>
+          <li><strong>Embeddings below 32 dimensions</strong> — 8d retains 61% of variance and loses 30 points of recall. The cliff is real.</li>
+        </ul>
+        <p>
+          Every one of these numbers came from the same eval harness as the headline rows. The weak rows are the
+          operational reality check — they're what tells you where the second tier, and the roadmap, have to live.
+        </p>
+      </section>
+
+      <section class="note-section" data-reveal>
+        <h2 class="note-h2"><span class="label-mono note-no">Next</span>Provenance, not just recognition</h2>
+        <p>
+          Identification answers <em>what is this?</em> The other half is <em>prove it</em> — audio watermarking
+          across multiple backends bound to C2PA-signed manifests, so a track carries its own provenance even after
+          the internet chews on it. In active development; numbers when they're ready, same rules as above.
+        </p>
+      </section>
+
+      <footer class="note-foot" data-reveal>
+        <p class="note-cta-row">
+          <a class="note-cta btn" href="https://choon.vibeset.ai" rel="noopener">Run the real stress test ↳</a>
+          <a class="note-cta-quiet" href="/#vibeset">Or mangle a clip right on the homepage</a>
+        </p>
+        <p class="note-method label-mono">
+          methodology: measured on a public 66,000-track proxy catalog with real distractor tracks — not the label's
+          library. full protocol and per-condition tables available under nda: bishal@vibeset.ai
+        </p>
+      </footer>
+    </div>
+  </article>
+</DefaultLayout>
+
+<style lang="scss">
+  .note {
+    padding: clamp(6rem, 14vh, 8rem) 0 var(--space-3xl);
+  }
+
+  .note-inner {
+    margin: 0 auto;
+    padding: 0 var(--space-l);
+    max-width: 760px;
+  }
+
+  .note-eyebrow {
+    margin: 0 0 var(--space-m);
+
+    a {
+      color: var(--paper-soft);
+
+      &:hover {
+        color: var(--marigold);
+      }
+    }
+  }
+
+  .note-title {
+    margin: 0 0 var(--space-m);
+    font-size: clamp(2.4rem, 6vw, 4.25rem);
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+
+  .note-standfirst {
+    margin: 0;
+    color: var(--paper-soft);
+    font-size: clamp(1.05rem, 1.8vw, 1.2rem);
+    line-height: 1.7;
+  }
+
+  .note-section {
+    margin-top: var(--space-2xl);
+
+    p {
+      margin: 0 0 var(--space-m);
+      color: var(--paper-soft);
+      font-size: 1.02rem;
+      line-height: 1.75;
+
+      strong {
+        color: var(--paper);
+      }
+
+      em {
+        color: var(--paper);
+      }
+    }
+  }
+
+  .note-h2 {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin: 0 0 var(--space-m);
+    font-size: clamp(1.35rem, 2.6vw, 1.8rem);
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+  }
+
+  .note-no {
+    color: var(--crimson-text);
+  }
+
+  /* pipeline strip */
+  .note-pipe {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin: var(--space-m) 0 0;
+    padding: 0.25rem 0;
+    overflow-x: auto;
+    list-style: none;
+
+    li {
+      display: flex;
+      flex-shrink: 0;
+      align-items: center;
+      gap: 0.6rem;
+
+      &:not(:last-child)::after {
+        display: block;
+        border-radius: 999px;
+        background: var(--grad-signal);
+        width: clamp(1rem, 2.5vw, 2.25rem);
+        height: 2px;
+        content: '';
+      }
+    }
+  }
+
+  .note-pipe-node {
+    border: 1px solid var(--hairline-on-ink);
+    border-radius: 999px;
+    padding: 0.3rem 0.8rem;
+    color: var(--paper-soft);
+    font-size: 0.68rem;
+    white-space: nowrap;
+  }
+
+  .note-pipe-em {
+    border-color: var(--marigold);
+    color: var(--paper);
+  }
+
+  /* charts */
+  .note-chart {
+    margin: var(--space-l) 0;
+    border: 1px solid var(--hairline-on-ink);
+    border-radius: 12px;
+    background: var(--ink);
+    padding: var(--space-m);
+
+    figcaption {
+      margin-bottom: var(--space-m);
+    }
+
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+  }
+
+  .cn-label,
+  .cn-val,
+  .cn-tick {
+    font-size: 12px;
+    font-family: var(--font-mono);
+  }
+
+  .cn-tick {
+    font-size: 10px;
+  }
+
+  .note-chart-note {
+    margin: var(--space-m) 0 0;
+    color: var(--paper-soft);
+    text-transform: lowercase;
+  }
+
+  .note-stats {
+    margin: 0;
+    color: var(--glacier-text);
+    text-transform: lowercase;
+  }
+
+  .note-breaks {
+    margin: 0 0 var(--space-m);
+    padding: 0;
+    list-style: none;
+
+    li {
+      position: relative;
+      margin-bottom: var(--space-s);
+      padding-left: var(--space-m);
+      color: var(--paper-soft);
+      font-size: 1rem;
+      line-height: 1.7;
+
+      &::before {
+        position: absolute;
+        left: 0;
+        color: var(--crimson-text);
+        content: '↯';
+      }
+
+      strong {
+        color: var(--paper);
+      }
+    }
+  }
+
+  .note-foot {
+    margin-top: var(--space-2xl);
+    border-top: 1px solid var(--hairline-on-ink);
+    padding-top: var(--space-l);
+  }
+
+  .note-cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-m);
+    margin: 0 0 var(--space-m);
+  }
+
+  .note-cta {
+    display: inline-block;
+    border-radius: 999px;
+    background: var(--crimson-deep);
+    padding: 0.6rem 1.4rem;
+    color: var(--paper);
+    font-weight: 500;
+    font-size: 0.8rem;
+    letter-spacing: var(--tracking-label);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+
+    &:hover {
+      box-shadow: var(--glow-crimson);
+      color: var(--paper);
+    }
+  }
+
+  .note-cta-quiet {
+    color: var(--crimson-text);
+    font-size: 0.9rem;
+  }
+
+  .note-method {
+    margin: 0;
+    color: var(--paper-soft);
+    text-transform: lowercase;
+    opacity: 0.8;
+  }
+
+  @media (max-width: 479px) {
+    .note-inner {
+      padding: 0 var(--space-m);
+    }
+  }
+</style>

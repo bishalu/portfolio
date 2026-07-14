@@ -8,11 +8,12 @@ import SiteMeta from '@components/SiteMeta.astro'
 import Header from '@components/Header.astro'
 import Footer from '@components/Footer.astro'
 import LoadingScreen from '@components/LoadingScreen.astro'
+import Atmosphere from '@components/Atmosphere.astro'
 import { ClientRouter } from 'astro:transitions'
 
 const {
-  title = 'Bishal Upadhyaya',
-  description = 'I build vibes within AI systems. AI Systems Architect focused on building intelligent products that understand context, match moods, and deliver real value.',
+  title = 'Bishal Upadhyaya — AI Systems Architect',
+  description = 'AI systems, end-to-end: peer-reviewed research on one side, shipped products on the other. Co-owner of Vibeset — AI music tooling with live demos right on this page.',
   url = Astro.site,
   image = 'social-preview-image.png',
   author = 'Bishal Upadhyaya',
@@ -28,7 +29,7 @@ const {
     <!-- favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
-    <SiteMeta title={title} description={description.substring(0, 100)} url={url} image={image} author={author} />
+    <SiteMeta title={title} description={description.substring(0, 160)} url={url} image={image} author={author} />
 
     <script>
       import '../scripts/reveal.ts'
@@ -39,6 +40,7 @@ const {
   </head>
   <body>
     <LoadingScreen />
+    <Atmosphere />
     <Header />
     <main id="main-content" transition:animate="fade">
       <slot />

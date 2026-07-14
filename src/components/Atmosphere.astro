@@ -1,0 +1,99 @@
+---
+/**
+ * Atmosphere — the night behind everything (docs/design/DESIGN.md §2).
+ * Three fixed layers, all cheap:
+ *   1. gradient field — alpenglow warmth low on the horizon, glacier cold
+ *      high and opposite (pre-blurred radial gradients, no filters)
+ *   2. two aurora glows drifting on 90–140s transform loops (compositor-only;
+ *      static on phones and under reduced motion)
+ *   3. film grain — one static SVG turbulence tile at 4% opacity
+ * z-index -1, pointer-events none. The page paints on top.
+ */
+---
+
+<div class="atmo" aria-hidden="true">
+  <div class="atmo-field"></div>
+  <div class="atmo-glow atmo-glow-warm"></div>
+  <div class="atmo-glow atmo-glow-cold"></div>
+  <div class="atmo-grain"></div>
+</div>
+
+<style>
+  .atmo {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    background: var(--void);
+    pointer-events: none;
+  }
+
+  /* Deep field — indigo depth + a faint warm horizon */
+  .atmo-field {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 120% 60% at 50% 118%, rgba(214, 69, 83, 0.14) 0%, transparent 60%),
+      radial-gradient(ellipse 90% 50% at 85% 112%, rgba(239, 163, 59, 0.1) 0%, transparent 55%),
+      radial-gradient(ellipse 100% 70% at 15% -15%, rgba(52, 60, 110, 0.35) 0%, transparent 60%),
+      radial-gradient(ellipse 80% 55% at 92% -8%, rgba(76, 168, 162, 0.08) 0%, transparent 55%);
+  }
+
+  /* Aurora glows — large, soft, slow. Transform-only animation. */
+  .atmo-glow {
+    position: absolute;
+    border-radius: 50%;
+    width: 65vmax;
+    height: 65vmax;
+    will-change: transform;
+  }
+
+  .atmo-glow-warm {
+    bottom: -42vmax;
+    left: -16vmax;
+    animation: atmo-drift-warm 110s ease-in-out infinite alternate;
+    background: radial-gradient(circle, rgba(214, 69, 83, 0.1) 0%, rgba(239, 163, 59, 0.05) 42%, transparent 68%);
+  }
+
+  .atmo-glow-cold {
+    top: -38vmax;
+    right: -20vmax;
+    animation: atmo-drift-cold 140s ease-in-out infinite alternate;
+    background: radial-gradient(circle, rgba(76, 168, 162, 0.08) 0%, rgba(52, 60, 110, 0.07) 45%, transparent 70%);
+  }
+
+  @keyframes atmo-drift-warm {
+    from {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    to {
+      transform: translate3d(9vmax, -5vmax, 0) scale(1.12);
+    }
+  }
+
+  @keyframes atmo-drift-cold {
+    from {
+      transform: translate3d(0, 0, 0) scale(1.05);
+    }
+    to {
+      transform: translate3d(-8vmax, 5vmax, 0) scale(1);
+    }
+  }
+
+  /* Film grain — static tile, physicality without cost */
+  .atmo-grain {
+    position: absolute;
+    inset: 0;
+    opacity: 0.05;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    background-size: 160px 160px;
+    mix-blend-mode: overlay;
+  }
+
+  /* Phones: hold the glows still (GPU thrift); the field + grain remain */
+  @media (max-width: 767px) {
+    .atmo-glow {
+      animation: none !important;
+    }
+  }
+</style>

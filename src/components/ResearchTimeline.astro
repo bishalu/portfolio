@@ -63,8 +63,8 @@ const isPruning = (id: string) => slugOf(id) === 'structured-pruning'
                     <span class="rt-crosslink-glyph" aria-hidden="true">
                       ↳
                     </span>
-                    Applied in production: <a href="#vibeset">Choon</a> matches 330M-parameter foundation models with a
-                    48M-parameter network — this paper is why I believed it could.
+                    Applied in production: <a href="/notes/choon">Choon</a> holds 76.9% recall at 66,000-track scale
+                    with a 27.7M-parameter network — this paper is why I believed capacity was misplaced, not missing.
                   </p>
                 )}
                 <p class="rt-links">
@@ -99,7 +99,7 @@ const isPruning = (id: string) => slugOf(id) === 'structured-pruning'
 
 <style lang="scss">
   .rt {
-    background: var(--paper);
+    background: transparent;
     padding: var(--space-3xl) 0;
   }
 
@@ -195,7 +195,7 @@ const isPruning = (id: string) => slugOf(id) === 'structured-pruning'
 
   .rt-card-title {
     transition: color var(--dur-base) ease;
-    color: var(--ink);
+    color: var(--paper);
     font-weight: 600;
     font-size: clamp(1.05rem, 1.8vw, 1.3rem);
     line-height: 1.3;
@@ -244,7 +244,7 @@ const isPruning = (id: string) => slugOf(id) === 'structured-pruning'
     margin: 0 0 var(--space-s);
     border-left: 2px solid var(--marigold);
     padding-left: var(--space-s);
-    color: var(--ink);
+    color: var(--paper);
     font-size: 0.92rem;
     line-height: 1.6;
 

@@ -1,44 +1,45 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   ALPENGLOW — design tokens, single source of truth
+   ALPENGLOW v2 — "Before sunrise" · design tokens, single source of truth
    Bishal Upadhyaya · bishal.ai
    Spec: docs/design/DESIGN.md (theme) · docs/design/MOTION.md (motion)
 
-   Himalayan dawn light on ink. Two canvases (bone paper / twilight ink),
-   one gradient (the signal), emphasis by glow — never by drop shadow.
+   High-altitude night. One deep twilight canvas; alpenglow (crimson→marigold)
+   is the light source, glacier the cold counterpoint. Bone paper is what the
+   light lands on: text, marks, rare bright moments. Emphasis by glow.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 
-  /* ── Canvases ─────────────────────────────────────────────────────────── */
-  --paper: #faf7f1; /* bone — light canvas */
-  --paper-2: #f1ece2; /* cards & wells on paper */
-  --ink: #181c30; /* twilight ink — dark canvas, text on paper */
-  --ink-2: #222741; /* raised surfaces on ink */
+  /* ── Canvas (one world, three depths) ─────────────────────────────────── */
+  --void: #0e1124; /* the night — page canvas */
+  --ink: #181c30; /* raised panels, cards */
+  --ink-2: #222741; /* inputs, wells, second raise */
+  --paper: #faf7f1; /* bone — primary text, the light itself */
+  --paper-soft: #b0b5ca; /* secondary text */
 
   /* ── Accents ──────────────────────────────────────────────────────────── */
   --crimson: #d64553; /* rhododendron — accents, focus rings, pulse start */
   --crimson-deep: #b4353f; /* button/interactive surfaces (AA with paper text) */
-  --crimson-text: #b4353f; /* AA-safe crimson for text on paper */
-  --marigold: #efa33b; /* pulse end, highlights (sparingly) */
-  --marigold-text: #8f5c10; /* AA-safe marigold for text on paper */
+  --crimson-text: #f07a84; /* AA-safe crimson for text on the night canvas */
+  --marigold: #efa33b; /* pulse end, highlights — AA on night as-is */
+  --marigold-text: #efa33b; /* alias: marigold is text-safe on night */
   --glacier: #4ca8a2; /* live/success dots and non-text accents */
-  --glacier-text: #37817c; /* AA-safe glacier for LIVE badge text on paper */
+  --glacier-text: #6fc7c1; /* AA-safe glacier for LIVE badge text on night */
 
-  /* Muted middle tones (derived, for secondary text) */
-  --ink-soft: #4c5169; /* secondary text on paper */
-  --paper-soft: #b8bccd; /* secondary text on ink */
+  /* Legacy alias — secondary text (was ink-on-paper, now paper-on-night) */
+  --ink-soft: var(--paper-soft);
 
   /* ── The signal ───────────────────────────────────────────────────────── */
   --grad-signal: linear-gradient(90deg, var(--crimson), var(--marigold));
 
   /* ── Hairlines & glow ─────────────────────────────────────────────────── */
-  --hairline-on-paper: rgba(24, 28, 48, 0.12);
   --hairline-on-ink: rgba(250, 247, 241, 0.14);
-  --glow-crimson: 0 0 24px rgba(214, 69, 83, 0.25);
-  --glow-marigold: 0 0 24px rgba(239, 163, 59, 0.22);
-  --glow-glacier: 0 0 20px rgba(76, 168, 162, 0.25);
-  --ring-crimson: 0 0 0 4px rgba(214, 69, 83, 0.16);
+  --hairline-on-paper: var(--hairline-on-ink); /* legacy alias — one world now */
+  --glow-crimson: 0 0 28px rgba(214, 69, 83, 0.35);
+  --glow-marigold: 0 0 28px rgba(239, 163, 59, 0.3);
+  --glow-glacier: 0 0 24px rgba(76, 168, 162, 0.35);
+  --ring-crimson: 0 0 0 4px rgba(214, 69, 83, 0.2);
 
   /* ── Type roles ───────────────────────────────────────────────────────── */
   --font-display: 'Bricolage Grotesque Variable', 'Atkinson Hyperlegible', system-ui, sans-serif;
@@ -55,25 +56,26 @@
   --dur-base: 200ms;
   --dur-slow: 400ms;
 
-  /* ── Surfaces (quiet glass — used only on ink) ────────────────────────── */
+  /* ── Surfaces (quiet glass on the night) ──────────────────────────────── */
   --console-bg: rgba(34, 39, 65, 0.55);
   --console-blur: 14px;
+  --paper-2: var(--ink); /* legacy alias — "card/well surface", now raised ink */
 
   /* ═══════════════════════════════════════════════════════════════════════
      COMPAT LAYER — legacy names remapped onto Alpenglow.
      Consumers are rewritten section by section; delete entries as they die.
      ═══════════════════════════════════════════════════════════════════════ */
-  --foreground-color: var(--ink);
-  --background-color: var(--paper);
-  --icon-color: var(--ink);
+  --foreground-color: var(--paper);
+  --background-color: var(--void);
+  --icon-color: var(--paper);
   --link-color: var(--crimson-text);
-  --link-hover-color: var(--crimson);
-  --border-color: var(--hairline-on-paper);
-  --border-color-subtle: rgba(24, 28, 48, 0.08);
-  --text-decoration-color: var(--hairline-on-paper);
+  --link-hover-color: var(--marigold);
+  --border-color: var(--hairline-on-ink);
+  --border-color-subtle: rgba(250, 247, 241, 0.08);
+  --text-decoration-color: var(--hairline-on-ink);
   --text-decoration-color-hover: var(--crimson);
-  --card-background: rgba(255, 255, 255, 0.6);
-  --card-border: var(--hairline-on-paper);
+  --card-background: rgba(24, 28, 48, 0.65);
+  --card-border: var(--hairline-on-ink);
   --featured-border-color: var(--marigold);
   --featured-badge-bg: var(--marigold);
   --featured-badge-text: var(--ink);
@@ -83,9 +85,9 @@
   --color-sunset-coral: var(--marigold);
   --color-google-blue: var(--glacier);
   --color-cream: var(--paper);
-  --color-warm-stone: var(--paper);
-  --color-warm-gray: var(--ink-soft);
-  --color-charcoal-text: var(--ink);
+  --color-warm-stone: var(--void);
+  --color-warm-gray: var(--paper-soft);
+  --color-charcoal-text: var(--paper);
   --color-deep-moss: var(--ink);
   --color-soft-charcoal: var(--ink-2);
 
