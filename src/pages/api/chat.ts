@@ -73,11 +73,12 @@ export const POST: APIRoute = async ({ request }) => {
     })
 
     const command = new ConverseCommand({
-      modelId: 'mistral.ministral-3-8b-instruct',
+      // gpt-oss emits reasoning before its tool call — give it headroom
+      modelId: import.meta.env.BALGO_MODEL_ID || 'openai.gpt-oss-120b-1:0',
       messages: [{ role: 'user', content: [{ text: message }] }],
       system: [{ text: BISHAL_CONTEXT }],
       inferenceConfig: {
-        maxTokens: 500,
+        maxTokens: 900,
         temperature: 0.7,
       },
       toolConfig: {
@@ -127,11 +128,12 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     const toolUseBlock = content.find((block) => block.toolUse)
-    if (!toolUseBlock || !toolUseBlock.toolUse) {
-      throw new Error('No tool usage found in response')
-    }
 
-    const result = toolUseBlock.toolUse.input
+    // Prefer the structured tool call; fall back to plain text so a
+    // reasoning-model quirk never turns into a user-facing error.
+    const result = toolUseBlock?.toolUse
+      ? toolUseBlock.toolUse.input
+      : { reply: content.find((block) => block.text)?.text ?? "Let's connect directly — bishal@vibeset.ai.", links: [] }
 
     return new Response(JSON.stringify(result), {
       status: 200,
