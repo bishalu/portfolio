@@ -265,7 +265,6 @@
 
     if (!form || !input || !sendBtn || !chatHistory || !balgoPortal || !closeBtn) return
 
-    let isFirstMessage = true
     let isSubmitting = false
 
     input.addEventListener('input', () => {
@@ -282,49 +281,85 @@
 
     const animDone = (a: Animation) => a.finished.catch(() => {})
 
-    // Desktop bloom — the one scene-scale move (MOTION.md §7), FLIP-style
-    const bloomDesktop = async () => {
+    // Backdrop behind the overlay — created once, toggled per open/close.
+    // Mounted inside the hero (NOT body): <main>'s view-transition-name makes
+    // it a stacking context, so a body-level veil would paint over the portal.
+    const backdrop = document.createElement('div')
+    backdrop.className = 'balgo-backdrop'
+    backdrop.style.display = 'none'
+    hero.appendChild(backdrop)
+
+    // Desktop: the console blooms into a fixed overlay pinned below the
+    // header — always fully in view, no scrolling (the one scene move).
+    const openOverlay = async () => {
       const heroName = document.getElementById('hero-name')!
+
+      // Drop the entry animation's retained transform (fill:both) — a live
+      // transform on a fixed, backdrop-painting element causes render smearing
+      balgoPortal.getAnimations().forEach((a) => a.cancel())
+      balgoPortal.style.opacity = '1'
 
       heroLeft.animate(
         [{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: 'translateX(-32px)' }],
-        { duration: d(350), easing: EASE_INOUT, fill: 'both' },
+        { duration: d(300), easing: EASE_INOUT, fill: 'both' },
       )
-      heroName.animate([{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0.12, transform: 'translateY(-16px)' }], {
-        duration: d(500),
-        easing: EASE_INOUT,
-        fill: 'both',
-      })
-      const dim = kicker.animate([{ opacity: 1 }, { opacity: 0.25 }], {
-        duration: d(400),
-        easing: EASE_INOUT,
-        fill: 'both',
-      })
-      await animDone(dim)
+      heroName.animate([{ opacity: 1 }, { opacity: 0.1 }], { duration: d(400), easing: EASE_INOUT, fill: 'both' })
+      kicker.animate([{ opacity: 1 }, { opacity: 0.2 }], { duration: d(300), easing: EASE_INOUT, fill: 'both' })
 
-      // FLIP: measure, switch layout, measure again, animate the difference
+      backdrop.style.display = 'block'
+      backdrop.animate([{ opacity: 0 }, { opacity: 1 }], { duration: d(300), fill: 'both' })
+
+      // FLIP into fixed viewport coordinates
       const start = balgoPortal.getBoundingClientRect()
-      heroLeft.style.display = 'none'
-      balgoPortal.classList.add('expanded')
-      document.getElementById('split-layout')?.classList.add('chat-active')
-      chatHistory.style.display = 'flex'
-      const end = balgoPortal.getBoundingClientRect()
+      const w = Math.min(800, window.innerWidth * 0.92)
+      const h = Math.min(600, window.innerHeight - 128)
+      const left = (window.innerWidth - w) / 2
+      const top = 88
 
-      const grow = balgoPortal.animate(
+      balgoPortal.classList.add('expanded', 'overlay')
+      chatHistory.style.display = 'flex'
+      Object.assign(balgoPortal.style, { left: `${left}px`, top: `${top}px`, width: `${w}px`, height: `${h}px` })
+
+      const fly = balgoPortal.animate(
         [
-          { width: `${start.width}px`, height: `${start.height}px` },
-          { width: `${end.width}px`, height: `${end.height}px` },
+          { left: `${start.left}px`, top: `${start.top}px`, width: `${start.width}px`, height: `${start.height}px` },
+          { left: `${left}px`, top: `${top}px`, width: `${w}px`, height: `${h}px` },
         ],
-        { duration: d(900), easing: EXPO_OUT },
+        { duration: d(700), easing: EXPO_OUT },
       )
       const sweep = chatHistory.animate(
         [
           { clipPath: 'inset(100% 0 0 0)', opacity: 0 },
           { clipPath: 'inset(0% 0 0 0)', opacity: 1 },
         ],
-        { duration: d(450), delay: d(450), easing: EXPO_OUT, fill: 'both' },
+        { duration: d(450), delay: d(350), easing: EXPO_OUT, fill: 'both' },
       )
-      await Promise.all([animDone(grow), animDone(sweep)])
+      await Promise.all([animDone(fly), animDone(sweep)])
+    }
+
+    const closeOverlay = async () => {
+      const heroName = document.getElementById('hero-name')!
+      backdrop.animate([{ opacity: 1 }, { opacity: 0 }], { duration: d(250), fill: 'both' })
+      await animDone(
+        balgoPortal.animate(
+          [
+            { opacity: 1, transform: 'scale(1)' },
+            { opacity: 0, transform: 'scale(0.97)' },
+          ],
+          { duration: d(220), easing: 'cubic-bezier(0.45, 0, 0.7, 0.2)' },
+        ),
+      )
+      backdrop.style.display = 'none'
+      balgoPortal.classList.remove('expanded', 'overlay')
+      balgoPortal.style.left = balgoPortal.style.top = balgoPortal.style.width = balgoPortal.style.height = ''
+      chatHistory.style.display = 'none'
+
+      // restore the editorial scene
+      heroLeft.style.display = ''
+      heroLeft.animate([{ opacity: 0 }, { opacity: 1 }], { duration: d(350), easing: EXPO_OUT, fill: 'both' })
+      heroName.animate([{ opacity: 0.1 }, { opacity: 1 }], { duration: d(400), easing: EXPO_OUT, fill: 'both' })
+      kicker.animate([{ opacity: 0.2 }, { opacity: 1 }], { duration: d(300), easing: EXPO_OUT, fill: 'both' })
+      balgoPortal.animate([{ opacity: 0 }, { opacity: 1 }], { duration: d(300), easing: EXPO_OUT, fill: 'both' })
     }
 
     // Phone sheet — slides up full-screen instead of blooming
@@ -347,17 +382,20 @@
           easing: 'cubic-bezier(0.45, 0, 0.7, 0.2)',
         }),
       )
-      balgoPortal.classList.remove('sheet')
+      balgoPortal.classList.remove('sheet', 'expanded')
+      chatHistory.style.display = 'none'
       document.body.style.overflow = ''
     }
 
-    closeBtn.addEventListener('click', () => void closeSheet())
+    const closeChat = () => {
+      if (balgoPortal.classList.contains('sheet')) void closeSheet()
+      else if (balgoPortal.classList.contains('overlay')) void closeOverlay()
+    }
 
-    // Reopen the sheet when returning to the input on a phone
-    input.addEventListener('focus', () => {
-      if (isPhone() && balgoPortal.classList.contains('expanded') && !balgoPortal.classList.contains('sheet')) {
-        void openSheet()
-      }
+    closeBtn.addEventListener('click', closeChat)
+    backdrop.addEventListener('click', closeChat)
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeChat()
     })
 
     const markdownToHtml = (text: string) =>
@@ -511,9 +549,8 @@
       scope.setState('thinking')
 
       try {
-        if (isFirstMessage) {
-          isFirstMessage = false
-          await (isPhone() ? openSheet() : bloomDesktop())
+        if (!balgoPortal.classList.contains('expanded')) {
+          await (isPhone() ? openSheet() : openOverlay())
         }
 
         input.value = ''
@@ -676,13 +713,16 @@
     align-items: end;
     gap: clamp(2rem, 4vw, 5rem);
     margin-top: auto;
+  }
 
-    &.chat-active {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      width: 100%;
-    }
+  /* dimmed veil behind the chat overlay (element created in the script).
+     No backdrop-filter: a full-viewport blur layer smears the compositor's
+     output above it in some renderers — plain darkening is just as legible. */
+  :global(.balgo-backdrop) {
+    position: fixed;
+    inset: 0;
+    z-index: 290;
+    background: rgba(10, 12, 26, 0.72);
   }
 
   .hero-left-column {
@@ -725,11 +765,25 @@
     }
 
     &.expanded {
-      max-width: 800px;
-      height: min(560px, 70vh);
-
       .portal-header {
         display: none;
+      }
+    }
+
+    /* desktop: fixed overlay pinned below the header — never needs scroll.
+       backdrop-filter is disabled here: combined with a retained transform it
+       makes Chromium blur the portal's own contents. */
+    &.overlay {
+      position: fixed;
+      z-index: 300;
+      box-shadow: 0 32px 80px rgba(0, 0, 0, 0.55);
+      background: rgba(20, 24, 44, 0.97);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      padding: 1.25rem 1.4rem;
+
+      .portal-close {
+        display: flex;
       }
     }
 
@@ -973,10 +1027,6 @@
 
     .balgo-chat-history {
       max-height: 40vh;
-    }
-
-    .balgo-portal.expanded:not(.sheet) {
-      height: auto;
     }
   }
 </style>

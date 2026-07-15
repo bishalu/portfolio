@@ -1,29 +1,30 @@
 ---
 /**
  * RangeStrip — proof of breadth, deliberately quiet (docs/design/DESIGN.md §5.5).
- * Three non-interactive cards, one line each. No demos here — the restraint
- * is the point.
+ * Three non-interactive cards. Copy rule: capabilities framed as outcomes a
+ * 2026 CTO cares about, never a pile of tool names — the tags carry the
+ * craft signal, the line carries the judgment.
  */
 const items = [
   {
-    label: 'Voice · LLM psychology',
+    label: 'Voice → structured identity',
     name: 'Golo',
-    line: 'Voice-first onboarding that turns a spoken story into a structured personality profile — Big Five scoring, dual public/private personas, multi-provider LLM backend.',
-    tags: ['Web Speech API', 'Azure OpenAI', 'Cohere'],
+    line: 'Listens to someone talk for two minutes and returns a structured psychological profile — Big Five scores, separate public and private personas — with schema-enforced outputs across multiple LLM providers.',
+    tags: ['speech → insight', 'structured outputs', 'multi-model routing'],
     href: 'https://github.com/bishalu/veer',
   },
   {
-    label: 'Quant · LLM sentiment',
+    label: 'LLMs under risk discipline',
     name: 'KTM Capital',
-    line: 'A news-sentiment trading bot: seven days of financial headlines, LLM scoring, conservative position management, paper-traded through Alpaca.',
-    tags: ['Alpaca', 'GPT sentiment', 'Risk mgmt'],
+    line: 'Reads a week of financial headlines, scores sentiment with LLMs, and paper-trades on it — inside hard stop-loss and position caps. The interesting part isn’t the alpha; it’s trusting a model with money and building the guardrails that earn it.',
+    tags: ['evals in the loop', 'hard risk limits', 'scheduled autonomy'],
     href: 'https://github.com/bishalu/ktm_capital',
   },
   {
-    label: 'Infrastructure',
+    label: 'Infra that survives audits',
     name: 'Production discipline',
-    line: 'Terraform-managed AWS, SOC2-minded audit logging, documented cost-governance sweeps with verified-recoverable deletions. The unglamorous part, done properly.',
-    tags: ['Terraform', 'Lambda + SQS', 'Cost governance'],
+    line: 'Terraform-managed AWS and GCP, SOC2-minded audit logging, and documented cost-governance sweeps where every deletion was verified recoverable first. The unglamorous half of AI systems, done properly.',
+    tags: ['terraform · aws + gcp', 'least-privilege by default', 'cost governance'],
     href: null,
   },
 ]

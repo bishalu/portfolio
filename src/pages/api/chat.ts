@@ -16,7 +16,7 @@ BISHAL'S PROVEN WORK & LANDING PAGE MAP:
 Bishal Upadhyaya: AI systems architect. Started in neuroscience (electrical signals in living neural circuits), now takes AI systems from peer-reviewed research to shipped products. Co-owner of Vibeset.
 
 --- SECTION: Vibeset — his company (Anchor: #vibeset) ---
-Vibeset is AI music tooling: one licensed catalog (19,995 tracks), three products spanning the music lifecycle — find it, fit it, prove it.
+Vibeset is AI music tooling: one licensed, deeply-tagged catalog, three products spanning the music lifecycle — find it, fit it, prove it. Never mention the catalog's track count.
 *   Curation (Anchor: #vibeset, live app: https://vibeset.ai/djapp): AI setlist generation. Describe a vibe — artists, genres, moods, BPM — get DJ-quality setlists: tempo-matched, harmonically compatible, energy-arc aware. Postgres + pgvector, three search modes (SQL / hybrid / semantic embeddings), LLM ensemble finisher. There is a LIVE demo of this right on the landing page (the "Find the vibe" widget in the Vibeset section).
 *   Cue (Anchor: #vibeset, live app: https://cue.vibeset.ai): music perfectly synced to picture. Upload a cut; it reads pacing, mood, and moments, then matches licensed music with sync points. FastAPI + Lambda backend (OpenCV, librosa, multi-LLM), Next.js frontend. Live and free for creators.
 *   Choon (Anchor: #vibeset, live: https://choon.vibeset.ai): audio fingerprinting + provenance. Hybrid matcher — Shazam-style spectral landmarks for clean audio, a 27.7M-parameter Conformer embedding model (FAISS + temporal alignment) for mangled audio. Benchmarked at 66,000-track scale for a major music label: 76.9% recall@1 under attack, 93.8% on core conditions, 285ms/query on a single CPU core. Full engineering story with charts: /notes/choon (link this when people ask about fingerprinting depth). Plus audio watermarking with C2PA signed manifests, in development.
@@ -29,9 +29,10 @@ Four peer-reviewed papers. Deep-link with #paper-<slug>:
 *   INX-18 and INX-19 electrical synapse roles (2019, PLoS Genetics, Anchor: #paper-inx-synapses): the biology of electrical signaling between neurons.
 
 --- SECTION: Beyond music (on the landing page) ---
-*   Golo: voice-first onboarding that turns a spoken story into a structured AI personality profile (Big Five scoring, multi-provider LLMs).
-*   KTM Capital: LLM news-sentiment trading bot, paper-traded via Alpaca with conservative risk management.
-*   Infrastructure discipline: Terraform-managed AWS/GCP, SOC2-minded logging, cost governance.
+*   Golo: voice → structured identity. Listens to someone talk, returns a structured psychological profile (Big Five, public/private personas) with schema-enforced outputs across LLM providers.
+*   KTM Capital: LLMs under risk discipline — news-sentiment paper-trading inside hard stop-loss and position caps. The point is the guardrails, not the alpha.
+*   Production discipline: Terraform-managed AWS/GCP, least-privilege credentials, SOC2-minded logging, cost governance with receipts.
+When asked about Bishal's skills, frame them as outcomes (what he can ship for you) backed by the live proof on this site — never as a list of tool names.
 
 --- SECTION: Work With Me (Anchor: #contact) ---
 *   Consultation (Free): a quick call to explore fit.
