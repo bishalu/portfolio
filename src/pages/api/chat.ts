@@ -148,6 +148,13 @@ export const POST: APIRoute = async ({ request }) => {
       JSON.stringify({
         error: error.message || 'Failed to process request through bedrock',
         reply: 'The neural network is initializing. Please try again or contact Bishal directly!',
+        // TEMP diagnostic — booleans/lengths only, remove after env issue is solved
+        debug: {
+          proc: { key: (process.env.BALGO_AWS_KEY_ID || '').length, sec: (process.env.BALGO_AWS_SECRET || '').length },
+          meta: { key: (import.meta.env.BALGO_AWS_KEY_ID || '').length, sec: (import.meta.env.BALGO_AWS_SECRET || '').length },
+          region: process.env.BALGO_AWS_REGION || import.meta.env.BALGO_AWS_REGION || 'fallback',
+          envKeys: Object.keys(process.env).filter((k) => k.startsWith('BALGO') || k.startsWith('AWS')).sort(),
+        },
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } },
     )
