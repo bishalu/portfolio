@@ -44,6 +44,11 @@
             </svg>
           </button>
 
+          <button type="button" class="portal-dock-label" id="portal-dock-label" aria-label="Reopen the chat">
+            <span class="live-dot" aria-hidden="true"></span>
+            <span class="label-mono">Balgo — tap to reopen</span>
+          </button>
+
           <div class="balgo-chat-history" id="balgo-chat-history" aria-live="polite">
             <!-- Messages appear here -->
           </div>
@@ -350,7 +355,7 @@
         ),
       )
       backdrop.style.display = 'none'
-      balgoPortal.classList.remove('expanded', 'overlay')
+      balgoPortal.classList.remove('expanded', 'overlay', 'docked')
       balgoPortal.style.left = balgoPortal.style.top = balgoPortal.style.width = balgoPortal.style.height = ''
       chatHistory.style.display = 'none'
 
@@ -386,6 +391,62 @@
       chatHistory.style.display = 'none'
       document.body.style.overflow = ''
     }
+
+    /* Dock — the console steps aside when Balgo points at the page (the
+       MiniPlayer pattern): shrinks to a live pill bottom-right, the target
+       content shows, one tap brings the conversation back. */
+    const DOCK = { w: 252, h: 56, m: 24 }
+
+    const dockOverlay = async () => {
+      if (!balgoPortal.classList.contains('overlay') || balgoPortal.classList.contains('docked')) return
+      backdrop
+        .animate([{ opacity: 1 }, { opacity: 0 }], { duration: d(250), fill: 'both' })
+        .finished.catch(() => {})
+        .then(() => (backdrop.style.display = 'none'))
+
+      const start = balgoPortal.getBoundingClientRect()
+      const left = window.innerWidth - DOCK.w - DOCK.m
+      const top = window.innerHeight - DOCK.h - DOCK.m
+      balgoPortal.classList.add('docked')
+      chatHistory.style.display = 'none'
+      Object.assign(balgoPortal.style, { left: `${left}px`, top: `${top}px`, width: `${DOCK.w}px`, height: `${DOCK.h}px` })
+      await animDone(
+        balgoPortal.animate(
+          [
+            { left: `${start.left}px`, top: `${start.top}px`, width: `${start.width}px`, height: `${start.height}px` },
+            { left: `${left}px`, top: `${top}px`, width: `${DOCK.w}px`, height: `${DOCK.h}px` },
+          ],
+          { duration: d(450), easing: EXPO_OUT },
+        ),
+      )
+    }
+
+    const undockOverlay = async () => {
+      if (!balgoPortal.classList.contains('docked')) return
+      balgoPortal.classList.remove('docked')
+      backdrop.style.display = 'block'
+      backdrop.animate([{ opacity: 0 }, { opacity: 1 }], { duration: d(250), fill: 'both' })
+
+      const start = balgoPortal.getBoundingClientRect()
+      const w = Math.min(800, window.innerWidth * 0.92)
+      const h = Math.min(600, window.innerHeight - 128)
+      const left = (window.innerWidth - w) / 2
+      const top = 88
+      chatHistory.style.display = 'flex'
+      Object.assign(balgoPortal.style, { left: `${left}px`, top: `${top}px`, width: `${w}px`, height: `${h}px` })
+      await animDone(
+        balgoPortal.animate(
+          [
+            { left: `${start.left}px`, top: `${start.top}px`, width: `${start.width}px`, height: `${start.height}px` },
+            { left: `${left}px`, top: `${top}px`, width: `${w}px`, height: `${h}px` },
+          ],
+          { duration: d(450), easing: EXPO_OUT },
+        ),
+      )
+      smoothScrollChat()
+    }
+
+    document.getElementById('portal-dock-label')?.addEventListener('click', () => void undockOverlay())
 
     const closeChat = () => {
       if (balgoPortal.classList.contains('sheet')) void closeSheet()
@@ -524,7 +585,10 @@
               else if (targetId.startsWith('#paper-')) scrollTargetId = targetId
               const targetElement = document.querySelector(scrollTargetId)
               if (targetElement) {
+                // step aside, don't vanish: dock the console so the linked
+                // content is visible and the conversation stays one tap away
                 if (balgoPortal.classList.contains('sheet')) void closeSheet()
+                else if (balgoPortal.classList.contains('overlay')) void dockOverlay()
                 targetElement.scrollIntoView({ behavior: rm ? 'auto' : 'smooth' })
                 history.pushState(null, '', targetId)
               }
@@ -787,6 +851,48 @@
       }
     }
 
+    /* docked: the console as a live pill, bottom-right, one tap to reopen */
+    &.docked {
+      cursor: pointer;
+      border-radius: 999px;
+      padding: 0;
+      overflow: hidden;
+
+      .balgo-chat-history,
+      .balgo-form,
+      .balgo-starters,
+      .portal-close {
+        display: none;
+      }
+
+      .portal-dock-label {
+        display: flex;
+      }
+
+      &:hover {
+        box-shadow: var(--glow-crimson);
+      }
+    }
+  }
+
+  .portal-dock-label {
+    display: none;
+    position: absolute;
+    inset: 0;
+    justify-content: center;
+    align-items: center;
+    gap: 0.6rem;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--paper-soft);
+
+    &:hover .label-mono {
+      color: var(--marigold);
+    }
+  }
+
+  .balgo-portal {
     /* phone: full-screen sheet */
     &.sheet {
       position: fixed;
