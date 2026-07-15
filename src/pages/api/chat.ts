@@ -60,11 +60,12 @@ export const POST: APIRoute = async ({ request }) => {
       })
     }
 
+    // BALGO_-prefixed because Lambda strips custom AWS_* env vars entirely.
     // process.env is the runtime source on Netlify functions;
     // import.meta.env covers local `astro dev` (Vite loads .env)
-    const accessKeyId = process.env.AWS_ID || import.meta.env.AWS_ID
-    const secretAccessKey = process.env.AWS_SEC || import.meta.env.AWS_SEC
-    const region = process.env.AWS_DEFAULT_REGION || import.meta.env.AWS_DEFAULT_REGION || 'us-east-2'
+    const accessKeyId = process.env.BALGO_AWS_KEY_ID || import.meta.env.BALGO_AWS_KEY_ID || import.meta.env.AWS_ID
+    const secretAccessKey = process.env.BALGO_AWS_SECRET || import.meta.env.BALGO_AWS_SECRET || import.meta.env.AWS_SEC
+    const region = process.env.BALGO_AWS_REGION || import.meta.env.BALGO_AWS_REGION || 'us-east-2'
 
     const client = new BedrockRuntimeClient({
       region,
