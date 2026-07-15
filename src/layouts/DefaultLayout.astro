@@ -35,6 +35,24 @@ const {
       import '../scripts/reveal.ts'
     </script>
 
+    <!-- Apollo.io website visitor tracker — identifies visiting companies
+         (global) and people (U.S. only). is:inline keeps Astro from bundling
+         the third-party snippet, so it runs verbatim as Apollo ships it. -->
+    <script is:inline>
+      function initApollo() {
+        var n = Math.random().toString(36).substring(7),
+          o = document.createElement('script')
+        ;(o.src = 'https://assets.apollo.io/micro/website-tracker/tracker.iife.js?nocache=' + n),
+          (o.async = !0),
+          (o.defer = !0),
+          (o.onload = function () {
+            window.trackingFunctions.onLoad({ appId: '69bca29b8b1c61001d8bd4c8' })
+          }),
+          document.head.appendChild(o)
+      }
+      initApollo()
+    </script>
+
     <!-- Enable Astro View Transitions for all browsers -->
     <ClientRouter />
   </head>

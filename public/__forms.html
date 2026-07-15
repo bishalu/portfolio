@@ -1,0 +1,29 @@
+<!doctype html>
+<!--
+  Static form registry for Netlify Forms. Because this site server-renders
+  some routes, Netlify's build-time form detection can miss forms in dynamic
+  pages. Listing them here guarantees both are registered so submissions are
+  captured and email notifications fire.
+    - quick-contact : the visible homepage contact form (CloseSection.astro)
+    - balgo-lead    : client/employer intent forwarded by the Balgo chat API
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Forms</title>
+  </head>
+  <body>
+    <form name="quick-contact" data-netlify="true" netlify-honeypot="bot-field" hidden>
+      <input type="text" name="bot-field" />
+      <input type="text" name="name" />
+      <input type="email" name="email" />
+      <textarea name="message"></textarea>
+    </form>
+
+    <form name="balgo-lead" data-netlify="true" netlify-honeypot="bot-field" hidden>
+      <input type="text" name="bot-field" />
+      <textarea name="message"></textarea>
+      <textarea name="reply"></textarea>
+    </form>
+  </body>
+</html>

@@ -14,6 +14,31 @@ interface Props {
 
 const { title, description, url, image, author = 'Bishal Upadhyaya' } = Astro.props
 const imageUrl = `${Astro.site}${image}`
+
+// schema.org Person — machine-legible identity for search engines and the LLM
+// tools that now pre-screen people: who Bishal is, what he does, and the
+// profiles that corroborate it.
+const personSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: 'Bishal Upadhyaya',
+  url: 'https://bishal.ai',
+  image: 'https://bishal.ai/about-portrait.webp',
+  jobTitle: 'AI Systems Architect',
+  email: 'bishal@vibeset.ai',
+  worksFor: { '@type': 'Organization', name: 'Vibeset', url: 'https://vibeset.ai' },
+  knowsAbout: [
+    'AI systems architecture',
+    'Large language models',
+    'AI agents',
+    'Retrieval-augmented generation',
+    'Model distillation',
+    'Machine learning',
+    'Computer vision',
+    'MLOps',
+  ],
+  sameAs: ['https://www.linkedin.com/in/bishaluc', 'https://github.com/bishalu'],
+}
 ---
 
 <!-- general meta -->
@@ -39,3 +64,6 @@ const imageUrl = `${Astro.site}${image}`
 
 <!-- page title -->
 <title>{title}</title>
+
+<!-- structured data: Person (schema.org) -->
+<script type="application/ld+json" set:html={JSON.stringify(personSchema)} />

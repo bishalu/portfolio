@@ -13,7 +13,7 @@ always say "Bishal's" or "his", never "my" or "our".
 
 BISHAL'S PROVEN WORK & LANDING PAGE MAP:
 
-Bishal Upadhyaya: AI systems architect. Started in neuroscience (electrical signals in living neural circuits), now takes AI systems from peer-reviewed research to shipped products. Co-owner of Vibeset.
+Bishal Upadhyaya: AI systems architect. Started in neuroscience (electrical signals in living neural circuits), now takes AI systems from peer-reviewed research to shipped products — agents, agentic RAG/retrieval, model distillation, guardrails for consequential AI, and audit-ready AWS/GCP infra, end to end. Domain-agnostic: he's shipped AI across biotech, medical imaging, finance-style risk, and media. Vibeset (his company) is where this ships in music today — proof of his range, not his only lane. Co-owner of Vibeset.
 
 --- SECTION: Vibeset — his company (Anchor: #vibeset) ---
 Vibeset is AI music tooling: one licensed, deeply-tagged catalog, three products spanning the music lifecycle — find it, fit it, prove it. Never mention the catalog's track count.
@@ -23,7 +23,7 @@ Vibeset is AI music tooling: one licensed, deeply-tagged catalog, three products
 
 --- SECTION: Research (Anchor: #research) ---
 Four peer-reviewed papers. Deep-link with #paper-<slug>:
-*   A Generalization of Continuous Relaxation in Structured Pruning (2023, Nvidia/Thermo Fisher, Anchor: #paper-structured-pruning): extracting smaller, efficient sub-networks from large models. Directly applied in Choon's 48M-param model.
+*   A Generalization of Continuous Relaxation in Structured Pruning (2023, Nvidia/Thermo Fisher, Anchor: #paper-structured-pruning): extracting smaller, efficient sub-networks from large models. Directly applied in Choon's 27.7M-parameter model.
 *   Circumventing neural damage in a C. elegans chemosensory circuit (2021, Cell Systems, Anchor: #paper-neural-damage): genetically engineered synapses restoring circuit function.
 *   FDG vs Amyloid PET for Deep Learning Prediction of Alzheimer's (2020, UCSF, Anchor: #paper-alzheimers-pet).
 *   INX-18 and INX-19 electrical synapse roles (2019, PLoS Genetics, Anchor: #paper-inx-synapses): the biology of electrical signaling between neurons.
@@ -48,7 +48,7 @@ TONE: Plain-spoken, confident, first person about Balgo ("I"), third person abou
 - Use **bold** for product names and key tech; *italics* sparingly.
 - Keep the reply to 2-4 punchy, simple sentences. Be specific: real numbers and real links beat adjectives.
 - Include 1-2 relevant link buttons based on their query (use the anchors above).
-- If they seem like a potential client or employer, gently point at #contact.`
+- If they seem like a potential client, employer, or collaborator, ALWAYS surface the #contact link AND give Bishal's email (bishal@vibeset.ai), and warmly invite them to reach out — that is how they reach Bishal directly.`
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -139,6 +139,27 @@ export const POST: APIRoute = async ({ request }) => {
     const result = toolUseBlock?.toolUse
       ? toolUseBlock.toolUse.input
       : { reply: content.find((block) => block.text)?.text ?? "Let's connect directly — bishal@vibeset.ai.", links: [] }
+
+    // Best-effort lead alert: if the visitor signals client/employer/collaborator
+    // intent, forward the exchange to the same Netlify Forms inbox as the contact
+    // form so it emails Bishal. Fire-and-forget — never blocks or breaks the chat.
+    try {
+      const intent =
+        /\b(hir(e|ing)|work(ing)? with|collaborat|consult|project|build(ing)?|budget|pric(e|ing)|cost|quote|available|availabilit|retainer|contract|employ|reach out|contact|inquir)\b/i
+      if (intent.test(message)) {
+        const origin = new URL(request.url).origin
+        const payload = new URLSearchParams({
+          'form-name': 'balgo-lead',
+          message: String(message).slice(0, 2000),
+          reply: String((result as any)?.reply ?? '').slice(0, 2000),
+        })
+        void fetch(`${origin}/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: payload.toString(),
+        }).catch(() => {})
+      }
+    } catch {}
 
     return new Response(JSON.stringify(result), {
       status: 200,
