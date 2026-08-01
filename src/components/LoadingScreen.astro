@@ -32,7 +32,6 @@
         stroke-linejoin="round"></path>
     </svg>
 
-    <p class="ls-tagline" id="ls-tagline">Research to production.</p>
   </div>
 </div>
 
@@ -74,7 +73,6 @@
     const label = document.getElementById('ls-label')!
     const word1 = document.getElementById('ls-word-1')!
     const word2 = document.getElementById('ls-word-2')!
-    const tagline = document.getElementById('ls-tagline')!
     const trace = document.getElementById('ls-trace-path')!
 
     let done = false
@@ -111,9 +109,8 @@
       easing: EXPO_OUT,
       fill: 'both',
     })
-    tagline.animate([{ opacity: 0 }, { opacity: 0.65 }], { duration: 300, delay: 700, fill: 'both' })
     // ③ one pulse along the finished trace…
-    trace.animate([{ opacity: 1 }, { opacity: 0.4 }, { opacity: 1 }], { duration: 240, delay: 1000 })
+    trace.animate([{ opacity: 1 }, { opacity: 0.4 }, { opacity: 1 }], { duration: 240, delay: 880 })
 
     // …then dissolve into the hero (entrance starts under the fade)
     timeouts.push(
@@ -124,7 +121,7 @@
             .finished
         } catch {}
         finalize()
-      }, 1200),
+      }, 1020),
     )
 
     // Skip: any click or key jumps to the end
@@ -193,13 +190,4 @@
     overflow: visible;
   }
 
-  .ls-tagline {
-    opacity: 0;
-    margin: 1rem 0 0;
-    color: var(--paper-soft);
-    font-size: 0.8rem;
-    letter-spacing: var(--tracking-label);
-    font-family: var(--font-mono);
-    text-transform: uppercase;
-  }
 </style>

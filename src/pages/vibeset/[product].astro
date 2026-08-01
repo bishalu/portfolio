@@ -83,14 +83,14 @@ const m = media[slug] ?? { type: 'gradient' }
 
       {
         data.stats.length > 0 && (
-          <p class="vbp-stats label-mono">
-            {data.stats.map((s, i) => (
-              <span>
-                {i > 0 && ' · '}
-                {s.label} {s.value}
-              </span>
+          <dl class="vbp-stats">
+            {data.stats.map((s) => (
+              <div>
+                <dt class="label-mono">{s.label}</dt>
+                <dd>{s.value}</dd>
+              </div>
             ))}
-          </p>
+          </dl>
         )
       }
 
@@ -272,9 +272,43 @@ const m = media[slug] ?? { type: 'gradient' }
     line-height: 1.7;
   }
 
+  /* ── Measured ───────────────────────────────────────────────────────────
+     Promoted from an inline mono run, where the values rode along in the same
+     size and colour as their labels and so read as mentioned rather than
+     measured (docs/design/DESIGN.md §3). The 1px grid gap on a hairline ground
+     is the rule — no borders to keep in sync. */
   .vbp-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1px;
     margin: 0 0 var(--space-l);
-    color: var(--ink-soft);
+    border: 1px solid var(--hairline-on-ink);
+    border-radius: var(--radius-large);
+    background: var(--hairline-on-ink);
+    overflow: hidden;
+
+    > div {
+      background: var(--ink);
+      padding: 0.7rem 0.85rem;
+    }
+
+    dt {
+      margin: 0;
+      color: var(--paper-soft);
+      font-size: 0.6rem;
+      letter-spacing: 0.1em;
+    }
+
+    dd {
+      margin: 0.2rem 0 0;
+      color: var(--paper);
+      font-weight: 600;
+      font-size: 1.35rem;
+      font-family: var(--font-display);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+    }
   }
 
   .vbp-cta-row {

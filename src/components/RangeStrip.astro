@@ -1,55 +1,45 @@
 ---
 /**
- * RangeStrip — proof of breadth, deliberately quiet (docs/design/DESIGN.md §5.5).
- * Three non-interactive cards. Copy rule: capabilities framed as outcomes a
- * 2026 CTO cares about, never a pile of tool names — the tags carry the
- * craft signal, the line carries the judgment.
+ * RangeStrip — proof of breadth, deliberately quiet (docs/design/DESIGN.md §2).
+ *
+ * One line, not three cards. By this point in the page range has already been
+ * proven twice (products shipped, papers published); a third proof in a weaker
+ * format was the sag, and three bordered cards straight after three bordered
+ * stations made it the page's third consecutive triad.
+ *
+ * Everything named here has source you can read. The old "production
+ * discipline" card had no link, which broke the section's own premise — those
+ * keywords live on /about instead.
  */
-const items = [
-  {
-    label: 'Voice → structured identity',
-    name: 'Golo',
-    line: 'Listens to someone talk for two minutes and returns a structured psychological profile — Big Five scores, separate public and private personas — with schema-enforced outputs across multiple LLM providers.',
-    tags: ['speech → insight', 'structured outputs', 'multi-model routing'],
-    href: 'https://github.com/bishalu/veer',
-  },
-  {
-    label: 'LLMs under risk discipline',
-    name: 'KTM Capital',
-    line: 'Reads a week of financial headlines, scores sentiment with LLMs, and paper-trades on it — inside hard stop-loss and position caps. The interesting part isn’t the alpha; it’s trusting a model with money and building the guardrails that earn it.',
-    tags: ['evals in the loop', 'hard risk limits', 'scheduled autonomy'],
-    href: 'https://github.com/bishalu/ktm_capital',
-  },
-  {
-    label: 'Infra that survives audits',
-    name: 'Production discipline',
-    line: 'Terraform-managed AWS and GCP, SOC2-minded audit logging, and documented cost-governance sweeps where every deletion was verified recoverable first. The unglamorous half of AI systems, done properly.',
-    tags: ['terraform · aws + gcp', 'least-privilege by default', 'cost governance'],
-    href: null,
-  },
+const sources = [
+  { label: 'Golo', href: 'https://github.com/bishalu/veer' },
+  { label: 'KTM Capital', href: 'https://github.com/bishalu/ktm_capital' },
 ]
 ---
 
-<section class="rs">
+<section class="rs" aria-labelledby="rs-title">
   <div class="rs-inner">
-    <p class="label-mono rs-eyebrow" data-reveal>Across domains</p>
-    <div class="rs-grid" data-reveal-stagger>
+    <h2 class="rs-title label-mono" id="rs-title" data-reveal>Beyond music</h2>
+
+    <p class="rs-line" data-reveal>
+      Music is where these systems ship today, not the edge of them. <strong>Golo</strong> listens to
+      two minutes of speech and returns a structured personality profile — schema-enforced, across
+      several model providers. <strong>KTM Capital</strong> paper-trades on LLM news sentiment inside
+      hard stop-losses and position caps; the guardrails are the interesting part, not the returns.
+    </p>
+
+    <p class="rs-sources label-mono" data-reveal>
       {
-        items.map((item) => (
-          <article class="rs-card" data-reveal>
-            <p class="rs-label label-mono">{item.label}</p>
-            <h3 class="rs-name">{item.name}</h3>
-            <p class="rs-line">{item.line}</p>
-            <p class="rs-tags label-mono">{item.tags.join(' · ')}</p>
-            {item.href && (
-              <a class="rs-link" href={item.href} target="_blank" rel="noopener noreferrer">
-                Source ↳
-              </a>
-            )}
-          </article>
+        sources.map((s, i) => (
+          <>
+            {i > 0 && <span class="rs-sep" aria-hidden="true"> · </span>}
+            <a href={s.href} target="_blank" rel="noopener noreferrer">
+              {s.label} ↳
+            </a>
+          </>
         ))
       }
-    </div>
+    </p>
   </div>
 </section>
 
@@ -61,64 +51,43 @@ const items = [
 
   .rs-inner {
     margin: 0 auto;
+    border-top: 1px solid var(--hairline-on-ink);
     padding: var(--space-2xl) var(--space-l) 0;
-    border-top: 1px solid var(--hairline-on-paper);
-    max-width: 1200px;
+    max-width: 780px;
   }
 
-  .rs-eyebrow {
-    margin: 0 0 var(--space-l);
-  }
-
-  .rs-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-l);
-  }
-
-  .rs-card {
-    border: 1px solid var(--hairline-on-paper);
-    border-radius: 12px;
-    background: var(--paper-2);
-    padding: var(--space-m);
-  }
-
-  .rs-label {
+  .rs-title {
     margin: 0 0 var(--space-s);
     color: var(--crimson-text);
   }
 
-  .rs-name {
-    margin: 0 0 var(--space-2xs);
-    font-size: 1.15rem;
-    letter-spacing: -0.01em;
-  }
-
   .rs-line {
     margin: 0 0 var(--space-s);
-    color: var(--ink-soft);
-    font-size: 0.9rem;
-    line-height: 1.65;
-  }
+    color: var(--paper-soft);
+    font-size: 1.02rem;
+    line-height: 1.7;
 
-  .rs-tags {
-    margin: 0;
-    font-size: 0.65rem;
-  }
-
-  .rs-link {
-    display: inline-block;
-    margin-top: var(--space-s);
-    font-size: 0.8rem;
-    letter-spacing: var(--tracking-label);
-    font-family: var(--font-mono);
-    text-transform: uppercase;
-  }
-
-  @media (max-width: 1023px) {
-    .rs-grid {
-      grid-template-columns: 1fr;
+    strong {
+      color: var(--paper);
+      font-weight: 600;
     }
+  }
+
+  .rs-sources {
+    margin: 0;
+
+    a {
+      color: var(--paper-soft);
+
+      &:hover {
+        color: var(--marigold);
+      }
+    }
+  }
+
+  .rs-sep {
+    color: var(--paper-soft);
+    opacity: 0.5;
   }
 
   @media (max-width: 479px) {

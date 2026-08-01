@@ -46,7 +46,11 @@ const isPruning = (id: string) => slugOf(id) === 'structured-pruning'
               <summary>
                 <span class="rt-year label-mono">{pub.data.year}</span>
                 <span class="rt-card-main">
-                  <span class="rt-card-title">{pub.data.title}</span>
+                  {/* A real heading: papers must appear in the document outline.
+                      In a <span> they were invisible to anyone navigating by
+                      heading — which is the most likely way a screen-reader
+                      user reaches the research. */}
+                  <h3 class="rt-card-title">{pub.data.title}</h3>
                   {pub.data.journal && <span class="rt-journal">{pub.data.journal}</span>}
                 </span>
                 <span class="rt-toggle" aria-hidden="true">
@@ -63,8 +67,7 @@ const isPruning = (id: string) => slugOf(id) === 'structured-pruning'
                     <span class="rt-crosslink-glyph" aria-hidden="true">
                       ↳
                     </span>
-                    Applied in production: <a href="/notes/choon">Choon</a> holds 76.9% recall at 66,000-track scale
-                    with a 27.7M-parameter network — this paper is why I believed capacity was misplaced, not missing.
+                    This paper is why I believed the capacity was misplaced, not missing.
                   </p>
                 )}
                 <p class="rt-links">
@@ -81,6 +84,23 @@ const isPruning = (id: string) => slugOf(id) === 'structured-pruning'
                 </p>
               </div>
             </details>
+
+            {/* The spine, in the open. This is the site's strongest claim —
+                a paper that ships — and it used to be one line inside a
+                collapsed <details> that most visitors never opened. Sits
+                outside the disclosure so it is always visible; sourced from
+                the publication's appliedIn/appliedNote fields. */}
+            {pub.data.appliedIn && pub.data.appliedNote && (
+              <p class="rt-applied">
+                <span class="rt-applied-tag label-mono">In production</span>
+                <span class="rt-applied-text">
+                  {pub.data.appliedNote}{' '}
+                  <a href={`/vibeset/${pub.data.appliedIn}`}>
+                    See {pub.data.appliedIn.charAt(0).toUpperCase() + pub.data.appliedIn.slice(1)} ↳
+                  </a>
+                </span>
+              </p>
+            )}
           </li>
         ))
       }
@@ -193,13 +213,58 @@ const isPruning = (id: string) => slugOf(id) === 'structured-pruning'
     min-width: 0;
   }
 
+  /* An h3 that must sit inline inside <summary> — reset the heading defaults
+     rather than change the visual result. */
   .rt-card-title {
+    display: block;
     transition: color var(--dur-base) ease;
+    margin: 0;
     color: var(--paper);
     font-weight: 600;
     font-size: clamp(1.05rem, 1.8vw, 1.3rem);
     line-height: 1.3;
     font-family: var(--font-display);
+    text-wrap: pretty;
+  }
+
+  /* ── The research → product spine ───────────────────────────────────────
+     Hangs off the paper's card and stays open. The left rule is the signal
+     gradient: this is the one place on the page where a paper and a shipped
+     product are literally joined. */
+  .rt-applied {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    /* Second column: the first is the 24px spike rail. Without this the block
+       lands in the rail and renders ~24px wide. */
+    grid-column: 2;
+    gap: 0.5rem 0.75rem;
+    margin: 0.6rem 0 0;
+    border-left: 2px solid transparent;
+    border-image: var(--grad-signal) 1;
+    padding: 0.55rem 0 0.55rem 0.9rem;
+  }
+
+  .rt-applied-tag {
+    flex-shrink: 0;
+    color: var(--glacier-text);
+  }
+
+  .rt-applied-text {
+    flex: 1;
+    min-width: 15rem;
+    color: var(--paper-soft);
+    font-size: 0.9rem;
+    line-height: 1.6;
+
+    a {
+      color: var(--crimson-text);
+      white-space: nowrap;
+
+      &:hover {
+        color: var(--marigold);
+      }
+    }
   }
 
   .rt-journal {

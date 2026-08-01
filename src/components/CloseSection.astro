@@ -6,27 +6,6 @@
  */
 import { Icon } from 'astro-icon/components'
 
-const tiers = [
-  {
-    name: 'Consultation',
-    price: 'Free',
-    line: "A quick call to explore fit. If I can't help, I'll say so and point you somewhere better.",
-    cta: 'Book a chat',
-  },
-  {
-    name: 'Retainer',
-    price: 'Monthly',
-    line: 'Ongoing AI advisory — architecture reviews, prototype builds, an extension of your team.',
-    cta: 'Get started',
-    popular: true,
-  },
-  {
-    name: 'Project',
-    price: 'Custom',
-    line: 'Full-scope build, concept to deployment. I own the AI system you need to ship.',
-    cta: "Let's scope it",
-  },
-]
 ---
 
 <section class="cs on-ink" id="contact">
@@ -38,19 +17,23 @@ const tiers = [
       <h2 class="cs-title">Bring me the hard part.</h2>
     </header>
 
-    <div class="cs-tiers" data-reveal-stagger>
-      {
-        tiers.map((tier) => (
-          <article class={`cs-tier ${tier.popular ? 'cs-tier-popular' : ''}`} data-reveal>
-            <p class="cs-tier-head label-mono">
-              {tier.name} · <span class="cs-tier-price">{tier.price}</span>
-              {tier.popular && <span class="cs-tier-badge">most chosen</span>}
-            </p>
-            <p class="cs-tier-line">{tier.line}</p>
-            <a class="cs-tier-cta" href="#cs-form">{tier.cta} ↓</a>
-          </article>
-        ))
-      }
+    <!-- Prose, not a pricing table. A tier grid with a "most chosen" badge is
+         SaaS grammar, and it sat in the last impression slot on a personal
+         site (docs/design/DESIGN.md P11). Same three options, said plainly,
+         with a face attached — there was no photograph of Bishal anywhere on
+         this page. -->
+    <div class="cs-intro" data-reveal>
+      <!-- The source is a wide landscape shot where the subject is small, so a
+           plain cover-crop lands on scenery. Zoom to the face inside the
+           circle instead of shipping a second asset. -->
+      <span class="cs-portrait">
+        <img src="/about-portrait.webp" alt="Bishal Upadhyaya" width="88" height="88" loading="lazy" decoding="async" />
+      </span>
+      <p class="cs-intro-line">
+        Start with a free call. From there it's usually a monthly retainer — architecture reviews,
+        prototype builds, an extra pair of hands on your team — or a scoped project I own end to
+        end. If I can't help, I'll say so and point you somewhere better.
+      </p>
     </div>
 
     <div class="cs-bottom">
@@ -148,59 +131,40 @@ const tiers = [
     line-height: 1.02;
   }
 
-  /* ── Tiers ─────────────────────────────────────────────────────────── */
-  .cs-tiers {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+  /* ── How to work together ──────────────────────────────────────────── */
+  .cs-intro {
+    display: flex;
+    align-items: flex-start;
     gap: var(--space-m);
     margin-bottom: var(--space-2xl);
+    max-width: 680px;
   }
 
-  .cs-tier {
+  .cs-portrait {
+    display: block;
+    position: relative;
+    flex-shrink: 0;
     border: 1px solid var(--hairline-on-ink);
-    border-radius: 12px;
-    background: var(--ink-2);
-    padding: var(--space-m);
+    border-radius: 50%;
+    width: 88px;
+    height: 88px;
+    overflow: hidden;
+
+    img {
+      display: block;
+      transform: scale(2.6);
+      transform-origin: 50% 46%;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
   }
 
-  .cs-tier-popular {
-    border-color: var(--marigold);
-  }
-
-  .cs-tier-head {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0.4rem;
-    margin: 0 0 var(--space-s);
-  }
-
-  .cs-tier-price {
-    color: var(--marigold);
-  }
-
-  .cs-tier-badge {
-    margin-left: auto;
-    border: 1px solid var(--marigold);
-    border-radius: 999px;
-    padding: 0.1rem 0.5rem;
-    color: var(--marigold);
-    font-size: 0.6rem;
-  }
-
-  .cs-tier-line {
-    margin: 0 0 var(--space-s);
+  .cs-intro-line {
+    margin: 0;
     color: var(--paper-soft);
-    font-size: 0.92rem;
-    line-height: 1.6;
-  }
-
-  .cs-tier-cta {
-    color: var(--marigold);
-    font-size: 0.8rem;
-    letter-spacing: var(--tracking-label);
-    font-family: var(--font-mono);
-    text-transform: uppercase;
+    font-size: 1.02rem;
+    line-height: 1.7;
   }
 
   /* ── Form + direct ─────────────────────────────────────────────────── */
@@ -314,10 +278,6 @@ const tiers = [
 
   /* ── Responsive ────────────────────────────────────────────────────── */
   @media (max-width: 1023px) {
-    .cs-tiers {
-      grid-template-columns: 1fr;
-    }
-
     .cs-bottom {
       grid-template-columns: 1fr;
     }
