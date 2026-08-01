@@ -44,7 +44,10 @@ blueprint/
 .agent/
 .gemini/
 
-# Development docs
-docs/
+# Development docs — scratch notes stay local, but the design spec ships:
+# tokens.css, motion.css, _root.scss and the verify-site skill all cite
+# docs/design/*.md as the governing document, so it has to exist in a clone.
+docs/*
+!docs/design/
 scripts/verify/out/
 deno.lock

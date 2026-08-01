@@ -461,3 +461,237 @@
 .ch-result-meta {
   margin-top: 0.25rem;
 }
+
+/* ═══ CueSync (island) ═══════════════════════════════════════════════════
+   Two lanes on one time axis: the beat grid above, the cuts below. A cut that
+   lands on a beat lights up and grows a connector to the grid — alignment made
+   literal. Deliberately not a waveform (see the component header). */
+.cx {
+  border: 1px solid var(--hairline-on-ink);
+  border-radius: 16px;
+  background: var(--ink);
+  padding: 1rem;
+}
+
+.cx-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.7rem;
+  margin: 0 0 0.75rem;
+}
+
+.cx-badge {
+  border-radius: var(--radius-pill);
+  background: rgba(76, 168, 162, 0.16);
+  padding: 0.12rem 0.5rem;
+  color: var(--glacier-text);
+}
+
+.cx-prov {
+  color: var(--paper-soft);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  opacity: 0.8;
+}
+
+.cx-stage {
+  border-radius: 10px;
+  background: var(--void);
+  overflow: hidden;
+}
+
+.cx-video {
+  display: block;
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+/* ── The lanes ─────────────────────────────────────────────────────────── */
+.cx-lanes {
+  margin-top: 0.8rem;
+}
+
+.cx-lane {
+  position: relative;
+  width: 100%;
+}
+
+.cx-lane-beats {
+  height: 14px;
+}
+
+.cx-lane-cuts {
+  margin-top: 2px;
+  border-top: 1px solid var(--border-color-subtle);
+  height: 22px;
+}
+
+/* Grid ticks. Downbeats are taller — the structure a cut can land on matters
+   more than the beat itself, and the hit floors encode exactly that. */
+.cx-beat {
+  position: absolute;
+  bottom: 0;
+  background: var(--paper-soft);
+  width: 1px;
+  height: 5px;
+  opacity: 0.3;
+}
+
+.cx-beat-down {
+  height: 11px;
+  opacity: 0.6;
+}
+
+/* A cut. Off-beat it keeps its own timing and stays quiet; on-beat it takes
+   the marigold and grows a connector up into the grid, scaled by how hard the
+   beat it hit actually reads. */
+.cx-cut {
+  position: absolute;
+  top: 4px;
+  transition:
+    background-color var(--dur-base) ease,
+    box-shadow var(--dur-base) ease;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--paper-soft);
+  width: 2px;
+  height: 14px;
+  opacity: 0.55;
+}
+
+.cx-cut-on {
+  background: var(--marigold);
+  box-shadow: 0 0 10px rgba(239, 163, 59, 0.5);
+  opacity: 1;
+}
+
+.cx-cut-on::before {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  transition: opacity var(--dur-base) ease;
+  background: var(--grad-signal);
+  width: 2px;
+  /* 6px minimum so a weak-but-real hit is still visible. */
+  height: calc(6px + (var(--s) * 12px));
+  content: '';
+}
+
+.cx-head-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--crimson-text);
+  width: 1px;
+  opacity: 0.9;
+}
+
+/* The fit leads because the fit is what moves. See the component header. */
+.cx-score {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin: 0.7rem 0 0.15rem;
+}
+
+.cx-score-val {
+  color: var(--paper);
+  font-weight: 600;
+  font-size: 1.8rem;
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.cx-score-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.cx-score-label {
+  color: var(--paper-soft);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+}
+
+.cx-score-where {
+  color: var(--marigold);
+  font-size: 0.85rem;
+}
+
+.cx-count {
+  margin: 0;
+  color: var(--paper-soft);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  opacity: 0.8;
+}
+
+.cx-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.7rem;
+}
+
+.cx-play {
+  flex-shrink: 0;
+  transition: box-shadow 0.28s ease;
+  cursor: pointer;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--crimson-deep);
+  padding: 0.35rem 0.9rem;
+  color: var(--paper);
+  font-weight: 500;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+
+  &:hover {
+    box-shadow: var(--glow-crimson);
+  }
+}
+
+.cx-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.cx-pick {
+  transition:
+    border-color var(--dur-base) ease,
+    background-color var(--dur-base) ease,
+    color var(--dur-base) ease;
+  cursor: pointer;
+  border: 1px solid var(--hairline-on-ink);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  padding: 0.28rem 0.7rem;
+  color: var(--paper-soft);
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+}
+
+.cx-pick-on {
+  border-color: var(--marigold);
+  color: var(--marigold);
+}
+
+.cx-note {
+  margin: 0.6rem 0 0;
+  color: var(--paper-soft);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  opacity: 0.85;
+}

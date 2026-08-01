@@ -7,6 +7,10 @@
  */
 import { getCollection } from 'astro:content'
 import VibeFinder from '@components/VibeFinder.tsx'
+import CueSync from '@components/CueSync.tsx'
+// Imported at build time, not fetched: the widget's claim is that it does no
+// network work, and that should be literally true.
+import cueSync from '../data/cue-sync.json'
 
 const products = (await getCollection('products')).sort((a, b) => a.data.order - b.data.order)
 const bySlug = Object.fromEntries(products.map((p) => [p.id.replace(/\.mdx$/, ''), p.data]))
@@ -67,11 +71,11 @@ const choon = bySlug['choon']
         </p>
       </div>
       <div class="vs-demo">
-        <p class="vs-demo-label label-mono">the shipped app — the link is the demo</p>
-        <a class="vs-shots" href={cue.liveUrl} rel="noopener" aria-label="Open Cue at cue.vibeset.ai">
-          <img src="/vibeset/cue-signin.webp" alt="Cue sign-in screen: “Music perfectly synced to picture.”" width="1200" height="750" loading="lazy" />
-          <img class="vs-shot-back" src="/vibeset/cue-curate.webp" alt="Cue's curation setup with a video analyzed and ready" width="1200" height="750" loading="lazy" />
-        </a>
+        <p class="vs-demo-label label-mono">
+          <span class="sig-eq" aria-hidden="true"><span></span><span></span><span></span></span>
+          local — pick where the clip drops into the track
+        </p>
+        <CueSync data={cueSync} client:visible />
       </div>
     </article>
 
