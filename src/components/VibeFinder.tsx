@@ -9,7 +9,25 @@ import { useEffect, useRef, useState } from 'react'
 
 type Suggestion = { display: string; type: string; artist?: string; track?: string; genre?: string; tempo?: number }
 type Track = { track: string; artist: string; genre: string; mood: string; energy: string; tempo: number | null; year: number | null }
-type SearchMeta = { ms: number | null; source: 'live' | 'replay' }
+type Route = 'sql' | 'hybrid' | 'semantic'
+type SearchMeta = { ms: number | null; source: 'live' | 'replay'; route: Route | null }
+
+/** The three paths the query router can take, in ascending cost. */
+const ROUTES: Route[] = ['sql', 'hybrid', 'semantic']
+
+/**
+ * The API names its strategies more verbosely than we display them, and the
+ * names have changed before. Match loosely, and if we don't recognise the
+ * value, show nothing rather than guess — a wrong route is worse than none.
+ */
+function normalizeRoute(raw: unknown): Route | null {
+  if (typeof raw !== 'string') return null
+  const v = raw.toLowerCase()
+  if (v.includes('semantic') || v.includes('vector') || v.includes('embed')) return 'semantic'
+  if (v.includes('hybrid')) return 'hybrid'
+  if (v.includes('sql') || v.includes('exact') || v.includes('structured')) return 'sql'
+  return null
+}
 
 const MOODS = ['Atmospheric', 'Euphoric', 'Energetic', 'Introspective']
 const TEMPOS: Array<{ label: string; min: number; max: number }> = [
@@ -108,11 +126,15 @@ export default function VibeFinder() {
       })
       const data = await res.json()
       setTracks(data.tracks ?? [])
-      setMeta({ ms: data.response_time_ms ?? null, source: data.source === 'live' ? 'live' : 'replay' })
+      setMeta({
+        ms: data.response_time_ms ?? null,
+        source: data.source === 'live' ? 'live' : 'replay',
+        route: normalizeRoute(data.search_method),
+      })
     } catch {
       // the proxy already fixtures every failure; this is belt-and-braces
       setTracks([])
-      setMeta({ ms: null, source: 'replay' })
+      setMeta({ ms: null, source: 'replay', route: null })
     }
     setStatus('done')
   }
@@ -242,6 +264,20 @@ export default function VibeFinder() {
               </span>
             ) : (
               <span className="vf-badge vf-badge-replay label-mono">replay — the API was napping; these are cached results</span>
+            )}
+
+            {/* Which of the three paths the router picked. Exact artist names
+                take the cheap SQL path; a mood or a vibe goes semantic — so
+                this strip changes as you change the question. */}
+            {meta.route && (
+              <span className="vf-route label-mono">
+                <span className="vf-route-label">routed</span>
+                {ROUTES.map((r) => (
+                  <span key={r} className={`vf-route-node ${r === meta.route ? 'vf-route-on' : ''}`}>
+                    {r}
+                  </span>
+                ))}
+              </span>
             )}
           </div>
         )}

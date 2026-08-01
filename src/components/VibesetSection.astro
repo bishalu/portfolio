@@ -7,7 +7,6 @@
  */
 import { getCollection } from 'astro:content'
 import VibeFinder from '@components/VibeFinder.tsx'
-import ChoonStressTest from '@components/ChoonStressTest.tsx'
 
 const products = (await getCollection('products')).sort((a, b) => a.data.order - b.data.order)
 const bySlug = Object.fromEntries(products.map((p) => [p.id.replace(/\.mdx$/, ''), p.data]))
@@ -43,7 +42,9 @@ const choon = bySlug['choon']
         </p>
       </div>
       <div class="vs-demo">
-        <p class="vs-demo-label label-mono"><span class="live-dot"></span> live demo — searches the production catalog</p>
+        <p class="vs-demo-label label-mono">
+          <span class="live-dot"></span> live — three retrieval paths, one query box. watch which one answers.
+        </p>
         <VibeFinder client:visible />
       </div>
     </article>
@@ -86,8 +87,43 @@ const choon = bySlug['choon']
         </p>
       </div>
       <div class="vs-demo">
-        <p class="vs-demo-label label-mono">in-browser workbench — mangle it, then identify it</p>
-        <ChoonStressTest client:visible />
+        <p class="vs-demo-label label-mono">measured, including where it loses</p>
+        <!-- Real eval numbers only. Both figures are published with their full
+             protocol at /notes/choon; the weak row is the whole point of
+             showing this rather than a staged identification. The workbench
+             itself lives on /vibeset/choon — the landing page is an index
+             (docs/design/DESIGN.md §2). -->
+        <figure class="vs-frozen">
+          <figcaption class="vs-frozen-head label-mono">
+            <span class="vs-frozen-badge">eval</span>
+            <span class="vs-frozen-input">66,000-track proxy catalog</span>
+          </figcaption>
+
+          <div class="vs-frozen-body">
+            <dl class="vs-frozen-stats">
+              <div>
+                <dt class="label-mono">core conditions</dt>
+                <dd>93.8%</dd>
+              </div>
+              <div>
+                <dt class="label-mono">recall@1, all attacks</dt>
+                <dd>76.9%</dd>
+              </div>
+              <div class="vs-frozen-weak">
+                <dt class="label-mono">high-pass filter</dt>
+                <dd>15.3%</dd>
+              </div>
+            </dl>
+            <p class="vs-frozen-note">
+              That last number is the honest one. Every matcher has a condition it fails; the
+              weak rows are what tell you where the second tier has to live.
+            </p>
+          </div>
+        </figure>
+
+        <p class="vs-frozen-cta">
+          <a class="vs-cta-quiet" href="/vibeset/choon">Break it yourself ↳</a>
+        </p>
       </div>
     </article>
 
@@ -317,401 +353,111 @@ const choon = bySlug['choon']
       padding: 0 var(--space-m);
     }
   }
-</style>
 
-<style is:global lang="scss">
-  /* ═══ VibeFinder (island) ═══════════════════════════════════════════ */
-  .vf {
-    border: 1px solid var(--hairline-on-paper);
-    border-radius: 16px;
-    background: var(--paper-2);
-    padding: 1.1rem;
-  }
-
-  .vf-input-row {
-    display: flex;
-    gap: 0.6rem;
-  }
-
-  .vf-input-wrap {
-    position: relative;
-    flex: 1;
-  }
-
-  .vf-input {
-    transition: border-color var(--dur-base) ease;
-    border: 1px solid var(--hairline-on-paper);
-    border-radius: 10px;
-    background: var(--ink-2);
-    padding: 0.6rem 0.85rem;
-    width: 100%;
-    color: var(--paper);
-    font-size: 0.95rem;
-    font-family: var(--font-body);
-
-    &::placeholder {
-      color: var(--ink-soft);
-      opacity: 0.7;
-    }
-
-    &:focus {
-      outline: none;
-      border-color: var(--crimson);
-    }
-  }
-
-  .vf-suggestions {
-    position: absolute;
-    top: calc(100% + 4px);
-    right: 0;
-    left: 0;
-    z-index: 20;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
-    border: 1px solid var(--hairline-on-paper);
-    border-radius: 10px;
-    background: var(--ink-2);
-    padding: 0.25rem;
+  /* ── Frozen Choon result ────────────────────────────────────────────────
+     A real run from the eval harness, shown still. Badged `replay` because
+     that is what it is — recorded output, not an invented one. */
+  .vs-frozen {
     margin: 0;
-    list-style: none;
-    animation: sig-pop var(--dur-fast) var(--ease-out) both;
+    border: 1px solid var(--hairline-on-ink);
+    border-radius: var(--radius-large);
+    background: var(--card-background);
+    overflow: hidden;
   }
 
-  .vf-sug {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 0.75rem;
-    border: none;
-    border-radius: 7px;
-    background: transparent;
-    padding: 0.5rem 0.65rem;
-    width: 100%;
-    color: var(--paper);
-    font-size: 0.9rem;
-    text-align: left;
-    cursor: pointer;
-
-    &:hover,
-    &.vf-sug-active {
-      background: rgba(250, 247, 241, 0.08);
-    }
-  }
-
-  .vf-sug-meta {
-    flex-shrink: 0;
-  }
-
-  .vf-go {
-    flex-shrink: 0;
-    border: none;
-    border-radius: 10px;
-    background: var(--crimson-deep);
-    padding: 0 1.1rem;
-    color: var(--paper);
-    font-weight: 500;
-    font-size: 0.8rem;
-    letter-spacing: var(--tracking-label);
-    font-family: var(--font-mono);
-    text-transform: uppercase;
-    cursor: pointer;
-
-    &:hover:not(:disabled) {
-      box-shadow: var(--glow-crimson);
-    }
-
-    &:disabled {
-      opacity: 0.45;
-      cursor: default;
-    }
-  }
-
-  .vf-chips {
+  .vs-frozen-head {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.4rem;
-    margin-top: 0.75rem;
+    gap: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border-color-subtle);
+    padding: 0.6rem 0.9rem;
   }
 
-  .vf-chip,
-  .ch-chip {
-    transition:
-      border-color var(--dur-base) ease,
-      background-color var(--dur-base) ease,
-      color var(--dur-base) ease;
-    border: 1px solid var(--hairline-on-paper);
-    border-radius: 999px;
-    background: transparent;
-    padding: 0.28rem 0.8rem;
-    color: var(--ink-soft);
-    font-size: 0.72rem;
-    letter-spacing: 0.05em;
-    font-family: var(--font-mono);
-    text-transform: uppercase;
-    cursor: pointer;
-  }
-
-  .vf-chip-on,
-  .ch-chip-on {
-    border-color: var(--crimson-deep);
-    background: var(--crimson-deep);
-    color: var(--paper);
-  }
-
-  .vf-chip-divider {
-    background: var(--hairline-on-paper);
-    width: 1px;
-    height: 1.1rem;
-  }
-
-  .vf-results {
-    margin-top: 0.9rem;
-  }
-
-  .vf-example {
-    transition:
-      border-color var(--dur-base) ease,
-      color var(--dur-base) ease;
-    cursor: pointer;
-    border: 1px dashed var(--hairline-on-ink);
-    border-radius: 999px;
-    background: transparent;
-    padding: 0.35rem 0.9rem;
-    color: var(--paper-soft);
-    font-size: 0.72rem;
-    letter-spacing: 0.05em;
-    font-family: var(--font-mono);
-    text-transform: uppercase;
-
-    &:hover {
-      border-color: var(--marigold);
-      color: var(--marigold);
-    }
-  }
-
-  .vf-loading,
-  .ch-loading {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    padding: 0.5rem 0;
-  }
-
-  .vf-meta {
-    margin-bottom: 0.6rem;
-  }
-
-  .vf-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-  }
-
-  .vf-badge-live {
+  .vs-frozen-badge {
+    border-radius: var(--radius-pill);
+    background: rgba(76, 168, 162, 0.16);
+    padding: 0.12rem 0.5rem;
     color: var(--glacier-text);
   }
 
-  .vf-badge-replay {
-    color: var(--marigold);
+  .vs-frozen-input {
+    color: var(--paper-soft);
+    opacity: 0.8;
   }
 
-  .vf-empty {
+  .vs-frozen-body {
+    padding: var(--space-s) 0.9rem 0.9rem;
+  }
+
+  .vs-frozen-verdict {
     margin: 0;
-    color: var(--ink-soft);
-    font-size: 0.9rem;
-  }
-
-  .vf-tracks {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .vf-track {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 1rem;
-    border-top: 1px solid var(--hairline-on-paper);
-    padding: 0.55rem 0;
-  }
-
-  .vf-track-main {
-    display: flex;
-    align-items: baseline;
-    gap: 0.6rem;
-    min-width: 0;
-  }
-
-  .vf-track-name {
-    overflow: hidden;
-    color: var(--paper);
-    font-weight: 700;
-    font-size: 0.92rem;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .vf-track-artist {
-    flex-shrink: 0;
-    color: var(--ink-soft);
-    font-size: 0.85rem;
-  }
-
-  .vf-track-meta {
-    flex-shrink: 0;
-    text-align: right;
-  }
-
-  @media (max-width: 479px) {
-    .vf-input-row {
-      flex-direction: column;
-    }
-
-    .vf-go {
-      padding: 0.6rem 1.1rem;
-    }
-
-    .vf-track-meta {
-      display: none;
-    }
-  }
-
-  /* ═══ ChoonStressTest (island) ══════════════════════════════════════ */
-  .ch {
-    border: 1px solid var(--hairline-on-paper);
-    border-radius: 16px;
-    background: var(--paper-2);
-    padding: 1.1rem;
-  }
-
-  .ch-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 0.75rem;
-  }
-
-  .ch-clips,
-  .ch-presets {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-  }
-
-  .ch-presets {
-    margin-top: 0.6rem;
-  }
-
-  .ch-play {
-    flex-shrink: 0;
-    border: none;
-    border-radius: 50%;
-    background: var(--crimson-deep);
-    width: 42px;
-    height: 42px;
-    color: var(--paper);
-    font-size: 0.8rem;
-    cursor: pointer;
-
-    &:hover {
-      box-shadow: var(--glow-crimson);
-    }
-  }
-
-  .ch-scope-wrap {
-    display: flex;
-    position: relative;
-    justify-content: center;
-    align-items: center;
-    margin-top: 0.9rem;
-    border: 1px solid var(--hairline-on-paper);
-    border-radius: 10px;
-    background: var(--void);
-    height: 110px;
-    overflow: hidden;
-  }
-
-  .ch-scope {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-  }
-
-  .ch-scope-hint {
-    position: relative;
-    margin: 0;
-    padding: 0 1rem;
-    text-align: center;
-  }
-
-  .ch-id-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.75rem;
-    margin-top: 0.9rem;
-  }
-
-  .ch-identify {
-    border: none;
-    border-radius: 999px;
-    background: var(--crimson-deep);
-    padding: 0.5rem 1.1rem;
-    color: var(--paper);
+    color: var(--glacier-text);
     font-weight: 500;
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     letter-spacing: var(--tracking-label);
     font-family: var(--font-mono);
     text-transform: uppercase;
-    cursor: pointer;
+  }
 
-    &:disabled {
-      opacity: 0.55;
-      cursor: default;
+  .vs-frozen-track {
+    margin: 0.2rem 0 var(--space-s);
+    color: var(--paper);
+    font-weight: 600;
+    font-size: 1.15rem;
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+
+  /* 1px gap on a hairline ground — the gap is the rule, so there are no
+     borders to keep in sync. */
+  .vs-frozen-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 1px;
+    margin: 0 0 var(--space-s);
+    border: 1px solid var(--hairline-on-ink);
+    border-radius: var(--radius-small);
+    background: var(--hairline-on-ink);
+    overflow: hidden;
+
+    > div {
+      background: var(--ink);
+      padding: 0.5rem 0.6rem;
+    }
+
+    dt {
+      margin: 0;
+      color: var(--paper-soft);
+      font-size: 0.6rem;
+      letter-spacing: 0.1em;
+    }
+
+    dd {
+      margin: 0.15rem 0 0;
+      color: var(--paper);
+      font-weight: 600;
+      font-size: 1.05rem;
+      font-family: var(--font-display);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
     }
   }
 
-  .ch-note {
-    font-size: 0.65rem;
+  /* The failing condition. Marked in marigold rather than hidden — publishing
+     it is the credibility, not a caveat (docs/design/DESIGN.md P9). */
+  .vs-frozen-weak dd {
+    color: var(--marigold);
   }
 
-  .ch-result-zone {
-    min-height: 3.2rem;
-    margin-top: 0.6rem;
-  }
-
-  .ch-result {
-    animation: sig-pop var(--dur-fast) var(--ease-out) both;
-    border-top: 1px solid var(--hairline-on-paper);
-    padding-top: 0.6rem;
-  }
-
-  .ch-result-top {
-    display: flex;
-    align-items: baseline;
-    gap: 0.5rem;
-  }
-
-  .ch-check {
-    color: var(--glacier);
-    font-weight: 700;
-  }
-
-  .ch-result-name {
-    color: var(--paper);
-    font-weight: 700;
-    font-size: 0.95rem;
-  }
-
-  .ch-result-sub {
-    color: var(--ink-soft);
-    font-weight: 400;
+  .vs-frozen-note {
+    margin: 0;
+    color: var(--paper-soft);
     font-size: 0.85rem;
+    line-height: 1.5;
   }
 
-  .ch-result-meta {
-    margin-top: 0.25rem;
+  .vs-frozen-cta {
+    margin: var(--space-s) 0 0;
   }
 </style>

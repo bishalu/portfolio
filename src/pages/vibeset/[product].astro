@@ -1,6 +1,7 @@
 ---
 import DefaultLayout from '@layouts/DefaultLayout.astro'
 import { getCollection, render } from 'astro:content'
+import ChoonStressTest from '@components/ChoonStressTest.tsx'
 
 export const prerender = true
 
@@ -105,6 +106,23 @@ const m = media[slug] ?? { type: 'gradient' }
               </a>
             )}
           </p>
+        )
+      }
+
+      {
+        slug === 'choon' && (
+          <div class="vbp-demo">
+            <h2 class="vbp-demo-label label-mono">
+              Break it yourself — degrade a clip, then ask it what the track is
+            </h2>
+            <p class="vbp-demo-note">
+              The distortion chain is real — WebAudio, running in your browser, and you can hear
+              it. The identification it returns is indicative of how the two tiers behave, not a
+              live call to the matcher. Measured numbers live in the
+              <a href="/notes/choon">case note</a>.
+            </p>
+            <ChoonStressTest client:visible />
+          </div>
         )
       }
 
@@ -288,6 +306,26 @@ const m = media[slug] ?? { type: 'gradient' }
       box-shadow: var(--glow-crimson);
       color: var(--paper);
     }
+  }
+
+  /* ── The workbench ──────────────────────────────────────────────────────
+     Moved here off the landing page: the home page is an index, and this
+     needs room to be used rather than glanced at (DESIGN.md §2). */
+  .vbp-demo {
+    margin-bottom: var(--space-l);
+    border-top: 1px solid var(--hairline-on-ink);
+    padding-top: var(--space-l);
+  }
+
+  .vbp-demo-label {
+    margin: 0 0 0.3rem;
+  }
+
+  .vbp-demo-note {
+    margin: 0 0 var(--space-m);
+    color: var(--paper-soft);
+    font-size: 0.85rem;
+    line-height: 1.5;
   }
 
   /* ── What's underneath ──────────────────────────────────────────────────
