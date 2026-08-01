@@ -1,0 +1,24 @@
+---
+name: Search router
+tagline: Three retrieval strategies behind one query box
+product: curation
+features:
+  - Query complexity classification
+  - Exact SQL filtering for structured queries
+  - Hybrid lexical + vector retrieval
+  - Semantic embedding search over pgvector
+  - BPM and key awareness
+  - Metadata-aware ranking
+techStack:
+  - Retrieval-Augmented Generation
+  - Recommendation Systems
+  - Data Architecture
+  - Evaluation & Experimentation
+order: 1
+---
+
+Most catalog searches don't need an embedding model, and the ones that do are ruined by
+exact matching. The router classifies each query and dispatches it: exact SQL for
+structured filters, hybrid retrieval when the query is partly literal, semantic vector
+search when it's a description rather than a name. Latency spans two orders of magnitude
+across those paths, which is the point — the cheap path stays cheap.

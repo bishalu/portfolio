@@ -9,6 +9,9 @@ description: >-
   built by our own scraping and enrichment pipeline, searched three ways
   (SQL, hybrid, semantic embeddings) and finished by an LLM ensemble.
 accent: '#4CA8A2'
+quote:
+  hue: '#1570EF'
+  name: Head Nods
 liveUrl: https://vibeset.ai/djapp
 liveLabel: Open the DJ app
 stats:
@@ -18,12 +21,17 @@ stats:
     value: sql · hybrid · semantic
   - label: sequencing
     value: bpm + key + energy arc
-studios:
-  - Live Search
-  - DB Search
-  - Setlist Editor
-  - Set Extender
-  - Logic Flow
+claims:
+  - claim: Three search modes — SQL, hybrid, semantic
+    evidence: classify_query_complexity() dispatch in the production search API
+    evidenceUrl: https://vibeset.ai/djapp
+    status: shipped
+  - claim: Postgres + pgvector catalog
+    evidence: RDS/pgvector, populated by the scraping and enrichment pipeline
+    status: shipped
+  - claim: Licensed catalog
+    evidence: Licensing terms held by Vibeset; not publicly documented
+    status: building
 order: 1
 ---
 

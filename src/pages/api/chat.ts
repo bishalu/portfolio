@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro'
 import { BedrockRuntimeClient, ConverseCommand } from '@aws-sdk/client-bedrock-runtime'
+import { BALGO_FACTS } from '../../generated/balgo-context'
 
 export const prerender = false
 
@@ -15,18 +16,11 @@ BISHAL'S PROVEN WORK & LANDING PAGE MAP:
 
 Bishal Upadhyaya: AI systems architect. Started in neuroscience (electrical signals in living neural circuits), now takes AI systems from peer-reviewed research to shipped products — agents, agentic RAG/retrieval, model distillation, guardrails for consequential AI, and audit-ready AWS/GCP infra, end to end. Domain-agnostic: he's shipped AI across biotech, medical imaging, finance-style risk, and media. Vibeset (his company) is where this ships in music today — proof of his range, not his only lane. Co-owner of Vibeset.
 
---- SECTION: Vibeset — his company (Anchor: #vibeset) ---
-Vibeset is AI music tooling: one licensed, deeply-tagged catalog, three products spanning the music lifecycle — find it, fit it, prove it. Never mention the catalog's track count.
-*   Curation (Anchor: #vibeset, live app: https://vibeset.ai/djapp): AI setlist generation. Describe a vibe — artists, genres, moods, BPM — get DJ-quality setlists: tempo-matched, harmonically compatible, energy-arc aware. Postgres + pgvector, three search modes (SQL / hybrid / semantic embeddings), LLM ensemble finisher. There is a LIVE demo of this right on the landing page (the "Find the vibe" widget in the Vibeset section).
-*   Cue (Anchor: #vibeset, live app: https://cue.vibeset.ai): music perfectly synced to picture. Upload a cut; it reads pacing, mood, and moments, then matches licensed music with sync points. FastAPI + Lambda backend (OpenCV, librosa, multi-LLM), Next.js frontend. Live and free for creators.
-*   Choon (Anchor: #vibeset, live: https://choon.vibeset.ai): audio fingerprinting + provenance. Hybrid matcher — Shazam-style spectral landmarks for clean audio, a 27.7M-parameter Conformer embedding model (FAISS + temporal alignment) for mangled audio. Benchmarked at 66,000-track scale for a major music label: 76.9% recall@1 under attack, 93.8% on core conditions, 285ms/query on a single CPU core. Full engineering story with charts: /notes/choon (link this when people ask about fingerprinting depth). Plus audio watermarking with C2PA signed manifests, in development.
+${BALGO_FACTS}
 
---- SECTION: Research (Anchor: #research) ---
-Four peer-reviewed papers. Deep-link with #paper-<slug>:
-*   A Generalization of Continuous Relaxation in Structured Pruning (2023, Nvidia/Thermo Fisher, Anchor: #paper-structured-pruning): extracting smaller, efficient sub-networks from large models. Directly applied in Choon's 27.7M-parameter model.
-*   Circumventing neural damage in a C. elegans chemosensory circuit (2021, Cell Systems, Anchor: #paper-neural-damage): genetically engineered synapses restoring circuit function.
-*   FDG vs Amyloid PET for Deep Learning Prediction of Alzheimer's (2020, UCSF, Anchor: #paper-alzheimers-pet).
-*   INX-18 and INX-19 electrical synapse roles (2019, PLoS Genetics, Anchor: #paper-inx-synapses): the biology of electrical signaling between neurons.
+--- SECTION: What's live on the landing page ---
+*   The "Find the vibe" widget in the Vibeset section runs real searches against the production catalog and shows which retrieval mode answered.
+*   The Choon panel links to the full engineering story at /notes/choon — link that when people ask about fingerprinting depth.
 
 --- SECTION: Beyond music (on the landing page) ---
 *   Golo: voice → structured identity. Listens to someone talk, returns a structured psychological profile (Big Five, public/private personas) with schema-enforced outputs across LLM providers.
@@ -107,7 +101,10 @@ export const POST: APIRoute = async ({ request }) => {
                         type: 'object',
                         properties: {
                           title: { type: 'string', description: 'The text to show on the button.' },
-                          href: { type: 'string', description: 'The anchor link or URL (e.g., #vibeset-cue).' },
+                          href: {
+                            type: 'string',
+                            description: 'An anchor or path that exists on the site (e.g. #vibeset, /vibeset/cue).',
+                          },
                           emoji: { type: 'string', description: 'A relevant emoji for the button.' },
                         },
                         required: ['title', 'href', 'emoji'],

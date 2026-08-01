@@ -8,6 +8,9 @@ description: >-
   the video and audio analysis (OpenCV, librosa, multi-LLM); a Next.js app
   wraps it for creators. Live and in active development.
 accent: '#EFA33B'
+quote:
+  hue: 'rgb(170, 254, 42)'
+  name: Electric
 liveUrl: https://cue.vibeset.ai
 liveLabel: Open Cue
 stats:
@@ -15,9 +18,17 @@ stats:
     value: live · free for creators
   - label: analysis
     value: video + audio + LLM
-studios:
-  - Optic to Audio
-  - Video Sync
+claims:
+  - claim: Video and audio analysis on a FastAPI + Lambda backend
+    evidence: main.py, video_music_matcher.py, infra/ in the Cue monorepo
+    evidenceUrl: https://cue.vibeset.ai
+    status: shipped
+  - claim: Shot detection, beat tracking and cut-to-beat alignment
+    evidence: utils/sync_features.py and utils/beat_sync.py score_offsets()
+    status: shipped
+  - claim: Public /v1 API with per-key spend caps and an MCP server
+    evidence: Cue B2B API routes and hosted docs
+    status: shipped
 order: 2
 ---
 

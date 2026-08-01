@@ -1,0 +1,22 @@
+---
+name: Video-music matcher
+tagline: Music that lands on the cut
+product: cue
+features:
+  - Shot-boundary detection
+  - Beat and downbeat tracking
+  - Section-boundary detection
+  - Cut-to-beat alignment scoring
+  - Sync-point selection
+techStack:
+  - Applied Computer Vision
+  - Audio Signal Processing
+  - Cloud Workflows
+  - Human-Centered AI
+order: 2
+---
+
+Two analyses, then one decision. The video side finds shot boundaries and how hard each cut
+lands; the audio side finds the beat grid, downbeats and section changes. Alignment then
+scores every candidate offset for how many cuts fall on strong beats, and picks the offset a
+human editor would have found by ear.

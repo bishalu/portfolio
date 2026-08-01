@@ -16,6 +16,11 @@ const { entry } = Astro.props
 const data = entry.data
 const slug = entry.id.replace(/\.mdx$/, '')
 
+// The systems behind this product, from the capabilities collection.
+const capabilities = (await getCollection('capabilities', ({ data: d }) => d.product === slug)).sort(
+  (a, b) => a.data.order - b.data.order,
+)
+
 // Per-product media (visual artifacts live here, not in the collection)
 type Media =
   | { type: 'image'; src: string; alt: string; href?: string }
@@ -103,12 +108,31 @@ const m = media[slug] ?? { type: 'gradient' }
         )
       }
 
-      <div class="vbp-studios">
-        <h2 class="vbp-studios-label label-mono">Studios included</h2>
-        <ul class="vbp-studios-list">
-          {data.studios.map((s) => <li>{s}</li>)}
-        </ul>
-      </div>
+      {
+        capabilities.length > 0 && (
+          <div class="vbp-caps">
+            <h2 class="vbp-caps-label label-mono">What's underneath</h2>
+            <ul class="vbp-caps-list" data-reveal-stagger>
+              {capabilities.map((c) => (
+                <li class="vbp-cap" data-reveal="settle">
+                  <h3 class="vbp-cap-name">{c.data.name}</h3>
+                  <p class="vbp-cap-tagline">{c.data.tagline}</p>
+                  {c.data.features.length > 0 && (
+                    <ul class="vbp-cap-features">
+                      {c.data.features.map((f) => (
+                        <li>{f}</li>
+                      ))}
+                    </ul>
+                  )}
+                  {c.data.techStack.length > 0 && (
+                    <p class="vbp-cap-stack label-mono">{c.data.techStack.join(' · ')}</p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )
+      }
     </div>
   </article>
 </DefaultLayout>
@@ -266,30 +290,96 @@ const m = media[slug] ?? { type: 'gradient' }
     }
   }
 
-  .vbp-studios {
-    border-top: 1px solid var(--hairline-on-paper);
+  /* ── What's underneath ──────────────────────────────────────────────────
+     Stacked rows, not a card grid: a portfolio that lays capabilities out in
+     tiles reads as a product dashboard (docs/design/DESIGN.md P1). Separation
+     is a hairline, and the stack degrades honestly from four rows to one —
+     Choon has a single capability and still looks deliberate.
+     No numbering: `order` is authoring order, not a pipeline. */
+  .vbp-caps {
+    border-top: 1px solid var(--hairline-on-ink);
     padding-top: var(--space-l);
   }
 
-  .vbp-studios-label {
+  .vbp-caps-label {
     margin: 0 0 var(--space-m);
   }
 
-  .vbp-studios-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.625rem;
+  .vbp-caps-list {
     margin: 0;
     padding: 0;
     list-style: none;
+  }
+
+  .vbp-cap + .vbp-cap {
+    margin-top: var(--space-l);
+    border-top: 1px solid var(--border-color-subtle);
+    padding-top: var(--space-l);
+  }
+
+  .vbp-cap-name {
+    position: relative;
+    margin: 0 0 0.2rem;
+    padding-left: 1.4rem;
+    color: var(--paper);
+    font-weight: 600;
+    font-size: var(--font-size-1);
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+  }
+
+  /* The signal tick — the site's mark for "a station on the path". */
+  .vbp-cap-name::before {
+    position: absolute;
+    top: 0.62em;
+    left: 0;
+    background: var(--grad-signal);
+    width: 14px;
+    height: 2px;
+    content: '';
+  }
+
+  .vbp-cap-tagline {
+    margin: 0 0 var(--space-xs);
+    padding-left: 1.4rem;
+    color: var(--paper-soft);
+    line-height: 1.5;
+  }
+
+  .vbp-cap-features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1.1rem;
+    margin: 0 0 0.6rem;
+    padding: 0 0 0 1.4rem;
+    list-style: none;
 
     li {
-      border: 1px solid var(--hairline-on-paper);
-      border-radius: 999px;
-      padding: 0.3rem 0.875rem;
-      color: var(--ink-soft);
-      font-size: 0.8rem;
-      font-family: var(--font-mono);
+      position: relative;
+      padding-left: 0.85rem;
+      color: var(--paper-soft);
+      font-size: 0.85rem;
     }
+
+    li::before {
+      position: absolute;
+      top: 0.55em;
+      left: 0;
+      border-radius: 50%;
+      background: var(--glacier);
+      width: 4px;
+      height: 4px;
+      content: '';
+    }
+  }
+
+  .vbp-cap-stack {
+    margin: 0;
+    padding-left: 1.4rem;
+    color: var(--paper-soft);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    opacity: 0.75;
   }
 </style>

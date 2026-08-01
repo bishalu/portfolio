@@ -9,6 +9,9 @@ description: >-
   manifests for provenance. Benchmarked at 66,000-track scale for a major
   music label evaluation.
 accent: '#D64553'
+quote:
+  hue: '#00B6B9'
+  name: Ethereal
 liveUrl: https://choon.vibeset.ai
 liveLabel: Run the real stress test
 stats:
@@ -18,8 +21,26 @@ stats:
     value: 27.7M (−42%)
   - label: core conditions
     value: '93.8%'
-studios:
-  - Audio Fingerprint
+claims:
+  - claim: 76.9% recall@1 at 66,000-track scale
+    evidence: Eval harness run on a public FMA proxy catalog with real distractors
+    evidenceUrl: /notes/choon
+    status: shipped
+  - claim: 27.7M-parameter Conformer, 42% smaller than the prior model
+    evidence: Applies the 2023 structured-pruning paper; per-condition tables under NDA
+    evidenceUrl: /notes/choon
+    status: shipped
+  - claim: Hybrid matcher — spectral landmarks plus learned embeddings
+    evidence: Classical and neural channels with FAISS temporal alignment
+    evidenceUrl: /notes/choon
+    status: shipped
+  - claim: Major music label evaluation
+    evidence: Benchmarked against an FMA proxy catalog pending catalog clearance
+    evidenceUrl: /notes/choon
+    status: building
+  - claim: Audio watermarking with C2PA signed manifests
+    evidence: C2PA-shaped manifests, HMAC-signed; c2pa-python binding not yet wired
+    status: building
 order: 3
 ---
 

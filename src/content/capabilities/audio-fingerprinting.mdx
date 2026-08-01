@@ -1,0 +1,22 @@
+---
+name: Audio fingerprinting
+tagline: Identify a track after the internet has chewed on it
+product: choon
+features:
+  - Spectral landmark matching for clean audio
+  - Learned embeddings for degraded audio
+  - FAISS vector index with temporal alignment
+  - Distilled model for CPU-only inference
+techStack:
+  - Representation Learning
+  - Contrastive Learning
+  - Vector Search
+  - Model Training Pipelines
+  - Scalable ML Infrastructure
+order: 1
+---
+
+Two matchers with different failure modes, which is why there are two. Classical spectral
+landmarks are fast and near-perfect on clean audio and fall apart under pitch and tempo
+shifts; a learned embedding model handles the mangled cases the landmarks miss. Routing
+between them is most of the engineering.
