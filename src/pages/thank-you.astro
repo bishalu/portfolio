@@ -2,23 +2,97 @@
 export const prerender = true
 
 import DefaultLayout from '@layouts/DefaultLayout.astro'
-import PageHeader from '@components/PageHeader.astro'
-import { Heading, Link, Notification } from 'accessible-astro-components'
-import { Icon } from 'astro-icon/components'
+import PageHero from '@components/PageHero.astro'
+
+/**
+ * Where the contact form lands (CloseSection posts here via Netlify Forms).
+ * A real person just sent a real message — confirm what happened, say when
+ * they'll hear back, and give them somewhere to go next.
+ */
 ---
 
-<DefaultLayout title="Thank You">
-  <PageHeader title="Splendid!" subtitle="The form was successfully validated." bgType="gradient" />
-  <section class="container my-16">
-    <div class="space-content">
-      <Notification type="info">
-        <Icon aria-hidden="true" name="lucide:info" size={24} />
-        <p>This was a test of the form validation system, no email was sent 😉.</p>
-      </Notification>
-      <Link href="/contact" isButton type="primary" animateOnHover animation="boop" pulse>
-        <Icon aria-hidden="true" name="lucide:mail" size={24} />
-        Send another message
-      </Link>
+<DefaultLayout
+  title="Message sent — Bishal Upadhyaya"
+  description="Your message reached Bishal's inbox."
+>
+  <PageHero title="Message sent" subtitle="It's in my inbox. I read everything myself." />
+
+  <section class="ty">
+    <div class="ty-inner">
+      <p class="ty-lede" data-reveal>
+        I'll reply within two business days — usually sooner. If it's urgent, email me directly at
+        <a href="mailto:bishal@vibeset.ai">bishal@vibeset.ai</a> and put "urgent" in the subject.
+      </p>
+
+      <p class="ty-note" data-reveal>
+        If I'm not the right fit for what you're building, I'll tell you and point you toward someone
+        who is.
+      </p>
+
+      <p class="ty-ctas" data-reveal>
+        <a class="ty-cta btn" href="/#vibeset">See what I've shipped ↳</a>
+        <a class="ty-cta-quiet" href="/notes/choon">Or read an engineering case note</a>
+      </p>
     </div>
   </section>
 </DefaultLayout>
+
+<style lang="scss">
+  .ty {
+    padding: var(--space-2xl) 0 var(--space-3xl);
+  }
+
+  .ty-inner {
+    margin: 0 auto;
+    padding: 0 var(--space-l);
+    max-width: 640px;
+  }
+
+  .ty-lede {
+    margin: 0 0 var(--space-s);
+    color: var(--paper);
+    font-size: var(--font-size-1);
+    line-height: 1.6;
+  }
+
+  .ty-lede a {
+    color: var(--crimson-text);
+
+    &:hover {
+      color: var(--marigold);
+    }
+  }
+
+  .ty-note {
+    margin: 0 0 var(--space-l);
+    color: var(--paper-soft);
+    line-height: 1.6;
+  }
+
+  .ty-ctas {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-s) var(--space-m);
+    margin: 0;
+  }
+
+  .ty-cta {
+    border-radius: var(--radius-pill);
+    background: var(--crimson-deep);
+    padding: 0.7rem 1.3rem;
+    color: var(--paper);
+    font-weight: 500;
+    font-size: 0.95rem;
+    text-decoration: none;
+  }
+
+  .ty-cta-quiet {
+    color: var(--paper-soft);
+    font-size: 0.95rem;
+
+    &:hover {
+      color: var(--marigold);
+    }
+  }
+</style>

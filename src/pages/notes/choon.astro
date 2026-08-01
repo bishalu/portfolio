@@ -73,7 +73,9 @@ const linePoints = sweep.map((s, i) => `${xOf(i)},${yOf(s.recall).toFixed(1)}`).
           student</strong>, serving embeddings from a FAISS index with temporal alignment on top. Each tier owns the
           failure modes the other can't: classical owns filters, neural owns pitch, tempo, reverb, and codec damage.
         </p>
-        <ol class="note-pipe label-mono" aria-label="Pipeline">
+        <!-- tabindex: the strip scrolls horizontally on narrow viewports, so it
+             needs to be reachable and scrollable by keyboard. -->
+        <ol class="note-pipe label-mono" aria-label="Pipeline" tabindex="0">
           <li><span class="note-pipe-node">audio in</span></li>
           <li><span class="note-pipe-node">classical landmarks · fast pass</span></li>
           <li><span class="note-pipe-node note-pipe-em">neural embedding · robust pass</span></li>

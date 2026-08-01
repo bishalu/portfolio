@@ -93,6 +93,15 @@ export default defineConfig({
   output: 'server',
   compressHTML: true,
   site: 'https://bishal.ai',
+  // Retired routes. The old /vibeset/* subtree described a version of the
+  // company that no longer exists; the landing section is the current story.
+  redirects: {
+    '/vibeset': '/#vibeset',
+    '/vibeset/studios': '/#vibeset',
+    '/vibeset/studios/[id]': '/#vibeset',
+    '/contact': '/#contact',
+    '/sitemap': '/',
+  },
   integrations: [
     compress({
       // Keep the HTML minifier from reordering attributes/classes inside

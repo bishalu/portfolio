@@ -6,7 +6,11 @@ import { Icon } from 'astro-icon/components'
 /**
  * Header Component - Bishal Upadhyaya Portfolio
  * Transparent → frosted-glass compressed bar on scroll (dvdrod.com pattern).
- * All links are #section anchors within the single homepage.
+ *
+ * Section links are root-relative (/#vibeset) so they work from every page,
+ * not just home — the script below intercepts them and smooth-scrolls when
+ * the target is already on this page. About is a real route; Research lives
+ * on the home page and its full list hangs off that section, not the nav.
  */
 ---
 
@@ -14,16 +18,19 @@ import { Icon } from 'astro-icon/components'
   <SkipLink />
   <Navigation>
     <li class="menu-item">
-      <a href="#hero" class="nav-anchor">Home</a>
+      <a href="/#hero" class="nav-anchor">Home</a>
     </li>
     <li class="menu-item">
-      <a href="#vibeset" class="nav-anchor">Vibeset</a>
+      <a href="/#vibeset" class="nav-anchor">Vibeset</a>
     </li>
     <li class="menu-item">
-      <a href="#research" class="nav-anchor">Research</a>
+      <a href="/#research" class="nav-anchor">Research</a>
     </li>
     <li class="menu-item">
-      <a href="#contact" class="nav-anchor">Contact</a>
+      <a href="/about">About</a>
+    </li>
+    <li class="menu-item">
+      <a href="/#contact" class="nav-anchor">Contact</a>
     </li>
     <li class="menu-item type-icon animate-rotate">
       <Link href="https://github.com/bishalu">
@@ -55,18 +62,18 @@ import { Icon } from 'astro-icon/components'
     window.addEventListener('scroll', onScroll, { passive: true })
     onScroll() // run once on load
 
-    // Smooth-scroll all anchor links in the nav
+    // Smooth-scroll section links when their target is on this page; from any
+    // other page, let the browser navigate to /#section normally.
     const anchors = header.querySelectorAll<HTMLAnchorElement>('a.nav-anchor')
     anchors.forEach((anchor) => {
       anchor.addEventListener('click', (e) => {
-        const href = anchor.getAttribute('href')
-        if (!href || !href.startsWith('#')) return
-        const target = document.querySelector(href)
-        if (target) {
-          e.preventDefault()
-          target.scrollIntoView({ behavior: 'smooth' })
-          history.pushState(null, '', href)
-        }
+        const hash = anchor.hash
+        if (!hash) return
+        const target = document.querySelector(hash)
+        if (!target) return
+        e.preventDefault()
+        target.scrollIntoView({ behavior: 'smooth' })
+        history.pushState(null, '', hash)
       })
     })
   })

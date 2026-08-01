@@ -4,6 +4,8 @@
  * Titles are used as-is (pages own their full title). The OG image is the
  * Alpenglow card at public/social-preview-image.png.
  */
+import { getCollection } from 'astro:content'
+
 interface Props {
   title: string
   description: string
@@ -14,6 +16,40 @@ interface Props {
 
 const { title, description, url, image, author = 'Bishal Upadhyaya' } = Astro.props
 const imageUrl = `${Astro.site}${image}`
+
+// Publications and products as structured data, generated from the same
+// collections that render the pages — so the machine-readable version can
+// never drift from the visible one. AI screeners and search engines read
+// this; it is the follow-through on the Person schema below.
+const publications = await getCollection('publications', ({ id }) => !id.startsWith('_'))
+const products = await getCollection('products')
+
+const scholarlySchemas = publications.map((pub) => ({
+  '@context': 'https://schema.org',
+  '@type': 'ScholarlyArticle',
+  headline: pub.data.title,
+  abstract: pub.data.abstract,
+  datePublished: String(pub.data.year),
+  author: [
+    { '@type': 'Person', name: 'Bishal Upadhyaya', url: 'https://bishal.ai' },
+    ...pub.data.coauthors.map((name) => ({ '@type': 'Person', name })),
+  ],
+  ...(pub.data.journal ? { publisher: { '@type': 'Organization', name: pub.data.journal } } : {}),
+  ...(pub.data.doi ? { sameAs: pub.data.doi } : {}),
+  ...(pub.data.pdf ? { url: pub.data.pdf } : {}),
+  keywords: pub.data.tags,
+}))
+
+const productSchemas = products.map((p) => ({
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: `Vibeset ${p.data.name}`,
+  applicationCategory: 'MultimediaApplication',
+  description: p.data.tagline,
+  ...(p.data.liveUrl ? { url: p.data.liveUrl } : {}),
+  author: { '@type': 'Person', name: 'Bishal Upadhyaya', url: 'https://bishal.ai' },
+  publisher: { '@type': 'Organization', name: 'Vibeset', url: 'https://vibeset.ai' },
+}))
 
 // schema.org Person — machine-legible identity for search engines and the LLM
 // tools that now pre-screen people: who Bishal is, what he does, and the
@@ -67,3 +103,9 @@ const personSchema = {
 
 <!-- structured data: Person (schema.org) -->
 <script type="application/ld+json" set:html={JSON.stringify(personSchema)} />
+
+<!-- structured data: the four peer-reviewed papers -->
+{scholarlySchemas.map((s) => <script type="application/ld+json" set:html={JSON.stringify(s)} />)}
+
+<!-- structured data: the three Vibeset products -->
+{productSchemas.map((s) => <script type="application/ld+json" set:html={JSON.stringify(s)} />)}

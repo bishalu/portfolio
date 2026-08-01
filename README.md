@@ -1,141 +1,104 @@
-# Bishal's Portfolio
+# bishal.ai
 
 [![Built with Astro](https://astro.badg.es/v2/built-with-astro/small.svg)](https://astro.build)
 [![Netlify Status](https://api.netlify.com/api/v1/badges/bd403085-8c0c-47f5-9c1e-a4ee44ef57bd/deploy-status)](https://app.netlify.com/sites/bishalup/deploys)
 
-A modern, accessible portfolio showcasing AI/ML research, the Vibeset project, and professional work. Built with Astro 5, React, Tailwind CSS v4, and featuring WCAG 2.2 AA compliance.
+Personal site for Bishal Upadhyaya — AI systems architect. Three music-tech products under
+Vibeset, four peer-reviewed papers, and a set of demonstrations that run against real systems.
 
-## ✨ Features
+**Design spec: [`docs/design/DESIGN.md`](docs/design/DESIGN.md) · Motion spec:
+[`docs/design/MOTION.md`](docs/design/MOTION.md).** Those two files govern; the code follows
+them. If code and spec disagree, one of them is a bug.
 
-- **Vibeset Showcase** - Interactive module presentation for the Vibeset.ai project
-- **Research Section** - Dynamic research paper display with scroll-reveal animations
-- **Liquid Glass Design** - Apple-inspired frosted glass effects with Google color palette
-- **Magical Animations** - Framer Motion powered scroll-linked transitions
-- **Dark Mode** - System-aware theme switching
-- **Fully Accessible** - WCAG 2.2 AA compliant with keyboard navigation
-- **SEO Optimized** - Comprehensive metadata and sitemap generation
+## Stack
 
-## 🚀 Quick Start
+- **[Astro 5](https://astro.build/)** — `output: 'server'` with `prerender: true` on every page
+  except the chat endpoint. Static speed, one live route.
+- **React 19** islands, all `client:visible`. Three of them: `VibeFinder`, `ChoonStressTest`,
+  and the Cue sync workbench.
+- **Tailwind CSS v4** (CSS-configured — there is no `tailwind.config.js`) + SCSS for component
+  styles.
+- **No animation library.** The oscilloscope, loading trace and console bloom are hand-written
+  Canvas and Web Animations API. This is deliberate — see MOTION.md.
+- **Netlify** — adapter, Functions, Blobs, Forms, and a scheduled function.
 
-### Prerequisites
+## Quick start
 
-- **Node.js** 18+ (check with `node -v`)
-- **npm** 9+ (check with `npm -v`)
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/bishalu/portfolio.git
-   cd portfolio
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Set up environment variables** (optional - for backend/AI features)
-   ```bash
-   cp .env.example .env
-   # Edit .env with your actual API keys
-   ```
-
-4. **Start the development server**
-   ```bash
-   npm run dev
-   ```
-
-5. **Open your browser**
-   Navigate to [http://localhost:4321](http://localhost:4321)
-
-## 📜 Available Commands
-
-| Command           | Action                                       |
-| :---------------- | :------------------------------------------- |
-| `npm install`     | Installs dependencies                        |
-| `npm run dev`     | Starts local dev server at `localhost:4321`  |
-| `npm run build`   | Build your production site to `./dist/`      |
-| `npm run preview` | Preview your build locally, before deploying |
-
-## 🏗️ Tech Stack
-
-- **Framework**: [Astro 5](https://astro.build/) with SSG/SSR hybrid
-- **UI Library**: [React 19](https://react.dev/) for interactive components
-- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/) + SCSS
-- **Animations**: [Framer Motion](https://www.framer.com/motion/) + [GSAP](https://gsap.com/)
-- **Icons**: [Lucide Icons](https://lucide.dev/) via `astro-icon`
-- **Components**: [Accessible Astro Components](https://github.com/incluud/accessible-astro-components)
-- **Deployment**: [Netlify](https://netlify.com/)
-
-## 📁 Project Structure
-
-```
-portfolio/
-├── public/              # Static assets (images, fonts, favicons)
-├── src/
-│   ├── assets/          # SCSS utilities and project images
-│   ├── components/      # Astro & React components
-│   ├── content/         # MDX content collections (projects, etc.)
-│   ├── layouts/         # Page layouts
-│   ├── pages/           # File-based routing
-│   └── styles/          # Global Tailwind styles
-├── backend/             # Netlify serverless functions
-├── astro.config.mjs     # Astro configuration
-├── tailwind.config.js   # Tailwind configuration
-└── package.json
+```bash
+npm install
+npm run dev          # localhost:4321 — pages only
+npx netlify dev      # localhost:8888 — pages + functions (the demos need this)
 ```
 
-## 🔑 Environment Variables
+The site builds and runs with no environment variables. Each one lights up an optional
+surface; without it, that surface degrades honestly rather than breaking. See
+[`.env.example`](.env.example).
 
-Copy `.env.example` to `.env` and configure:
+| Command | Action |
+| :--- | :--- |
+| `npm run dev` | Dev server at `localhost:4321` |
+| `npm run build` | Production build to `./dist/` |
+| `npm run preview` | Preview the build |
+| `npx netlify dev --port 8888` | Dev server **with** functions — needed for the live demos |
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `CONTEXT7_API_KEY` | No | Context7 API for AI documentation |
-| `AWS_ID` | No | AWS access key for backend services |
-| `AWS_SEC` | No | AWS secret key |
-| `AWS_DEFAULT_REGION` | No | AWS region (default: `us-east-2`) |
-| `MISTRAL_API_KEY` | No | Mistral AI API key |
+## Layout
 
-> **Note**: The site works without any environment variables. They are only needed for optional AI/backend features.
+```
+docs/design/       DESIGN.md + MOTION.md — the governing spec
+src/
+  components/      Astro components; .tsx files are the React islands
+  content/         MDX collections: products, publications
+  layouts/         DefaultLayout
+  pages/           File-based routes; pages/api/chat.ts is the one SSR endpoint
+  scripts/         reveal.ts — the IntersectionObserver entrance observer
+  styles/          tokens.css → motion.css → tailwind.css
+  assets/scss/     Base styles, Utopia scales, mixins
+netlify/functions/ Demo proxy, live-signals, the leaderboard cron
+scripts/verify/    Playwright verification runner
+```
 
-## 🌐 Deployment
+## Design system — Alpenglow
 
-The site is configured for **Netlify** deployment:
+Dark only. One deep twilight canvas; crimson→marigold is the light source, glacier the cold
+counterpoint, bone paper is what the light lands on.
 
-1. Connect your GitHub repo to Netlify
-2. Set build command: `npm run build`
-3. Set publish directory: `dist`
-4. Add environment variables in Netlify dashboard
+```
+--void #0e1124   --ink #181c30   --ink-2 #222741      canvas → panel → well
+--paper #faf7f1  --paper-soft #b0b5ca                  text
+--crimson #d64553  --marigold #efa33b  --glacier #4ca8a2   accents
+```
 
-Or deploy manually:
+Type: **Bricolage Grotesque** (display) · **Atkinson Hyperlegible** (body, chosen for
+legibility) · **DM Mono** (labels, numbers, status). Tokens live in
+[`src/styles/tokens.css`](src/styles/tokens.css); the reasoning lives in DESIGN.md.
+
+## Verification
+
+Changes are judged against the spec by a script, not by eye:
+
 ```bash
 npm run build
-# Upload the ./dist folder to your hosting provider
+npx netlify dev --port 8888
+node scripts/verify/run.mjs all http://localhost:8888
 ```
 
-## 🎨 Design System
+Floors, all enforced: axe **0 violations** · Lighthouse accessibility **100** ·
+best-practices **100** · CLS **0** · TBT **≤ 200 ms** · mobile performance ≥ 85.
 
-The portfolio follows a cohesive design language:
+Full procedure in [`.claude/skills/verify-site/SKILL.md`](.claude/skills/verify-site/SKILL.md),
+including the failure drills that prove the demos degrade to replay rather than blanking.
 
-- **Google Colors**: Blue (`#4285F4`), Teal (`#00D4AA`), Moss Green (`#34A853`)
-- **Apple Liquid Glass**: Frosted glass effects with backdrop blur
-- **Light Organic Modern**: Soft transitions, generous whitespace
-- **Typography**: Atkinson Hyperlegible + Outfit fonts
+## Accessibility
 
-## ♿ Accessibility
+WCAG 2.2 AA, verified rather than asserted — and the
+[accessibility statement](https://bishal.ai/accessibility-statement) lists the known gaps as
+well as the passing gates.
 
-- WCAG 2.2 AA compliant
-- Full keyboard navigation
-- Screen reader optimized
-- Respects `prefers-reduced-motion`
-- ARIA attributes throughout
+## Deployment
 
-## 📄 License
+Netlify: build `npm run build`, publish `dist`, functions in `netlify/functions`. Environment
+variables are set in the Netlify dashboard, never committed.
 
-MIT License - see [LICENSE](LICENSE) for details.
+## License
 
----
-
-Built with ❤️ by [Bishal](https://github.com/bishalu)
+MIT — see [LICENSE](LICENSE).

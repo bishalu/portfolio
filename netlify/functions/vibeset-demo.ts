@@ -12,7 +12,10 @@
  */
 import { fixtureSuggestions, fixtureTracks, type SlimSuggestion, type SlimTrack } from './vibeset-fixtures'
 
-const UPSTREAM = process.env.VIBESET_API_BASE || 'https://5vboufmeboomn64dgugikyqez40tunvp.lambda-url.us-east-2.on.aws'
+// This repo is public, so the upstream base URL is not committed. Set
+// VIBESET_API_BASE in the Netlify environment. Unset means we fail closed to
+// the replay fixtures rather than guessing an endpoint.
+const UPSTREAM = process.env.VIBESET_API_BASE ?? ''
 
 const AUTOCOMPLETE_TIMEOUT_MS = 3500
 const SEARCH_TIMEOUT_MS = 6500
@@ -35,6 +38,9 @@ function rateLimited(ip: string): boolean {
 }
 
 async function upstream(path: string, body: unknown, timeoutMs: number): Promise<any> {
+  // No configured upstream — let the caller's catch serve fixtures.
+  if (!UPSTREAM) throw new Error('VIBESET_API_BASE is not set')
+
   const controller = new AbortController()
   const t = setTimeout(() => controller.abort(), timeoutMs)
   try {

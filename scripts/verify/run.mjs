@@ -15,6 +15,19 @@ const [cmd = 'all', base = 'http://localhost:8888'] = process.argv.slice(2)
 const OUT = new URL('./out/', import.meta.url).pathname
 mkdirSync(OUT, { recursive: true })
 
+/** Every page the site serves. Add a route here when you add one. */
+const ROUTES = [
+  '/',
+  '/about',
+  '/research',
+  '/vibeset/curation',
+  '/vibeset/cue',
+  '/vibeset/choon',
+  '/notes/choon',
+  '/accessibility-statement',
+  '/thank-you',
+]
+
 const VIEWPORTS = [
   { w: 390, h: 844, name: '390' },
   { w: 768, h: 1024, name: '768' },
@@ -60,7 +73,7 @@ async function consoleCheck(browser) {
   const problems = []
   page.on('console', (m) => ['error', 'warning'].includes(m.type()) && problems.push(`[${m.type()}] ${m.text().slice(0, 200)}`))
   page.on('pageerror', (e) => problems.push(`[pageerror] ${String(e).slice(0, 300)}`))
-  for (const path of ['/', '/about', '/vibeset/curation', '/vibeset/cue', '/vibeset/choon', '/research']) {
+  for (const path of ROUTES) {
     await page.goto(base + path, { waitUntil: 'networkidle' })
     await settle(page)
     console.log('visited', path)
@@ -76,7 +89,7 @@ async function a11y(browser) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } })
   const page = await ctx.newPage()
   let total = 0
-  for (const path of ['/', '/about', '/vibeset/choon', '/research']) {
+  for (const path of ROUTES) {
     await page.goto(base + path, { waitUntil: 'networkidle' })
     await settle(page)
     const results = await new AxeBuilder({ page }).analyze()

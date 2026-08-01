@@ -37,7 +37,10 @@ const {
 
     <!-- Apollo.io website visitor tracker — identifies visiting companies
          (global) and people (U.S. only). is:inline keeps Astro from bundling
-         the third-party snippet, so it runs verbatim as Apollo ships it. -->
+         the third-party snippet, so it runs verbatim as Apollo ships it.
+
+         Production only: on localhost and deploy previews the pixel 400s on
+         every page load, which buries real errors in the console check. -->
     <script is:inline>
       function initApollo() {
         var n = Math.random().toString(36).substring(7),
@@ -50,7 +53,7 @@ const {
           }),
           document.head.appendChild(o)
       }
-      initApollo()
+      if (location.hostname === 'bishal.ai') initApollo()
     </script>
 
     <!-- Enable Astro View Transitions for all browsers -->

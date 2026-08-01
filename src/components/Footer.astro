@@ -1,21 +1,50 @@
 ---
 /**
- * Footer — one quiet line on ink (docs/design/DESIGN.md §5.7).
+ * Footer — two quiet lines on ink (docs/design/DESIGN.md §5.7).
+ *
+ * Line one is the site index: the pages that don't sit on the landing path.
+ * It exists so every route has an inbound link — for people who read to the
+ * bottom, and for crawlers. Deliberately a single mono line rather than a
+ * column grid; a mega-footer is company grammar (DESIGN.md P11).
+ *
  * Contact lives in CloseSection (#contact); this is just the sign-off.
  */
 const currentYear = new Date().getFullYear()
+
+const pages = [
+  { href: '/about', label: 'About' },
+  { href: '/research', label: 'Research' },
+  { href: '/vibeset/curation', label: 'Curation' },
+  { href: '/vibeset/cue', label: 'Cue' },
+  { href: '/vibeset/choon', label: 'Choon' },
+  { href: '/notes/choon', label: 'Choon case note' },
+  { href: '/accessibility-statement', label: 'Accessibility' },
+]
 ---
 
 <footer class="footer on-ink">
   <div class="footer-inner">
-    <p class="label-mono">© {currentYear} Bishal Upadhyaya</p>
-    <p class="label-mono footer-right">
-      <a href="https://github.com/bishalu" rel="noopener noreferrer" target="_blank">GitHub</a>
-      <span aria-hidden="true"> · </span>
-      <a href="https://www.linkedin.com/in/bishaluc" rel="noopener noreferrer" target="_blank">LinkedIn</a>
-      <span aria-hidden="true"> · </span>
-      <a href="mailto:bishal@vibeset.ai">Email</a>
-    </p>
+    <nav class="footer-index label-mono" aria-label="Site index">
+      {
+        pages.map((p, i) => (
+          <>
+            {i > 0 && <span class="footer-sep" aria-hidden="true"> · </span>}
+            <a href={p.href}>{p.label}</a>
+          </>
+        ))
+      }
+    </nav>
+
+    <div class="footer-signoff">
+      <p class="label-mono">© {currentYear} Bishal Upadhyaya</p>
+      <p class="label-mono footer-right">
+        <a href="https://github.com/bishalu" rel="noopener noreferrer" target="_blank">GitHub</a>
+        <span aria-hidden="true"> · </span>
+        <a href="https://www.linkedin.com/in/bishaluc" rel="noopener noreferrer" target="_blank">LinkedIn</a>
+        <span aria-hidden="true"> · </span>
+        <a href="mailto:bishal@vibeset.ai">Email</a>
+      </p>
+    </div>
   </div>
 </footer>
 
@@ -25,14 +54,30 @@ const currentYear = new Date().getFullYear()
   }
 
   .footer-inner {
+    margin: 0 auto;
+    padding: var(--space-m) var(--space-l);
+    max-width: 1200px;
+  }
+
+  .footer-index {
+    display: block;
+    margin-bottom: var(--space-s);
+    border-bottom: 1px solid var(--border-color-subtle);
+    padding-bottom: var(--space-s);
+    line-height: 2;
+  }
+
+  .footer-sep {
+    color: var(--paper-soft);
+    opacity: 0.5;
+  }
+
+  .footer-signoff {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
     gap: var(--space-s);
-    margin: 0 auto;
-    padding: var(--space-m) var(--space-l);
-    max-width: 1200px;
   }
 
   .footer p {

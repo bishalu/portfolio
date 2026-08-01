@@ -94,7 +94,9 @@ const choon = bySlug['choon']
     <!-- ── The pipeline underneath all three ───────────────────────────── -->
     <aside class="vs-pipe" data-reveal>
       <p class="label-mono vs-pipe-title">The pipeline underneath</p>
-      <ol class="vs-pipe-flow">
+      <!-- tabindex: the strip scrolls horizontally on narrow viewports, so it
+           needs to be reachable and scrollable by keyboard. -->
+      <ol class="vs-pipe-flow" aria-label="The pipeline underneath" tabindex="0">
         <li><span class="vs-pipe-node">setlist scrapers</span></li>
         <li><span class="vs-pipe-node">ETL + LLM enrichment</span></li>
         <li><span class="vs-pipe-node vs-pipe-node-em">licensed pgvector catalog</span></li>
