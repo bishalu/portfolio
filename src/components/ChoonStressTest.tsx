@@ -2,12 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 
 /**
  * ChoonStressTest — the Choon panel's demo (docs/design/DESIGN.md §6).
- * Entirely client-side: mangle a bundled clip with WebAudio DSP (ported from
- * the real Choon stress-test workbench), watch the spectrum react, then
- * "identify" it. Results are canned per clip+preset and labeled ILLUSTRATIVE —
- * they mirror how the real system behaves (clean audio → classical landmark
- * tier, mangled audio → neural embedding tier), without exposing the private
- * GCP backend. The real thing runs at choon.vibeset.ai.
+ * Mangle a bundled clip with WebAudio DSP (ported from the real Choon
+ * stress-test workbench), watch the spectrum react, then identify it. The identification is a real call to the production matcher
+ * on Cloud Run, proxied through /api/choon-identify because the service sits
+ * behind IAM. The server applies the same degradation numbers to the same
+ * track, so it identifies what you heard. On any failure the proxy returns a
+ * recorded result badged REPLAY, so the panel degrades honestly rather than
+ * blanking. Clean audio routes to the classical landmark tier; anything
+ * degraded collapses that score and the neural embedding tier answers.
  */
 
 type PresetKey = 'clean' | 'subway' | 'nightcore' | 'fried'
@@ -26,11 +28,17 @@ const PRESETS: Record<PresetKey, { label: string; rate: number; drive: number; b
 
 // Mirrors the real tiered matcher: clean/mild → classical landmarks (fast),
 // heavy distortion → neural embeddings (slower, robust).
-const RESULTS: Record<PresetKey, { tier: 'classical' | 'neural'; confidence: number; ms: number }> = {
-  clean: { tier: 'classical', confidence: 0.99, ms: 212 },
-  subway: { tier: 'classical', confidence: 0.94, ms: 384 },
-  nightcore: { tier: 'neural', confidence: 0.91, ms: 1240 },
-  fried: { tier: 'neural', confidence: 0.87, ms: 1418 },
+/** What the matcher returns. `source` is how we got it (DESIGN.md §4). */
+type Identification = {
+  match: boolean
+  tier: string
+  confidence: number
+  classical: number
+  neural: number
+  ms: number
+  title: string
+  artist: string
+  source: 'live' | 'replay'
 }
 
 function distortionCurve(amount: number): Float32Array {
@@ -59,7 +67,7 @@ export default function ChoonStressTest() {
   const [preset, setPreset] = useState<PresetKey>('clean')
   const [playing, setPlaying] = useState(false)
   const [identifying, setIdentifying] = useState(false)
-  const [result, setResult] = useState<(typeof RESULTS)[PresetKey] | null>(null)
+  const [result, setResult] = useState<Identification | null>(null)
   const [loadingClip, setLoadingClip] = useState(false)
 
   const ctxRef = useRef<AudioContext | null>(null)
@@ -249,18 +257,27 @@ export default function ChoonStressTest() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preset])
 
-  const identify = () => {
+  /**
+   * Calls the real matcher. The server applies the same degradation numbers to
+   * the same track, so what it identifies is what you just heard — not a
+   * different rendering. The proxy fixtures every failure path, so this can
+   * degrade to a recorded result but never to nothing.
+   */
+  const identify = async () => {
     if (identifying) return
     setResult(null)
     setIdentifying(true)
-    const rm = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    setTimeout(
-      () => {
-        setResult(RESULTS[preset])
-        setIdentifying(false)
-      },
-      rm ? 150 : 1400,
-    )
+    try {
+      const res = await fetch('/api/choon-identify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ preset }),
+      })
+      setResult((await res.json()) as Identification)
+    } catch {
+      setResult(null)
+    }
+    setIdentifying(false)
   }
 
   const clip = CLIPS[clipIdx]
@@ -313,7 +330,7 @@ export default function ChoonStressTest() {
         <button type="button" className="ch-identify btn" onClick={identify} disabled={identifying}>
           Identify this
         </button>
-        <span className="ch-note label-mono">illustrative — the real matcher runs on GCP</span>
+        <span className="ch-note label-mono">runs the real matcher on GCP</span>
       </div>
 
       <div className="ch-result-zone" aria-live="polite">
@@ -330,11 +347,26 @@ export default function ChoonStressTest() {
                 ✓
               </span>
               <span className="ch-result-name">
-                {clip.name} <span className="ch-result-sub">— Vibeset demo catalog</span>
+                {`${result.title || clip.name}`}
+                <span className="ch-result-sub">{` — ${result.artist || 'Vibeset demo catalog'}`}</span>
               </span>
+              <span className={`ch-src label-mono ch-src-${result.source}`}>{result.source}</span>
             </div>
             <div className="ch-result-meta label-mono">
-              tier: {result.tier} · confidence {result.confidence.toFixed(2)} · {result.ms} ms
+              {`tier ${result.tier} · confidence ${result.confidence.toFixed(2)} · ${result.ms} ms`}
+            </div>
+            {/* The two channels, side by side. On anything degraded the spectral
+                score collapses and the embedding model is what answers — which
+                is the whole argument for running two. */}
+            <div className="ch-tiers">
+              <div className={result.tier === 'classical' ? 'ch-tier ch-tier-on' : 'ch-tier'}>
+                <span className="label-mono">spectral</span>
+                <b>{result.classical.toFixed(3)}</b>
+              </div>
+              <div className={result.tier === 'neural' ? 'ch-tier ch-tier-on' : 'ch-tier'}>
+                <span className="label-mono">embedding</span>
+                <b>{result.neural.toFixed(3)}</b>
+              </div>
             </div>
           </div>
         )}

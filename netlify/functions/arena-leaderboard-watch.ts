@@ -102,6 +102,16 @@ const runWatcher: Handler = async (_event, context) => {
     }).catch(() => {});
   }
 
+  // Same trick for the Choon matcher. It's an ML service on Cloud Run: warm it
+  // answers in ~2.5s, cold it spends 30s+ loading the model, which is the
+  // difference between a live result and a replay fallback. /api/ready needs
+  // no auth token to be useful as a keep-alive — a 403 still keeps the
+  // instance up, which is the entire point.
+  const choonBase = process.env.CHOON_API_BASE ?? "";
+  if (choonBase) {
+    fetch(`${choonBase}/api/ready`).catch(() => {});
+  }
+
   try {
     if (fixtureNotify) {
       await sendSlackTest(makeFixtureParsed(scrapedAt));

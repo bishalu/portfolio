@@ -695,3 +695,64 @@
   line-height: 1.5;
   opacity: 0.85;
 }
+
+/* ── Choon: where the answer came from, and which channel found it ──────── */
+.ch-src {
+  margin-left: auto;
+  border-radius: var(--radius-pill);
+  padding: 0.1rem 0.45rem;
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+}
+
+.ch-src-live {
+  background: rgba(76, 168, 162, 0.16);
+  color: var(--glacier-text);
+}
+
+.ch-src-replay {
+  background: rgba(239, 163, 59, 0.14);
+  color: var(--marigold);
+}
+
+/* The two channels side by side. On anything degraded the spectral score
+   collapses and the embedding model carries it — that contrast is the
+   argument for running two, so both are always shown. */
+.ch-tiers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  margin-top: 0.6rem;
+  border: 1px solid var(--hairline-on-ink);
+  border-radius: var(--radius-small);
+  background: var(--hairline-on-ink);
+  overflow: hidden;
+}
+
+.ch-tier {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  background: var(--ink-2);
+  padding: 0.45rem 0.6rem;
+
+  span {
+    color: var(--paper-soft);
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+  }
+
+  b {
+    color: var(--paper-soft);
+    font-weight: 600;
+    font-size: 0.95rem;
+    font-family: var(--font-display);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* The channel that actually answered. */
+.ch-tier-on b {
+  color: var(--marigold);
+}
