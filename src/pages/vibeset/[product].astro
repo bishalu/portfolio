@@ -22,6 +22,65 @@ const capabilities = (await getCollection('capabilities', ({ data: d }) => d.pro
   (a, b) => a.data.order - b.data.order,
 )
 
+/**
+ * D5 — the search router (Curation). Three real paths, chosen per query by
+ * classify_query_complexity. The axis below is logarithmic on purpose: on a
+ * linear scale a 1 ms exact match next to a 300 ms embedding search is
+ * invisible, which would hide the one fact this panel exists to state.
+ */
+const LAT_MIN = 0.5
+const LAT_MAX = 1000
+const logPos = (ms: number) =>
+  ((Math.log10(ms) - Math.log10(LAT_MIN)) / (Math.log10(LAT_MAX) - Math.log10(LAT_MIN))) * 100
+
+const routes = [
+  {
+    name: 'sql',
+    lo: 1,
+    hi: 10,
+    when: 'The query names something exactly',
+    example: 'artist = "Bicep", 124–128 bpm',
+    why: 'Indexed columns answer it. No model runs at all.',
+  },
+  {
+    name: 'hybrid',
+    lo: 50,
+    hi: 150,
+    when: 'Part literal, part description',
+    example: '"like Bicep but slower"',
+    why: 'Lexical match narrows the field, then vectors rank what survives.',
+  },
+  {
+    name: 'semantic',
+    lo: 150,
+    hi: 300,
+    when: 'No literal to match on',
+    example: '"last hour of a warehouse set"',
+    why: 'Embedding search over the whole catalog. The expensive path, earned.',
+  },
+]
+const LAT_TICKS = [1, 10, 100, 1000]
+
+/**
+ * D6 — the /v1 B2B API (Cue). A reference, not a console: the API is
+ * key-gated (an unauthenticated /v1/health returns 401), so anything that
+ * looked interactive here would be a lie. Shapes are read from the service's
+ * own route definitions.
+ */
+const endpoints = [
+  { m: 'POST', p: '/v1/match', d: 'Match music to an analyzed video. Returns synchronously.' },
+  { m: 'POST', p: '/v1/videos/ingest', d: 'Hand over a video URL. Returns a job to poll.' },
+  { m: 'POST', p: '/v1/underscore', d: 'Score a cut end to end — analysis and match in one call.' },
+  { m: 'GET', p: '/v1/videos/{id}', d: 'Poll an ingest until analysis is ready.' },
+  { m: 'GET', p: '/v1/match/jobs/{id}', d: 'Poll an async match.' },
+]
+const apiFacts = [
+  ['auth', 'per-account API keys, scoped and revocable'],
+  ['retries', 'Idempotency-Key header — a repeat is not a second charge'],
+  ['cost control', 'monthly spend cap per account, enforced server-side'],
+  ['metering', 'every call attributed to an account and key'],
+]
+
 // Per-product media (visual artifacts live here, not in the collection)
 type Media =
   | { type: 'image'; src: string; alt: string; href?: string }
@@ -106,6 +165,78 @@ const m = media[slug] ?? { type: 'gradient' }
               </a>
             )}
           </p>
+        )
+      }
+
+      {
+        slug === 'curation' && (
+          <div class="vbp-demo">
+            <h2 class="vbp-demo-label label-mono">One query box, three ways to answer it</h2>
+            <p class="vbp-demo-note">
+              Most searches don't need an embedding model, and the ones that do are ruined by exact
+              matching. The router reads each query and picks. Note the axis: it's logarithmic,
+              because the cheap path is a hundred times cheaper.
+            </p>
+
+            <div class="rt-router">
+              {routes.map((r) => (
+                <div class="rt-route">
+                  <p class="rt-route-head">
+                    <span class="rt-route-name label-mono">{r.name}</span>
+                    <span class="rt-route-ms label-mono">{`${r.lo}–${r.hi} ms`}</span>
+                  </p>
+                  <div class="rt-track" aria-hidden="true">
+                    <span
+                      class="rt-bar"
+                      style={`left:${logPos(r.lo)}%; width:${Math.max(1.5, logPos(r.hi) - logPos(r.lo))}%`}
+                    />
+                  </div>
+                  <p class="rt-route-when">{r.when}</p>
+                  <p class="rt-route-eg label-mono">{r.example}</p>
+                  <p class="rt-route-why">{r.why}</p>
+                </div>
+              ))}
+
+              <div class="rt-axis label-mono" aria-hidden="true">
+                {LAT_TICKS.map((t) => (
+                  <span class="rt-tick" style={`left:${logPos(t)}%`}>
+                    {t < 1000 ? `${t}ms` : '1s'}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        )
+      }
+
+      {
+        slug === 'cue' && (
+          <div class="vbp-demo">
+            <h2 class="vbp-demo-label label-mono">There's an API behind it</h2>
+            <p class="vbp-demo-note">
+              Cue is a product and a service. The endpoints below are the real contract — key-gated,
+              so this is a reference rather than something you can run from here.
+            </p>
+
+            <ul class="api-list">
+              {endpoints.map((e) => (
+                <li class="api-row">
+                  <span class={`api-m label-mono api-m-${e.m.toLowerCase()}`}>{e.m}</span>
+                  <code class="api-p">{e.p}</code>
+                  <span class="api-d">{e.d}</span>
+                </li>
+              ))}
+            </ul>
+
+            <dl class="api-facts">
+              {apiFacts.map(([k, v]) => (
+                <div>
+                  <dt class="label-mono">{k}</dt>
+                  <dd>{v}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
         )
       }
 
@@ -343,6 +474,177 @@ const m = media[slug] ?? { type: 'gradient' }
     color: var(--paper-soft);
     font-size: 0.85rem;
     line-height: 1.5;
+  }
+
+  /* ── The search router (Curation) ───────────────────────────────────────
+     Shared logarithmic axis. On a linear scale the 1 ms path is a sliver and
+     the panel's whole point disappears. */
+  .rt-router {
+    position: relative;
+    border-top: 1px solid var(--border-color-subtle);
+    padding-top: var(--space-m);
+  }
+
+  .rt-route + .rt-route {
+    margin-top: var(--space-m);
+    border-top: 1px solid var(--border-color-subtle);
+    padding-top: var(--space-m);
+  }
+
+  .rt-route-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--space-s);
+    margin: 0 0 0.4rem;
+  }
+
+  .rt-route-name {
+    color: var(--marigold);
+  }
+
+  .rt-route-ms {
+    color: var(--paper-soft);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .rt-track {
+    position: relative;
+    border-radius: 999px;
+    background: var(--ink-2);
+    height: 6px;
+  }
+
+  .rt-bar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-radius: 999px;
+    background: var(--grad-signal);
+  }
+
+  .rt-route-when {
+    margin: 0.5rem 0 0.1rem;
+    color: var(--paper);
+    font-size: 0.92rem;
+  }
+
+  .rt-route-eg {
+    margin: 0 0 0.25rem;
+    color: var(--glacier-text);
+    font-size: 0.65rem;
+    letter-spacing: 0.06em;
+    text-transform: none;
+  }
+
+  .rt-route-why {
+    margin: 0;
+    color: var(--paper-soft);
+    font-size: 0.88rem;
+    line-height: 1.55;
+  }
+
+  .rt-axis {
+    position: relative;
+    margin-top: var(--space-s);
+    border-top: 1px solid var(--border-color-subtle);
+    height: 1.2rem;
+  }
+
+  .rt-tick {
+    position: absolute;
+    top: 0.25rem;
+    transform: translateX(-50%);
+    color: var(--paper-soft);
+    font-size: 0.58rem;
+    letter-spacing: 0.08em;
+    opacity: 0.7;
+  }
+
+  /* ── The /v1 API (Cue) ──────────────────────────────────────────────────
+     A manifest, not a console. Rules rather than boxes: this is a spec sheet,
+     and a card grid would make it look like a dashboard. */
+  .api-list {
+    margin: 0 0 var(--space-m);
+    border-top: 1px solid var(--border-color-subtle);
+    padding: 0;
+    list-style: none;
+  }
+
+  .api-row {
+    display: grid;
+    grid-template-columns: 3.2rem minmax(0, auto) minmax(0, 1fr);
+    align-items: baseline;
+    gap: 0.4rem 0.8rem;
+    border-bottom: 1px solid var(--border-color-subtle);
+    padding: 0.55rem 0;
+  }
+
+  .api-m {
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+  }
+
+  .api-m-post {
+    color: var(--marigold);
+  }
+
+  .api-m-get {
+    color: var(--glacier-text);
+  }
+
+  .api-p {
+    color: var(--paper);
+    font-size: 0.85rem;
+    font-family: var(--font-mono);
+  }
+
+  .api-d {
+    color: var(--paper-soft);
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+
+  .api-facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 1px;
+    margin: 0;
+    border: 1px solid var(--hairline-on-ink);
+    border-radius: var(--radius-large);
+    background: var(--hairline-on-ink);
+    overflow: hidden;
+
+    > div {
+      background: var(--ink);
+      padding: 0.6rem 0.75rem;
+    }
+
+    dt {
+      margin: 0;
+      color: var(--paper-soft);
+      font-size: 0.6rem;
+      letter-spacing: 0.1em;
+    }
+
+    dd {
+      margin: 0.2rem 0 0;
+      color: var(--paper);
+      font-size: 0.85rem;
+      line-height: 1.45;
+    }
+  }
+
+  @media (max-width: 599px) {
+    .api-row {
+      grid-template-columns: 3.2rem minmax(0, 1fr);
+    }
+
+    .api-d {
+      grid-column: 1 / -1;
+    }
   }
 
   /* ── What's underneath ──────────────────────────────────────────────────
