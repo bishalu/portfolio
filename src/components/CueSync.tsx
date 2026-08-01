@@ -297,7 +297,7 @@ export default function CueSync({ data }: { data: Fixture }) {
 
       <p className="cx-note">
         {
-          'Three of the six offsets the ranker returned. This track is metronomic, so the same cuts land on a beat wherever you start — what changes is which beats, and what the song is doing there. Coverage is recomputed in your browser on every switch; nothing is fetched.'
+          'Three of the six offsets the ranker returned. This track is metronomic, so the same cuts land on a beat wherever you start — what changes is which beats, and what the song is doing there. The fit is recomputed here in your browser, with no call to anything; only each candidate’s audio is a separate clip, loaded when you pick it.'
         }
       </p>
     </div>

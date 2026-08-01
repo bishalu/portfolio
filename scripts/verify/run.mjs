@@ -106,30 +106,78 @@ async function a11y(browser) {
 async function widgets(browser) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } })
   const page = await ctx.newPage()
+  let problems = 0
+
   await page.goto(base + '/', { waitUntil: 'networkidle' })
   await settle(page)
 
-  // VibeFinder: typeahead + search round trip
+  // ── VibeFinder: typeahead, search round trip, and which path answered ──
   await page.locator('.vf').scrollIntoViewIfNeeded()
   await page.fill('.vf-input', 'Bicep')
-  await page.waitForTimeout(4200) // allow a cold upstream to answer or time out into fixtures
+  await page.waitForTimeout(4200) // let a cold upstream answer or time out into fixtures
   const sug = await page.$$eval('.vf-sug', (e) => e.length)
   await page.click('.vf-go')
   await page.waitForTimeout(8000)
   const rows = await page.$$eval('.vf-track', (e) => e.length)
-  const badge = await page.textContent('.vf-badge').catch(() => 'none')
-  console.log(`vibefinder — suggestions: ${sug}, tracks: ${rows}, badge: ${(badge || '').trim()}`)
+  const badge = (await page.textContent('.vf-badge').catch(() => '')) || ''
+  const route = (await page.textContent('.vf-route').catch(() => '')) || '(none — replay has no route)'
+  console.log(`vibefinder — suggestions: ${sug}, tracks: ${rows}, badge: ${badge.trim()}`)
+  console.log(`vibefinder — route: ${route.replace(/\s+/g, ' ').trim()}`)
+  if (!rows) {
+    console.log('  FAIL: no tracks rendered — the never-blank guarantee is broken')
+    problems += 1
+  }
   await page.screenshot({ path: `${OUT}/widget-vibefinder.png`, clip: await page.locator('.vf').boundingBox() })
 
-  // Choon: preset + identify (canned)
+  // ── CueSync: switching offsets must change the fit, with zero network ──
+  await page.locator('.cx').scrollIntoViewIfNeeded()
+  await page.waitForTimeout(500)
+  // The invariant is that the FIT is computed locally — no API call. Each
+  // candidate's audio is a separate clip and is expected to load on demand,
+  // so media requests don't count against it.
+  let net = 0
+  const countRequests = (r) => {
+    if (!/\.(mp3|mp4|webm|wav|m4a)(\?|$)/i.test(r.url())) net += 1
+  }
+  page.on('request', countRequests)
+  const fits = []
+  for (const n of [1, 2, 3]) {
+    await page.click(`.cx-pick:nth-child(${n})`)
+    await page.waitForTimeout(600)
+    fits.push(((await page.textContent('.cx-score-val')) || '').trim())
+  }
+  page.off('request', countRequests)
+  console.log(`cue — fits across candidates: ${fits.join(' / ')}, non-media requests: ${net}`)
+  if (new Set(fits).size < 2) {
+    console.log('  FAIL: the fit never changed — the demo has nothing to demonstrate')
+    problems += 1
+  }
+  if (net > 0) {
+    console.log(`  FAIL: ${net} non-media request(s) — the fit is supposed to need no call`)
+    problems += 1
+  }
+  await page.screenshot({ path: `${OUT}/widget-cue.png`, clip: await page.locator('.cx').boundingBox() })
+
+  // ── Choon: lives on its product page now, and identifies for real ──
+  await page.goto(base + '/vibeset/choon', { waitUntil: 'networkidle' })
+  await settle(page)
   await page.locator('.ch').scrollIntoViewIfNeeded()
-  await page.click('.ch-presets .ch-chip:nth-child(4)')
+  const presets = await page.$$('.ch-presets button')
+  if (presets.length >= 3) await presets[2].click()
+  await page.waitForTimeout(400)
   await page.click('.ch-identify')
-  await page.waitForTimeout(2200)
-  const result = await page.textContent('.ch-result-meta').catch(() => 'none')
-  console.log(`choon — result: ${(result || '').trim()}`)
+  await page.waitForTimeout(9000) // a cold matcher can take a while before falling back
+  const meta = ((await page.textContent('.ch-result-meta').catch(() => '')) || '').trim()
+  const src = ((await page.textContent('.ch-src').catch(() => '')) || '').trim()
+  console.log(`choon — ${meta} [${src || 'no source badge'}]`)
+  if (!meta) {
+    console.log('  FAIL: no identification rendered — the fallback should have covered this')
+    problems += 1
+  }
   await page.screenshot({ path: `${OUT}/widget-choon.png`, clip: await page.locator('.ch').boundingBox() })
+
   await ctx.close()
+  return problems
 }
 
 const browser = await chromium.launch()
@@ -137,7 +185,7 @@ let failures = 0
 if (cmd === 'shots' || cmd === 'all') await shots(browser)
 if (cmd === 'console' || cmd === 'all') failures += await consoleCheck(browser)
 if (cmd === 'a11y' || cmd === 'all') failures += await a11y(browser)
-if (cmd === 'widgets' || cmd === 'all') await widgets(browser)
+if (cmd === 'widgets' || cmd === 'all') failures += await widgets(browser)
 await browser.close()
 console.log(failures ? `\nFAILURES: ${failures}` : '\nAll checks passed.')
 process.exit(failures ? 1 : 0)
