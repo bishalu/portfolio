@@ -64,10 +64,13 @@
   /* ═══════════════════════════════════════════════════════════════════════
      COMPAT LAYER — legacy names remapped onto Alpenglow.
      Consumers are rewritten section by section; delete entries as they die.
+     The 14 that had no consumers left are gone. What remains is entrenched
+     (--foreground-color, --hairline-on-paper and --ink-soft are the big three)
+     and should go the next time their files are touched — note that
+     "on-paper" is a lie now: there is no paper canvas, only ink.
      ═══════════════════════════════════════════════════════════════════════ */
   --foreground-color: var(--paper);
   --background-color: var(--void);
-  --icon-color: var(--paper);
   --link-color: var(--crimson-text);
   --link-hover-color: var(--marigold);
   --border-color: var(--hairline-on-ink);
@@ -75,27 +78,13 @@
   --text-decoration-color: var(--hairline-on-ink);
   --text-decoration-color-hover: var(--crimson);
   --card-background: rgba(24, 28, 48, 0.65);
-  --card-border: var(--hairline-on-ink);
-  --featured-border-color: var(--marigold);
-  --featured-badge-bg: var(--marigold);
-  --featured-badge-text: var(--ink);
 
   --color-living-teal: var(--glacier);
   --color-moss-green: var(--glacier);
   --color-sunset-coral: var(--marigold);
-  --color-google-blue: var(--glacier);
-  --color-cream: var(--paper);
-  --color-warm-stone: var(--void);
   --color-warm-gray: var(--paper-soft);
   --color-charcoal-text: var(--paper);
   --color-deep-moss: var(--ink);
-  --color-soft-charcoal: var(--ink-2);
-
-  --brand-primary: var(--crimson);
-  --brand-secondary: var(--marigold);
-  --brand-neutral: var(--ink-soft);
 
   --font-heading: var(--font-display);
-  --font-family-default: var(--font-body);
-  --font-family-special: var(--font-display);
 }

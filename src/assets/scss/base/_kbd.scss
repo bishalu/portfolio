@@ -1,16 +1,21 @@
+/* Keyboard keys. Previously written against --color-neutral-* and
+   --font-family-sans-serif, none of which are defined anywhere, so every
+   colour, border and background in this rule silently did nothing. Rewritten
+   onto real Alpenglow tokens; light-dark() is gone too, since the site is
+   dark-only (docs/design/DESIGN.md P1). */
 kbd {
   position: relative;
   inset-block-start: -1px;
-  box-shadow: 0 2px 0 1px light-dark(var(--color-neutral-400), var(--color-neutral-700));
-  border: 1px solid light-dark(var(--color-neutral-400), var(--color-neutral-600));
+  box-shadow: 0 2px 0 1px rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--hairline-on-ink);
   border-radius: var(--radius-s);
-  background-color: light-dark(var(--color-neutral-200), var(--color-neutral-800));
+  background-color: var(--ink-2);
   padding: var(--space-4xs) var(--space-3xs);
-  aspect-ratio: var(--ratio-square);
   min-inline-size: 12px;
-  color: light-dark(var(--color-neutral-900), var(--color-neutral-100));
+  aspect-ratio: var(--ratio-square);
+  color: var(--paper);
   font-size: var(--font-size--2);
-  font-family: var(--font-family-sans-serif);
+  font-family: var(--font-mono);
 
   &.flat {
     box-shadow: none;
