@@ -37,13 +37,16 @@ const choon = bySlug['choon']
           {curation.stats.map((s, i) => <span>{i > 0 && <span class="vs-stat-dot"> · </span>}{s.label} {s.value}</span>)}
         </p>
         <p class="vs-ctas">
-          <a class="vs-cta btn" href={curation.liveUrl} rel="noopener">{curation.liveLabel} ↳</a>
+          <a class="btn-pill" href={curation.liveUrl} rel="noopener">{curation.liveLabel} ↳</a>
           <a class="vs-cta-quiet" href="/vibeset/curation">More on Curation</a>
         </p>
       </div>
       <div class="vs-demo">
         <p class="vs-demo-label label-mono">
-          <span class="live-dot"></span> live — three retrieval paths, one query box. watch which one answers.
+          <!-- Bars rather than a dot: what is running here is an audio catalog,
+               not a service healthcheck. A swap, not an addition — see MOTION.md §2. -->
+          <span class="sig-eq" aria-hidden="true"><span></span><span></span><span></span></span>
+          live — three retrieval paths, one query box. watch which one answers.
         </p>
         <VibeFinder client:visible />
       </div>
@@ -59,7 +62,7 @@ const choon = bySlug['choon']
           {cue.stats.map((s, i) => <span>{i > 0 && <span class="vs-stat-dot"> · </span>}{s.label} {s.value}</span>)}
         </p>
         <p class="vs-ctas">
-          <a class="vs-cta btn" href={cue.liveUrl} rel="noopener">{cue.liveLabel} ↳</a>
+          <a class="btn-pill" href={cue.liveUrl} rel="noopener">{cue.liveLabel} ↳</a>
           <a class="vs-cta-quiet" href="/vibeset/cue">More on Cue</a>
         </p>
       </div>
@@ -82,7 +85,7 @@ const choon = bySlug['choon']
           {choon.stats.map((s, i) => <span>{i > 0 && <span class="vs-stat-dot"> · </span>}{s.label} {s.value}</span>)}
         </p>
         <p class="vs-ctas">
-          <a class="vs-cta btn" href={choon.liveUrl} rel="noopener">{choon.liveLabel} ↳</a>
+          <a class="btn-pill" href={choon.liveUrl} rel="noopener">{choon.liveLabel} ↳</a>
           <a class="vs-cta-quiet" href="/notes/choon">Read the 66k-track case note</a>
         </p>
       </div>
@@ -223,23 +226,6 @@ const choon = bySlug['choon']
     margin: 0;
   }
 
-  .vs-cta {
-    display: inline-block;
-    border-radius: 999px;
-    background: var(--crimson-deep);
-    padding: 0.55rem 1.2rem;
-    color: var(--paper);
-    font-weight: 500;
-    font-size: 0.8rem;
-    letter-spacing: var(--tracking-label);
-    font-family: var(--font-mono);
-    text-transform: uppercase;
-
-    &:hover {
-      box-shadow: var(--glow-crimson);
-      color: var(--paper);
-    }
-  }
 
   .vs-cta-quiet {
     color: var(--crimson-text);

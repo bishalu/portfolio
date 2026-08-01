@@ -71,6 +71,9 @@ a:hover {
 }
 
 /* Mono label — eyebrows, data, badges. The site's labeling voice. */
+/* The labeling voice. Two sizes exist and no more (docs/design/DESIGN.md §3):
+   --sm is for captions, chips and dense annotation. Improvising a third size
+   is how a labeling system stops being one. */
 .label-mono {
   color: var(--paper-soft);
   font-weight: 500;
@@ -78,6 +81,38 @@ a:hover {
   letter-spacing: var(--tracking-label);
   font-family: var(--font-mono);
   text-transform: uppercase;
+}
+
+.label-mono--sm {
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+}
+
+/* The primary call to action. One filled colour on the whole site
+   (docs/design/DESIGN.md P2) — four components had each re-declared this
+   independently and drifted apart on padding. Chips, the form submit and the
+   hero console keep their own tuned sizing; this is for "the main thing to do
+   on this page" and nothing else. */
+.btn-pill {
+  display: inline-block;
+  transition:
+    filter var(--dur-base) ease,
+    box-shadow 0.28s ease;
+  border-radius: var(--radius-pill);
+  background: var(--crimson-deep);
+  padding: 0.58rem 1.3rem;
+  color: var(--paper);
+  font-weight: 500;
+  font-size: 0.8rem;
+  letter-spacing: var(--tracking-label);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.btn-pill:hover {
+  box-shadow: var(--glow-crimson);
+  color: var(--paper);
 }
 
 /* Legacy: full-bleed "ink bands" — now transparent; the night is everywhere.

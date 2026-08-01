@@ -144,7 +144,14 @@ const linePoints = sweep.map((s, i) => `${xOf(i)},${yOf(s.recall).toFixed(1)}`).
           <figcaption class="label-mono">Recall@1 vs embedding dimension · 66k catalog · index size per 66k tracks</figcaption>
           <svg viewBox="0 0 640 290" role="img" aria-label="Line chart of recall against embedding dimensionality: flat from 256 down to 32 dimensions, a small drop at 16, and a collapse at 8 dimensions.">
             <line x1={C2.x0 - 20} y1={yOf(76.9)} x2="620" y2={yOf(76.9)} stroke="rgba(250,247,241,0.1)" stroke-dasharray="4 5"></line>
-            <polyline points={linePoints} fill="none" stroke="url(#cn-grad)" stroke-width="2.5" stroke-linejoin="round"></polyline>
+            <polyline
+              data-draw
+              pathLength="1"
+              points={linePoints}
+              fill="none"
+              stroke="url(#cn-grad)"
+              stroke-width="2.5"
+              stroke-linejoin="round"></polyline>
             {
               sweep.map((s, i) => (
                 <g>
@@ -206,7 +213,7 @@ const linePoints = sweep.map((s, i) => `${xOf(i)},${yOf(s.recall).toFixed(1)}`).
 
       <footer class="note-foot" data-reveal>
         <p class="note-cta-row">
-          <a class="note-cta btn" href="https://choon.vibeset.ai" rel="noopener">Run the real stress test ↳</a>
+          <a class="btn-pill" href="https://choon.vibeset.ai" rel="noopener">Run the real stress test ↳</a>
           <a class="note-cta-quiet" href="/#vibeset">Or mangle a clip right on the homepage</a>
         </p>
         <p class="note-method label-mono">
@@ -411,23 +418,6 @@ const linePoints = sweep.map((s, i) => `${xOf(i)},${yOf(s.recall).toFixed(1)}`).
     margin: 0 0 var(--space-m);
   }
 
-  .note-cta {
-    display: inline-block;
-    border-radius: 999px;
-    background: var(--crimson-deep);
-    padding: 0.6rem 1.4rem;
-    color: var(--paper);
-    font-weight: 500;
-    font-size: 0.8rem;
-    letter-spacing: var(--tracking-label);
-    font-family: var(--font-mono);
-    text-transform: uppercase;
-
-    &:hover {
-      box-shadow: var(--glow-crimson);
-      color: var(--paper);
-    }
-  }
 
   .note-cta-quiet {
     color: var(--crimson-text);

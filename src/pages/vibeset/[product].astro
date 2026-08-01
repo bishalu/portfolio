@@ -97,7 +97,7 @@ const m = media[slug] ?? { type: 'gradient' }
       {
         data.liveUrl && (
           <p class="vbp-cta-row">
-            <a class="vbp-cta btn" href={data.liveUrl} rel="noopener">
+            <a class="btn-pill" href={data.liveUrl} rel="noopener">
               {data.liveLabel ?? 'Open'} ↳
             </a>
             {slug === 'choon' && (
@@ -324,23 +324,6 @@ const m = media[slug] ?? { type: 'gradient' }
     font-size: 0.9rem;
   }
 
-  .vbp-cta {
-    display: inline-block;
-    border-radius: 999px;
-    background: var(--crimson-deep);
-    padding: 0.6rem 1.4rem;
-    color: var(--paper);
-    font-weight: 500;
-    font-size: 0.8rem;
-    letter-spacing: var(--tracking-label);
-    font-family: var(--font-mono);
-    text-transform: uppercase;
-
-    &:hover {
-      box-shadow: var(--glow-crimson);
-      color: var(--paper);
-    }
-  }
 
   /* ── The workbench ──────────────────────────────────────────────────────
      Moved here off the landing page: the home page is an index, and this

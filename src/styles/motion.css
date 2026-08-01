@@ -129,6 +129,38 @@ html.no-js [data-reveal] {
   color: var(--paper-soft);
 }
 
+/* ── Drawing: a measured line writes itself ───────────────────────────────
+   For charts whose data is a sequence. Borrowed from the Choon monitor, where
+   the same treatment marks a plot as a reading rather than a picture. Paired
+   with [data-reveal] so it fires on scroll, once, and never on load.
+
+   Requires pathLength="1" on the element so the dash math is resolution- and
+   geometry-independent. The global reduced-motion block below collapses the
+   duration, which leaves the line fully drawn — the correct still state. */
+@keyframes sig-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+[data-draw] {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+.is-revealed [data-draw],
+[data-draw].is-revealed {
+  animation: sig-draw 900ms var(--ease-out) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+html.no-js [data-draw] {
+  stroke-dashoffset: 0;
+}
+
 /* Ambient: LIVE status dot (glacier), gentle breath — the only infinite
    ambient animation allowed outside the hero oscilloscope. */
 @keyframes sig-live-breathe {
@@ -148,6 +180,51 @@ html.no-js [data-reveal] {
   background: var(--glacier);
   width: 6px;
   height: 6px;
+}
+
+/* Ambient: an audio system is running, and here is its magnitude. Borrowed
+   from Cue's EqTick. This is a SWAP for .live-dot, never an addition — a dot
+   and bars mean the same thing ("alive") in two idioms, so the ambient count
+   stays at one (docs/design/MOTION.md §2). Use bars where the thing running
+   is audio; keep the dot for services.
+
+   Each bar rests at scaleY(0.35), so the global reduced-motion block freezes
+   it into something that still reads as an equalizer rather than a flat line. */
+@keyframes sig-eq {
+  0%,
+  100% {
+    transform: scaleY(0.26);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.sig-eq {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 1.5px;
+  height: 11px;
+}
+
+.sig-eq span {
+  transform: scaleY(0.35);
+  transform-origin: bottom;
+  animation: sig-eq 0.9s ease-in-out infinite;
+  border-radius: 1px;
+  background: var(--glacier);
+  width: 2px;
+  height: 100%;
+}
+
+.sig-eq span:nth-child(2) {
+  animation-duration: 0.7s;
+  animation-delay: 0.18s;
+}
+
+.sig-eq span:nth-child(3) {
+  animation-duration: 1.1s;
+  animation-delay: 0.36s;
 }
 
 /* ── Micro-interactions (site-wide defaults) ──────────────────────────────
