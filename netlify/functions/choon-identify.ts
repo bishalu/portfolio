@@ -1,34 +1,34 @@
 /**
  * Choon identify proxy — powers the stress test on /vibeset/choon.
  *
- * The matcher runs on Cloud Run behind IAM, so the browser can't call it and
- * the service URL never reaches the client. This mints a Google-signed OIDC
- * ID token for the service's audience and forwards a fixed, validated set of
- * degradation parameters.
+ * Why a proxy at all: the browser should never see the upstream URL, the call
+ * needs a hard timeout and a per-IP limit, and every failure path has to return
+ * something rather than blank the panel (docs/design/DESIGN.md §4).
  *
- * Every failure path returns the recorded fallback tagged source:'replay', so
- * the widget degrades honestly rather than blanking (docs/design/DESIGN.md §4).
+ * Why no credentials: the matcher itself (audiofp-api) sits behind IAM, but the
+ * Choon demo frontend already runs inside GCP, authenticates to it with the
+ * metadata server, and exposes the route publicly. So this forwards to that
+ * gateway. The alternative — a service-account key in Netlify — is blocked
+ * org-wide by constraints/iam.disableServiceAccountKeyCreation, and rightly so:
+ * nothing in the fingerprinting repo uses a long-lived key either.
  *
  * Env:
- *   CHOON_API_BASE  the Cloud Run service URL
- *   CHOON_SA_KEY    service-account JSON with roles/run.invoker on that service
+ *   CHOON_API_BASE  the public Choon gateway. Not committed — this repo is
+ *                   public. Unset means we fail closed to recorded results.
  *
  * POST { preset: 'clean'|'subway'|'nightcore'|'fried' }
  *   → { match, tier, confidence, classical, neural, ms, title, artist, source }
  */
 
-import { createSign } from 'node:crypto'
-
 const API_BASE = process.env.CHOON_API_BASE ?? ''
-const SA_KEY = process.env.CHOON_SA_KEY ?? ''
 
-/** The demo track. FMA, Creative Commons — the same catalog family the 66k benchmark used. */
+/** The demo track. FMA, Creative Commons — the catalog family the 66k benchmark used. */
 const TRACK_ID = '93710'
 
 /**
- * The four presets, as parameters the matcher itself accepts. The browser
- * applies the same numbers to the same track so you can hear what the model is
- * being asked to identify — these are not two different degradations.
+ * The four presets, expressed as parameters the matcher itself accepts. The
+ * browser applies the same numbers to the same track, so what the model is
+ * asked to identify is what you just heard — not a second rendering of it.
  */
 const PRESETS: Record<string, Record<string, number>> = {
   clean: {},
@@ -37,7 +37,7 @@ const PRESETS: Record<string, Record<string, number>> = {
   fried: { bitcrush: 6, lowPassFreq: 3400, noise: 0.05 },
 }
 
-/** Recorded from this same endpoint, so the replay path is real output. */
+/** Recorded from this same endpoint, so the replay path is real output, just older. */
 const FALLBACK: Record<string, { tier: string; confidence: number; classical: number; neural: number; ms: number }> = {
   clean: { tier: 'classical', confidence: 0.909, classical: 0.295, neural: 0.0, ms: 13405 },
   subway: { tier: 'neural', confidence: 0.922, classical: 0.002, neural: 0.36, ms: 2682 },
@@ -46,6 +46,9 @@ const FALLBACK: Record<string, { tier: string; confidence: number; classical: nu
 }
 const FALLBACK_TRACK = { title: 'Palm Tree', artist: 'The Chapin Sisters' }
 
+// The matcher is an ML service: warm it answers in ~5s, cold it spends 30s+
+// loading the model. Cap well under Netlify's ceiling and fall back instead.
+const UPSTREAM_TIMEOUT_MS = 20_000
 const RATE_LIMIT_PER_MIN = 8
 const ipHits = new Map<string, { count: number; windowStart: number }>()
 
@@ -58,49 +61,6 @@ function rateLimited(ip: string): boolean {
   }
   e.count++
   return e.count > RATE_LIMIT_PER_MIN
-}
-
-const b64url = (b: Buffer | string) =>
-  Buffer.from(b).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
-
-// ID tokens last an hour; re-minting on every call would add a round trip.
-let tokenCache: { token: string; exp: number } | null = null
-
-/**
- * Exchange a service-account key for an OIDC ID token scoped to `audience`.
- * Hand-rolled with node:crypto so this stays dependency-free.
- */
-async function idToken(audience: string): Promise<string> {
-  if (tokenCache && Date.now() < tokenCache.exp) return tokenCache.token
-  if (!SA_KEY) throw new Error('CHOON_SA_KEY is not set')
-
-  const sa = JSON.parse(SA_KEY) as { client_email: string; private_key: string; token_uri?: string }
-  const iat = Math.floor(Date.now() / 1000)
-  const claims = {
-    iss: sa.client_email,
-    aud: sa.token_uri || 'https://oauth2.googleapis.com/token',
-    iat,
-    exp: iat + 3600,
-    target_audience: audience,
-  }
-  const signingInput = `${b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))}.${b64url(JSON.stringify(claims))}`
-  const signature = createSign('RSA-SHA256').update(signingInput).sign(sa.private_key)
-  const assertion = `${signingInput}.${b64url(signature)}`
-
-  const res = await fetch(claims.aud, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-      assertion,
-    }),
-  })
-  if (!res.ok) throw new Error(`token exchange ${res.status}`)
-  const body = (await res.json()) as { id_token?: string }
-  if (!body.id_token) throw new Error('no id_token in response')
-
-  tokenCache = { token: body.id_token, exp: Date.now() + 50 * 60_000 }
-  return body.id_token
 }
 
 const json = (body: unknown, status = 200) =>
@@ -126,26 +86,23 @@ export default async (req: Request) => {
   if (!(preset in PRESETS)) return json({ error: 'unknown preset' }, 400)
 
   const ip = req.headers.get('x-nf-client-connection-ip') || req.headers.get('x-forwarded-for') || 'unknown'
-  if (rateLimited(ip)) return replay(preset)
-  if (!API_BASE) return replay(preset)
+  if (rateLimited(ip) || !API_BASE) return replay(preset)
 
-  // The matcher is a cold-start-prone ML service; a warm call lands in ~2.5s
-  // but a cold one can exceed 30s. Cap it and fall back rather than hang.
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), 20_000)
+  const timer = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS)
   try {
-    const token = await idToken(API_BASE)
     const res = await fetch(`${API_BASE}/api/simulate`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ track_id: TRACK_ID, ...PRESETS[preset] }),
       signal: controller.signal,
     })
     if (!res.ok) throw new Error(`upstream ${res.status}`)
     const r = (await res.json()) as Record<string, unknown>
+    if (!r.match_found) throw new Error('no match')
 
     return json({
-      match: Boolean(r.match_found),
+      match: true,
       tier: String(r.tier ?? ''),
       confidence: Number(r.confidence ?? 0),
       classical: Number(r.classical_score ?? 0),

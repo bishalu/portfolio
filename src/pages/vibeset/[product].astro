@@ -247,10 +247,11 @@ const m = media[slug] ?? { type: 'gradient' }
               Break it yourself — degrade a clip, then ask it what the track is
             </h2>
             <p class="vbp-demo-note">
-              The distortion chain is real — WebAudio, running in your browser, and you can hear
-              it. The identification it returns is indicative of how the two tiers behave, not a
-              live call to the matcher. Measured numbers live in the
-              <a href="/notes/choon">case note</a>.
+              The distortion runs in your browser so you can hear it, and the same settings go to
+              the production matcher on GCP — so what it identifies is what you heard. Watch the
+              two channels: clean audio is answered by the fast spectral pass, and anything
+              degraded collapses that score to nothing while the embedding model carries it. Full
+              numbers in the <a href="/notes/choon">case note</a>.
             </p>
             <ChoonStressTest client:visible />
           </div>
