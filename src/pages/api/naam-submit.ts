@@ -151,28 +151,63 @@ export const POST: APIRoute = async (context) => {
   // receive. SLACK_WEBHOOK_URL is already set in production and already carries
   // the arena watcher's alerts, so it is the one channel proven to arrive.
   //
-  // To move this to email later, swap the fetch below for a provider call; the
-  // record and the approve link are already assembled.
+  // EMAIL, when a key exists. Set RESEND_API_KEY and every suggestion arrives
+  // as mail instead; Slack stays as the fallback so there is never a silent
+  // gap between the two. Nothing else has to change — the record and the signed
+  // approve link are assembled either way. AWS SES was the preferred route
+  // since the credentials are already here, but the IAM user is scoped to
+  // Bedrock (ses:GetAccount is denied), so it would need a policy change first.
   if (stored && NAAM_ORIGIN) {
     const secret = process.env.NAAM_ADMIN_SECRET || import.meta.env.NAAM_ADMIN_SECRET
     const hook = process.env.SLACK_WEBHOOK_URL || import.meta.env.SLACK_WEBHOOK_URL
-    if (secret && hook) {
+    const resendKey = process.env.RESEND_API_KEY || import.meta.env.RESEND_API_KEY
+    const mailTo = process.env.NAAM_NOTIFY_EMAIL || import.meta.env.NAAM_NOTIFY_EMAIL
+    if (secret && (hook || resendKey)) {
       const token = createHmac('sha256', secret).update(id).digest('hex')
       const approve = `${NAAM_ORIGIN}/naam/approve?id=${encodeURIComponent(id)}&t=${token}`
       const chosen = [...picks.map((p) => p.spelling || p.id), names].filter(Boolean).join(', ')
-      // Plain text, not Block Kit: a stranger's name and reason are the two
-      // fields here, and mrkdwn would let them fake links and formatting.
-      const lines = [
-        `*A name suggestion* — ${from}${relation ? ` · ${relation}` : ''}`,
-        chosen ? `> ${chosen}` : null,
-        reason ? `> “${reason}”` : null,
-        `Approve: ${approve}`,
-      ].filter(Boolean)
-      void fetch(hook, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: lines.join('\n'), mrkdwn: false }),
-      }).catch(() => {})
+      const who = `${from}${relation ? ` · ${relation}` : ''}`
+
+      if (resendKey && mailTo) {
+        // Plain text, never HTML: `from` and `reason` are a stranger's words,
+        // and an HTML mail body would let them inject markup into the inbox.
+        // `from` defaults to Resend's shared sender, which delivers to the
+        // account's own address without domain verification — enough to run,
+        // and NAAM_MAIL_FROM overrides it once a domain is verified.
+        const body = [
+          `${who} suggested a name.`,
+          chosen ? `\nName: ${chosen}` : '',
+          reason ? `\nWhy: ${reason}` : '',
+          `\n\nApprove it: ${approve}`,
+          `\nNothing appears on the wall until you do.`,
+        ].join('')
+        void fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: process.env.NAAM_MAIL_FROM || import.meta.env.NAAM_MAIL_FROM || 'onboarding@resend.dev',
+            to: [mailTo],
+            subject: `A name suggestion from ${from}`,
+            text: body,
+          }),
+        }).catch(() => {})
+      }
+
+      if (hook) {
+        // Plain text, not Block Kit: a stranger's name and reason are the two
+        // fields here, and mrkdwn would let them fake links and formatting.
+        const lines = [
+          `*A name suggestion* — ${who}`,
+          chosen ? `> ${chosen}` : null,
+          reason ? `> “${reason}”` : null,
+          `Approve: ${approve}`,
+        ].filter(Boolean)
+        void fetch(hook, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: lines.join('\n'), mrkdwn: false }),
+        }).catch(() => {})
+      }
     }
   }
 
