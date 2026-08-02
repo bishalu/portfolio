@@ -11,10 +11,20 @@ import { Icon } from 'astro-icon/components'
  * not just home — the script below intercepts them and smooth-scrolls when
  * the target is already on this page. About is a real route; Research lives
  * on the home page and its full list hangs off that section, not the nav.
+ *
+ * `.scrolled` is applied HERE, at build time, on every non-home route — the
+ * script below already sets it unconditionally off `!isHome`, so this only
+ * moves the decision earlier. It matters because `.scrolled` changes the
+ * header's HEIGHT (+1px border, logo 1.5rem → 1.2rem): applying it after
+ * hydration shifted every non-home page by ~4px. Invisible while the header is
+ * `position: fixed` and nothing below it moves — but /naam puts the header in
+ * flow so it can size a 100svh app, and there that shift would resize the whole
+ * page after load, against a CLS-0 gate.
  */
+const isHome = Astro.url.pathname === '/'
 ---
 
-<header id="site-header">
+<header id="site-header" class:list={{ scrolled: !isHome }}>
   <SkipLink />
   <Navigation>
     <li class="menu-item">

@@ -17,13 +17,34 @@ const {
   url = Astro.site,
   image = 'social-preview-image.png',
   author = 'Bishal Upadhyaya',
+  /**
+   * Full-viewport app pages (/naam). Three things only this can do, which is why
+   * it is a prop and not a `body:has()` selector in page CSS:
+   *
+   *   1. `interactive-widget=resizes-content` in the viewport meta. Android
+   *      Chrome then shrinks the LAYOUT viewport for the soft keyboard, so a
+   *      100svh pane fits above it with no JS. iOS ignores the key, so it costs
+   *      nothing there — but a selector cannot reach <meta> at all.
+   *   2. Skip LoadingScreen. It is fixed at z-index 9999 for ~1.4s on a cold
+   *      session, which on an app page delays interaction and makes the overlay
+   *      the LCP element.
+   *   3. Mark the body so the page's own CSS can put the header in flow.
+   *
+   * Everything else stays identical — same header, same footer, same meta.
+   */
+  appShell = false,
 } = Astro.props
 ---
 
 <html lang="en" dir="ltr" class="no-js">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content={appShell
+        ? 'width=device-width, initial-scale=1.0, interactive-widget=resizes-content'
+        : 'width=device-width, initial-scale=1.0'}
+    />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
 
     <!-- favicon -->
@@ -63,8 +84,16 @@ const {
     <!-- Enable Astro View Transitions for all browsers -->
     <ClientRouter />
   </head>
-  <body>
-    <LoadingScreen />
+  <body data-app={appShell ? '' : undefined}>
+    <!-- Synchronous and first, so the app-shell CSS (all scoped under
+         html:not(.no-js)) applies on the very first frame. reveal.ts also drops
+         this class, but Astro emits it as a deferred module — late enough that
+         an app page would paint as a long document and then snap, which is CLS.
+         The removal there becomes a harmless no-op. -->
+    <script is:inline>
+      document.documentElement.classList.remove('no-js')
+    </script>
+    {!appShell && <LoadingScreen />}
     <Atmosphere />
     <Header />
     <main id="main-content" transition:animate="fade">
