@@ -108,12 +108,15 @@ const isHome = Astro.url.pathname === '/'
     padding: 0;
     width: 100%;
 
-    /* ── Compressed state (after scroll): ink frost, works over both canvases ── */
+    /* ── Compressed state (after scroll): frosted paper ──────────────────────
+       This was hand-written as rgba(24, 28, 48, 0.82) — dark glass, invisible
+       to any token sweep, and the single most conspicuous artifact a ground
+       change can leave behind: a night-coloured bar pinned over a bone page. */
     &.scrolled {
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
       border-bottom: 1px solid var(--hairline-on-ink);
-      background: rgba(24, 28, 48, 0.82);
+      background: var(--console-bg);
 
       /* Tighten inner padding */
       > .container {

@@ -29,7 +29,7 @@
 
 .vf-input {
   transition: border-color var(--dur-base) ease;
-  border: 1px solid var(--hairline-on-ink);
+  border: 1px solid var(--hairline-strong);
   border-radius: 10px;
   background: var(--ink-2);
   padding: 0.6rem 0.85rem;
@@ -38,13 +38,17 @@
   font-size: 0.95rem;
   font-family: var(--font-body);
 
+  /* No opacity. Dimming dark type toward a light ground loses contrast far
+     faster than dimming light type toward a dark one — this was 4.29:1 at 0.7
+     on the night canvas and would be 3.13:1 here. axe has no ::placeholder
+     contrast rule, so it would have shipped silently. */
   &::placeholder {
     color: var(--paper-soft);
-    opacity: 0.7;
   }
 
-  &:focus {
-    outline: none;
+  /* A border-colour change is a weak focus signal on paper. The site's ring is
+     the focus indicator; this only tints the boundary alongside it. */
+  &:focus-visible {
     border-color: var(--crimson);
   }
 }
@@ -55,10 +59,12 @@
   right: 0;
   left: 0;
   z-index: 20;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--lift-2);
   border: 1px solid var(--hairline-on-ink);
   border-radius: 10px;
-  background: var(--ink-2);
+  /* A dropdown floats above the page — a raise, not a well. On the night canvas
+     --ink-2 read as "lifted"; on paper the same token is the recessed one. */
+  background: var(--ink);
   padding: 0.25rem;
   margin: 0;
   list-style: none;
@@ -140,7 +146,7 @@
     border-color var(--dur-base) ease,
     background-color var(--dur-base) ease,
     color var(--dur-base) ease;
-  border: 1px solid var(--hairline-on-ink);
+  border: 1px solid var(--hairline-strong);
   border-radius: 999px;
   background: transparent;
   padding: 0.28rem 0.8rem;
@@ -174,7 +180,7 @@
     border-color var(--dur-base) ease,
     color var(--dur-base) ease;
   cursor: pointer;
-  border: 1px dashed var(--hairline-on-ink);
+  border: 1px dashed var(--hairline-strong);
   border-radius: 999px;
   background: transparent;
   padding: 0.35rem 0.9rem;
@@ -236,7 +242,6 @@
 .vf-route-label {
   margin-right: 0.1rem;
   color: var(--paper-soft);
-  opacity: 0.75;
 }
 
 /* Inactive paths stay fully legible: they name the routes NOT taken, which
@@ -252,7 +257,7 @@
     position: absolute;
     left: -0.375rem;
     transform: translateX(-50%);
-    opacity: 0.5;
+    color: var(--hairline-strong);
     content: '·';
   }
 }
@@ -384,9 +389,12 @@
   justify-content: center;
   align-items: center;
   margin-top: 0.9rem;
-  border: 1px solid var(--hairline-on-ink);
+  /* A screen. The spectrum is 48 saturated bars drawn additively in JS; on bone
+     they smear into a wash. Keeping this on --stage is also why
+     ChoonStressTest.tsx needs no colour change at all. */
+  border: 1px solid var(--stage-hair);
   border-radius: 10px;
-  background: var(--void);
+  background: var(--stage);
   height: 110px;
   overflow: hidden;
 }
@@ -398,10 +406,14 @@
   height: 100%;
 }
 
+/* Sits ON the stage, so it cannot inherit .label-mono's --paper-soft — that is
+   ink on a dark screen, 1.34:1. Anything rendered inside a --stage surface has
+   to opt into the on-stage pair explicitly. */
 .ch-scope-hint {
   position: relative;
   margin: 0;
   padding: 0 1rem;
+  color: var(--on-stage-soft);
   text-align: center;
 }
 
@@ -495,7 +507,7 @@
 
 .cx-badge {
   border-radius: var(--radius-pill);
-  background: rgba(76, 168, 162, 0.16);
+  background: color-mix(in srgb, var(--glacier) 14%, transparent);
   padding: 0.12rem 0.5rem;
   color: var(--glacier-text);
 }
@@ -504,12 +516,13 @@
   color: var(--paper-soft);
   font-size: 0.65rem;
   letter-spacing: 0.1em;
-  opacity: 0.8;
 }
 
 .cx-stage {
   border-radius: 10px;
-  background: var(--void);
+  /* A screen, not a panel. The clip is dark product UI and the beat lanes are
+     saturated marks; both need a dark ground to read. See --stage in tokens.css. */
+  background: var(--stage);
   overflow: hidden;
 }
 
@@ -571,12 +584,15 @@
   background: var(--paper-soft);
   width: 2px;
   height: 14px;
-  opacity: 0.55;
+  /* 0.55 was 3.4:1 on night and is 2.45:1 on bone. These marks say which cuts
+     landed off the beat, so they are meaningful graphics under WCAG 1.4.11
+     and need 3:1 — 0.75 gives 3.7:1 and still reads as "not the lit one". */
+  opacity: 0.75;
 }
 
 .cx-cut-on {
   background: var(--marigold);
-  box-shadow: 0 0 10px rgba(239, 163, 59, 0.5);
+  box-shadow: var(--glow-marigold);
   opacity: 1;
 }
 
@@ -641,7 +657,6 @@
   color: var(--paper-soft);
   font-size: 0.6rem;
   letter-spacing: 0.1em;
-  opacity: 0.8;
 }
 
 .cx-controls {
@@ -705,7 +720,6 @@
   color: var(--paper-soft);
   font-size: 0.78rem;
   line-height: 1.5;
-  opacity: 0.85;
 }
 
 /* ── Choon: where the answer came from, and which channel found it ──────── */
@@ -718,12 +732,12 @@
 }
 
 .ch-src-live {
-  background: rgba(76, 168, 162, 0.16);
+  background: color-mix(in srgb, var(--glacier) 14%, transparent);
   color: var(--glacier-text);
 }
 
 .ch-src-replay {
-  background: rgba(239, 163, 59, 0.14);
+  background: color-mix(in srgb, var(--marigold) 14%, transparent);
   color: var(--marigold-text);
 }
 

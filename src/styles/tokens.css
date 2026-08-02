@@ -99,6 +99,11 @@
   --stage-hair: rgb(250 247 241 / 0.14);
   --on-stage: #faf7f1; /* 16.32 on --stage */
   --on-stage-soft: #b0b5ca; /* 8.57 */
+  /* The warm accent for text on a stage. This is the night canvas's own
+     marigold, unchanged — the old accent survives exactly where the old ground
+     does, which is the neatest possible proof that --stage is a real surface
+     role and not a leftover. --marigold-text is 2.87:1 here and unusable. */
+  --marigold-on-stage: #efa33b; /* 8.29 on --stage */
 
   /* ── Type roles ───────────────────────────────────────────────────────────
      Mono is the voice of data — labels, numbers, status. It is NOT the voice of
