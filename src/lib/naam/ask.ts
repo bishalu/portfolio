@@ -49,7 +49,17 @@
  * from copy.ts.
  */
 import { NAAM_COPY } from './copy'
-import { normalizePrefs, parseFreeText, pool, rankRelaxed, scoreName, type NaamMatch, type Prefs } from './match'
+import {
+  normalizePrefs,
+  parseFreeText,
+  pool,
+  rankRelaxed,
+  relatedTo,
+  scoreName,
+  type NaamMatch,
+  type NaamNearMiss,
+  type Prefs,
+} from './match'
 import type { NaamRow } from '@/types/naam'
 
 const C = NAAM_COPY
@@ -58,6 +68,12 @@ const C = NAAM_COPY
 export const RESULT_MAX = 8
 /** What the model is allowed to talk about. The route caps its own side at 60. */
 export const POOL_SIZE = 40
+/**
+ * Neighbours per name the visitor mentioned. Six is enough for the model to
+ * have a real choice among names like that one, and small enough that two
+ * mentioned names cannot crowd out the pool the wish asked for.
+ */
+const RELATED_PER_NAME = 6
 /**
  * Longer than the route's own 11s budget by a second, so the server's honest
  * `timeout` reason wins the race and the visitor is told which end was slow.
@@ -79,6 +95,12 @@ export interface NaamRead {
   prefs: Prefs
   /** Names the visitor put on the table themselves — a lookup or a comparison. */
   named: NaamRow[]
+  /**
+   * A name they typed that this document does not contain, with the nearest
+   * rows it does. Carried through to the model so it can say so plainly rather
+   * than answering a question nobody asked.
+   */
+  near: NaamNearMiss[]
   /** The ids the model may choose from. Named rows first, then the pool. */
   poolIds: string[]
   /**
@@ -122,8 +144,28 @@ export function readAsk(text: string, rows: readonly NaamRow[]): NaamRead {
     relaxed = fallback.relaxed
   }
 
-  const poolIds = [...new Set([...named, ...candidates].map((row) => row.id))].slice(0, POOL_SIZE)
-  return { prefs, named, poolIds, relaxed }
+  /**
+   * NAMING A NAME IS THE STRONGEST SIGNAL A VISITOR EVER GIVES, and until now
+   * it bought them only that one row. "I like Bhaskara" is a statement about a
+   * whole shape — a meaning, a length, a sound — so the names STANDING NEXT TO
+   * the ones they named now go into the pool right behind them, ahead of the
+   * general ranking. Same for a near miss: if they typed a name this document
+   * does not have, the closest things it does have are what the answer is made
+   * of, and "Sanskar" — one of the family's own favourites, and not a row —
+   * is exactly that case.
+   *
+   * Order is the whole of it. The pool is capped, the model reads it in order
+   * and may choose only from it, so what goes in first is what the visitor
+   * gets an answer about.
+   */
+  const neighbours = named.flatMap((row) => relatedTo(row, rows, RELATED_PER_NAME))
+  const nearRows = parsed.near.flatMap((miss) => miss.rows)
+
+  const poolIds = [...new Set([...named, ...nearRows, ...neighbours, ...candidates].map((row) => row.id))].slice(
+    0,
+    POOL_SIZE,
+  )
+  return { prefs, named, near: parsed.near, poolIds, relaxed }
 }
 
 /**
@@ -137,9 +179,11 @@ export async function askNaam(args: {
   ask: string
   poolIds: readonly string[]
   rows: readonly NaamRow[]
+  /** Names they typed that the document does not have, so the model can say so. */
+  absent?: readonly string[]
   signal: AbortSignal
 }): Promise<NaamAskResult> {
-  const { ask, poolIds, rows, signal } = args
+  const { ask, poolIds, rows, absent = [], signal } = args
   const text = ask.trim()
   if (!text || poolIds.length === 0) return { kind: 'unreachable' }
 
@@ -153,7 +197,7 @@ export async function askNaam(args: {
     const res = await fetch('/api/naam-chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ask: text, poolIds: [...poolIds] }),
+      body: JSON.stringify({ ask: text, poolIds: [...poolIds], absent: [...absent] }),
       signal: request.signal,
     })
     const data: unknown = await res.json()

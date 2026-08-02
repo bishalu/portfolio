@@ -63,8 +63,6 @@ export interface NaamCardProps {
   row: NaamRow
   /** The page-wide व/ब display preference. See src/lib/naam/tray.ts. */
   preferB: boolean
-  /** Computed by src/lib/naam/match.ts. Never written by a model. */
-  reasons?: readonly string[]
   picked?: boolean
   /** Absent = server-rendered; the page script wires it after boot. */
   onSwap?: () => void
@@ -93,7 +91,6 @@ function opensOnCluster(syllable: string): boolean {
 export default function NaamCard({
   row,
   preferB,
-  reasons,
   picked = false,
   onSwap,
   onPick,
@@ -169,12 +166,14 @@ export default function NaamCard({
         <p className="nm-gloss">{row.gloss}</p>
       )}
 
-      {reasons && reasons.length > 0 && (
-        <p className="nm-reasons label-mono label-mono--sm">
-          {NAAM_COPY.results.reasonsLabel} · {reasons.join(' · ')}
-        </p>
-      )}
-
+      {/* THE MATCHER NO LONGER EXPLAINS ITSELF ON THE CARD. "Matched on ·
+          attested name · evocative meaning" ran to three or four lines in a
+          column this narrow, and it spent them on the matcher's bookkeeping in
+          the space the MEANING wanted — which is the one thing a person reading
+          a name actually needs. It was also saying it twice: the agent gives a
+          real reason, in prose, in its own voice, in the column beside the card.
+          `reasons` still exists and still orders the pool; it stopped being
+          furniture. */}
       {/* The name rides in an .sr-only span rather than in aria-label so the
           visible word stays the start of the accessible name (WCAG 2.5.3).
           Without it a screen reader meets 72 buttons called "Pick" and 72

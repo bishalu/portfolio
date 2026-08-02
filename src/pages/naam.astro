@@ -435,7 +435,8 @@ if (!seedRow) {
   @media (min-width: 1100px) {
     .nm-shell {
       display: grid;
-      grid-template-rows: auto minmax(0, 1fr) auto;
+      /* Two rows since the topbar went: the columns, then the composer. */
+      grid-template-rows: minmax(0, 1fr) auto;
       /* The plate is sized from the CARD, not from the leftovers. Three cards
          plus the gaps and the tray's padding need ~700px before a gloss stops
          breaking mid-phrase — at 46vw the cards came out 180px and "to shine,
@@ -445,13 +446,8 @@ if (!seedRow) {
          invitation was getting when it had the whole width. */
       grid-template-columns: minmax(0, 1fr) clamp(31rem, 56vw, 46rem);
       grid-template-areas:
-        'top top'
         'stream tray'
         'composer composer';
-    }
-
-    .nm-topbar {
-      grid-area: top;
     }
 
     .nm-streamwrap {
@@ -496,15 +492,149 @@ if (!seedRow) {
      throws its light UPWARD across the conversation. It was at 50% 34% while
      the lamp was at 3% 6%, and a room lit from somewhere the light source
      visibly is not is a thing the eye catches even when it cannot say why. */
+  /* ── THE ROOM ANSWERS ──────────────────────────────────────────────────
+     The empty half of this screen was a painted rectangle with a slow breath
+     on it. A game's negative space is not decoration — it is the clearest
+     channel the thing has for telling you what state you are in, and it costs
+     nothing to read because you are not reading it.
+
+     So the light is driven by two numbers, both published on .nm-shell by
+     NaamApp, and everything here is one compositable property away from them:
+
+       --lit    how far the pool opens and how bright it is
+       --warm   how much of the marigold is in it
+
+     THINKING: the pool draws IN and cools slightly — the room holding its
+     breath while the lamp works. It is the opposite of a spinner: nothing new
+     appears, the space you are already looking at changes.
+
+     KEPT: each name warms the ground one step. Three names and the whole room
+     is lamp-coloured. That is the reward for finishing, delivered in the part
+     of the screen that has no content in it — which is exactly the part a
+     document would have left dead.
+
+     The transition is 900ms and eased, so a state change is a swell rather
+     than a switch, and the 3.7s breath keeps running underneath it. */
   .nm-room {
+    --lit: 1;
+    --warm: 0;
+
     position: absolute;
+    transform: scale(var(--lit));
+    opacity: calc(0.72 + var(--warm) * 0.28);
     z-index: 0;
     animation: nm-room-breathe 3.7s ease-in-out infinite;
+    transition:
+      opacity 900ms cubic-bezier(0.4, 0, 0.2, 1),
+      transform 900ms cubic-bezier(0.4, 0, 0.2, 1);
     inset: 0;
     background:
-      radial-gradient(78% 58% at 50% 88%, color-mix(in srgb, var(--nm-keep) 15%, transparent) 0%, transparent 70%),
-      radial-gradient(140% 70% at 50% 100%, color-mix(in srgb, var(--nm-keep) 7%, transparent) 0%, transparent 62%);
+      radial-gradient(
+        78% 58% at 50% 88%,
+        color-mix(in srgb, var(--nm-keep) calc(15% + var(--warm) * 13%), transparent) 0%,
+        transparent 70%
+      ),
+      radial-gradient(
+        140% 70% at 50% 100%,
+        color-mix(in srgb, var(--nm-keep) calc(7% + var(--warm) * 7%), transparent) 0%,
+        transparent 62%
+      );
     pointer-events: none;
+  }
+
+  /* One step of warmth per name kept. Written as sibling selectors rather than
+     as an inline style so the numbers stay in the stylesheet with the gradient
+     they feed. */
+  .nm-shell[data-kept='1'] .nm-room {
+    --warm: 0.34;
+  }
+
+  .nm-shell[data-kept='2'] .nm-room {
+    --warm: 0.67;
+  }
+
+  .nm-shell[data-kept='3'] .nm-room {
+    --warm: 1;
+  }
+
+  /* The room holds its breath while the model is out. */
+  .nm-shell[data-thinking] .nm-room {
+    --lit: 0.94;
+
+    opacity: 0.6;
+  }
+
+  /* ── THE FIRST MOVE ────────────────────────────────────────────────────
+     Before anything has been asked, the plate is an empty table: three sockets
+     and an unlit label for names that do not exist yet. It is drawn from the
+     first frame on purpose (endowed progress — a counter that starts visible is
+     finished far more often than one that appears when you earn it), but drawn
+     is not the same as COMPETING, and on first load it was pulling the eye away
+     from the only thing there is to do.
+
+     So until the first ask it stands down: two thirds opacity, slightly
+     desaturated, and NOT interactive — it has nothing to receive yet, so
+     inert is honest rather than a trick. Everything that IS actionable keeps
+     full strength: the invitation, the chips, the composer.
+
+     Dimmed, never hidden. The shape of the ask has to stay legible — you are
+     being told "three names, that way", and a plate that appeared out of
+     nowhere on your first Keep would be a surprise instead of a promise. */
+  .nm-slots,
+  .nm-quiet-label {
+    transition:
+      opacity 700ms cubic-bezier(0.4, 0, 0.2, 1),
+      filter 700ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* THE SLOTS STAND DOWN, NOT THE WHOLE TRAY — and the difference is a bug I
+     shipped for one build. Dimming .nm-tray dimmed the LAMP inside it, and the
+     exemption written for it, `opacity: 2.9` on the child, cannot work at all:
+     opacity is clamped to 0–1 and a child's value MULTIPLIES its parent's, so
+     the light source sat at 0.34 × 1 on the one frame whose entire job is to
+     look worth staying for. There is no way to opt a descendant out of an
+     ancestor's opacity. The only fix is to never put it inside one, so the
+     dimming now names the two things that are genuinely not usable yet and the
+     lamp is simply not in the set. */
+  .nm-shell[data-first] .nm-slots,
+  .nm-shell[data-first] .nm-quiet-label {
+    opacity: 0.36;
+    filter: saturate(0.5);
+    pointer-events: none;
+  }
+
+  /* The composer is the one control that matters on the first frame, so it is
+     the one thing that gains rather than merely keeping its ground: a warmer
+     ring, and the lamplight pooled under it. It settles the moment there is a
+     conversation to carry. */
+  .nm-shell[data-first] .nm-composer-in {
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--nm-keep) 34%, transparent),
+      0 6px 22px -12px color-mix(in srgb, var(--nm-keep) 60%, transparent);
+  }
+
+  /* What the topbar used to hold, at the weight it deserved all along. */
+  .nm-utility {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    margin: 0.3rem auto 0;
+    width: 100%;
+    max-width: 720px;
+    min-height: 1rem;
+  }
+
+  .nm-utility .nm-rail-a11y {
+    margin-left: auto;
+  }
+
+  /* The one number on the page that is a fact rather than a feeling, so it is
+     set as data: small, mono, and quieter than the invitation it sits under. */
+  .nm-said--quiet {
+    color: var(--nm-text-soft);
+    font-size: 0.8rem;
+    line-height: 1.7;
+    letter-spacing: 0.01em;
   }
 
   /* Dust in the lamplight — the ambient-particle technique without confetti,
@@ -689,49 +819,9 @@ if (!seedRow) {
     pointer-events: none;
   }
 
-  /* ── The rail ─────────────────────────────────────────────────────────
-     Named .nm-topbar, NOT .nm-rail: NaamCard's sound rail already owns that
-     class and this page renders both. */
-  .nm-topbar {
-    display: flex;
-    flex: 0 0 auto;
-    align-items: center;
-    gap: var(--space-2xs);
-    border-bottom: 1px solid var(--nm-hair);
-    padding: 0 clamp(0.75rem, 2.4vw, 1.4rem);
-    height: 44px;
-  }
-
-  /* Explicit colour and weight: it was inheriting the topbar's soft token and
-     landing at roughly 1.6:1 on the light ground — the page's own name was the
-     least legible thing on it. */
-  .nm-brand {
-    margin: 0;
-    color: var(--nm-text);
-    font-weight: 600;
-    font-size: 1.05rem;
-    line-height: 1;
-    letter-spacing: -0.02em;
-  }
-
-  .nm-swap-rail {
-    transition: border-color var(--dur-base) ease;
-    cursor: pointer;
-    margin-left: auto;
-    border: 1px solid var(--nm-hair-strong);
-    border-radius: 999px;
-    background: transparent;
-    padding: 0.25rem 0.7rem;
-    color: var(--nm-text-soft);
-    font-size: 0.9rem;
-    line-height: 1.7;
-    font-family: var(--font-deva), var(--font-body);
-
-    &[aria-pressed='true'] {
-      border-color: var(--crimson);
-      color: var(--nm-text);
-    }
-  }
+  /* The rail that used to sit across the top is gone — .nm-topbar, .nm-brand
+     and .nm-swap-rail with it. See the comment in NaamApp.tsx for where each
+     of its five pieces went and why none of them were simply dropped. */
 
   /* DESIGN.md §4 — two of the three words, and never a fourth. */
   .nm-badge {
@@ -1373,24 +1463,6 @@ if (!seedRow) {
       scroll-snap-align: start;
     }
 
-    /* THE CARD ON THE BAND IS THE SHORT CARD, and the reason is arithmetic. At
-       390×780 the chrome takes 175px, the slots and their label 90 and the lamp
-       60 — so a full 370px card leaves the conversation SIXTY PIXELS, which is
-       the bug this whole move exists to fix wearing a different hat. Measured
-       at that size the agent's reply was still off the top of the screen.
-
-       What goes is `.nm-reasons` — "matched on · 2 syllables · easy to say".
-       That is the matcher explaining itself, and on this layout the agent has
-       just explained the same three names in its own sentence, in prose, in the
-       column directly above. Two voices giving the same reasons is redundant on
-       a desktop and unaffordable on a phone. Nothing is hidden that the visitor
-       cannot get: the name, the script, the syllables, the gloss, Keep and the
-       document's own line are all still on the card, and the reasons are still
-       rendered in full on a reopened hand in the stream. */
-    .nm-hand .nm-reasons {
-      display: none;
-    }
-
     /* Long glosses are the other overflow, and they are the document's words —
        so this clamps rather than truncates the source: the full line is always
        one tap away under "from the document". */
@@ -1455,20 +1527,6 @@ if (!seedRow) {
       width: 44px;
       height: 56px;
     }
-  }
-
-  .nm-turn-note {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0.5rem;
-    margin: 0;
-  }
-
-  .nm-turn-note-text {
-    color: var(--nm-text-soft);
-    font-size: 0.9rem;
-    line-height: 1.6;
   }
 
   /* Offered rather than yanked: the stream sticks to the bottom only while
@@ -1676,11 +1734,6 @@ if (!seedRow) {
   }
 
   .nm-undocumented,
-  .nm-reasons {
-    margin: 0;
-    color: var(--nm-text-soft);
-  }
-
   .nm-card-foot {
     display: flex;
     flex-wrap: wrap;

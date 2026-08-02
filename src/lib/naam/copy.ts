@@ -61,23 +61,25 @@ const CAPS = {
 } as const
 
 /* ────────────────────────────────────────────────────────────────────────────
-   The relation list. Warmest thing on the page, and genuinely worth knowing.
+   How we know you. Four buckets, and every one of them is deliberately wide.
+
+   It used to be twelve Nepali kinship terms — Kaka, Kaki, Mama, Maiju, Phupu,
+   Fupaju, Didi, Dai, Bhai — which was charming and wrong in three ways. It had
+   no row for the child's own PARENTS or grandparents, which is an odd thing for
+   a naming page to omit. It made a friend from work read nine words of someone
+   else's family tree to find themselves. And it drew a line down the middle of
+   the audience: a Nepali aunt is offered her exact title, an American colleague
+   is offered "Colleague", and the form quietly tells the second one they are a
+   guest here.
+
+   Four broad ones ask nothing and exclude nobody, and the real answer arrives
+   in `send.why` anyway — Kina?, in their own words, where an aunt can say she
+   is his Phupu far better than a <select> ever asked her to. The page's Nepali
+   lives there and in नमस्ते and Dhanyabad, in the voice, rather than in a
+   dropdown that a non-Nepali friend has to opt out of.
    ──────────────────────────────────────────────────────────────────────────── */
 
-export const NAAM_RELATIONS: readonly string[] = [
-  'Kaka',
-  'Kaki',
-  'Mama',
-  'Maiju',
-  'Phupu',
-  'Fupaju',
-  'Didi',
-  'Dai',
-  'Bhai',
-  'Friend',
-  'Colleague',
-  'Just passing through',
-]
+export const NAAM_RELATIONS: readonly string[] = ['Family', 'Friend', 'Work', 'Just passing through']
 
 /* ────────────────────────────────────────────────────────────────────────────
    THE DECK
@@ -140,6 +142,18 @@ export const NAAM_COPY = {
     speakerYou: 'You',
     greeting:
       'नमस्ते. Sneha and Bishal are expecting a son. He needs a name before he arrives, and we would rather not choose it alone.',
+    /**
+     * WHAT THE LIST IS, said once and quietly. A visitor who does not know
+     * where these names come from cannot tell whether the page is reading a
+     * real document or making things up, and that is the one thing this whole
+     * build is trying to be trustworthy about. So it is stated plainly, as a
+     * fact and not a boast: the count, the two corpora, the three letters.
+     *
+     * The number is interpolated from naam-facts.ts and never retyped, and the
+     * letters are the family's own joke arriving as information — B for Bishal,
+     * S for Sneha, V because at home व is said ब.
+     */
+    source: `${n(NAAM_COUNTS.total)} names, out of the Vedas and the Sutras. Only the ones starting B, S or V — those are ours.`,
     invitation: 'Sit with us a while. Say what kind of name you have in mind, or start with one of these.',
     familyLead: 'Names the family keeps coming back to',
     /**
@@ -224,7 +238,13 @@ export const NAAM_COPY = {
       aria: 'Sound',
     },
     tray: {
-      label: 'Your three',
+      /**
+       * Still three, and still stated up front — the slots are drawn empty from
+       * the first frame so the shape of the ask is visible before anything is
+       * chosen. What changed is that three is a ceiling, not a toll: one is
+       * enough to send, and `send.lead` says so the moment a name lands.
+       */
+      label: 'Keep up to three',
       /** Devanagari numerals. Free, and unmistakably Nepali. */
       ordinals: ['१', '२', '३'],
       empty: (slot: number) => `Slot ${slot} of three, empty`,
@@ -232,18 +252,25 @@ export const NAAM_COPY = {
       taken: (slot: number, name: string) => `Slot ${slot} of three, ${name}. Take it back.`,
     },
     /**
-     * The last turn: the send fields arrive in the stream when three are kept.
-     * `submit` lives here rather than in a `tray` block of its own — the old
-     * one described a six-pick sidebar that could be cleared, counted and
-     * declared full, and every string in it but this one described something
-     * the page no longer has. Two blocks called tray, one of them dead, is how
-     * the next reader picks the wrong one.
+     * The last turn: the send fields arrive in the stream on the FIRST kept
+     * name, not the third. `submit` lives here rather than in a `tray` block of
+     * its own — the old one described a six-pick sidebar that could be cleared,
+     * counted and declared full, and every string in it but this one described
+     * something the page no longer has. Two blocks called tray, one of them
+     * dead, is how the next reader picks the wrong one.
      */
     send: {
-      lead: 'That is your three. Who should we thank for them?',
+      /**
+       * It used to read "That is your three." — true only while the form waited
+       * for three, and it no longer does. One name is enough to send, so this
+       * has to work when there is exactly one, and it has to keep the other two
+       * open without making them a condition. Three is the invitation; it was
+       * never meant to be the price of being heard.
+       */
+      lead: 'Who should we thank for this? Keep more if you like — up to three.',
       picksLabel: 'Sending',
       /** The app's code-switch, glossed by the English right beside it. */
-      why: 'Kina? — why these three?',
+      why: 'Kina? — why this one?',
       submit: 'Send them to us',
     },
   },
@@ -268,8 +295,6 @@ export const NAAM_COPY = {
    * editorial page, and the app's own captions live under `app` instead.
    */
   results: {
-    /** Above the computed match reasons. They are never written by a model. */
-    reasonsLabel: 'Matched on',
     emptyAsk: 'Nothing came up for that. Try a meaning — light, water, calm — rather than a spelling.',
     /** Shown when the hard filters intersected to nothing and were given back. */
     relaxed: 'Nothing answered all of that, so we let one part of it go. These are the closest the document has.',

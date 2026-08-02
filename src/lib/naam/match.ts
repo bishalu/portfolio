@@ -587,12 +587,173 @@ export interface NaamAsk {
   lookups: NaamRow[]
   /** Names the visitor put side by side. */
   compare: NaamRow[]
+  /**
+   * A name the visitor typed that this document does not contain, with the
+   * closest things it does. "Sanskar" is the case that made this exist: it is
+   * one of the family's own favourites, it is not a row, and the honest answer
+   * is neither to invent it nor to shrug — it is "we don't have that one, but
+   * look at these."
+   */
+  near: NaamNearMiss[]
+}
+
+export interface NaamNearMiss {
+  /** Exactly as the visitor spelled it, so it can be quoted back to them. */
+  typed: string
+  rows: NaamRow[]
 }
 
 /** Names mentioned, capped — four is already more than a reply can hold. */
 const NAME_HITS_MAX = 4
 
 const nameIndexCache = new WeakMap<readonly NaamRow[], Map<string, NaamRow>>()
+
+/**
+ * ONE SANSKRIT NAME, MANY ROMAN SPELLINGS. There is no single correct way to
+ * write these in Latin script, so the same name reaches us as Sanskar and
+ * Samskara, as Bishnu and Vishnu, as Byan and Vyan — and an exact-match index
+ * tells a visitor their own son's shortlist is not in the document.
+ *
+ * This folds the differences that carry no sound:
+ *   · diacritics off, so ṣ and ś and s are one letter
+ *   · the aspirate digraphs stay (bh is not b — that is a real contrast in
+ *     Devanagari) but sh → s and ch → c, which are spelling habits, not sounds
+ *   · doubled letters collapse: Samskaara, Samskara and Samskarra are one word
+ *   · a trailing 'a' goes, because the inherent vowel is written by some
+ *     transliterators and dropped by others — Samskara / Samskar
+ *   · m before a stop becomes n, which is the anusvara: Samskar / Sanskar
+ *   · v and b are ONE letter here. That is not sloppiness, it is the entire
+ *     premise of this page — व is said ब at home, which is why the V names are
+ *     on the list at all. Bishnu must find Vishnu.
+ *
+ * The result is a sound key, not a spelling. It is only ever used to FIND a
+ * row; every spelling the page displays still comes from the row itself.
+ */
+export function soundKey(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z]/g, '')
+    .replace(/sh/g, 's')
+    .replace(/ch/g, 'c')
+    .replace(/w/g, 'v')
+    .replace(/v/g, 'b')
+    .replace(/(.)\1+/g, '$1')
+    .replace(/m(?=[kgcjtdpbsn])/g, 'n')
+    .replace(/a$/, '')
+}
+
+/** Levenshtein, bounded — anything past `max` is not a near miss, it is a
+ *  different name, and the early exit keeps this cheap over 2,000 rows. */
+function within(a: string, b: string, max: number): number {
+  if (Math.abs(a.length - b.length) > max) return max + 1
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i)
+  for (let i = 1; i <= a.length; i++) {
+    const row = [i]
+    let best = i
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1
+      row[j] = Math.min(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + cost)
+      if (row[j] < best) best = row[j]
+    }
+    if (best > max) return max + 1
+    prev = row
+  }
+  return prev[b.length]
+}
+
+/**
+ * The closest rows to something the document does not have. Ranked by sound
+ * distance first and quality second, so the suggestions are both near and worth
+ * suggesting — the nearest row to a name nobody would choose is not a kindness.
+ */
+export function nearestBySound(typed: string, rows: readonly NaamRow[], limit = 3): NaamRow[] {
+  const key = soundKey(typed)
+  if (key.length < 3) return []
+  const scored: { row: NaamRow; d: number; score: number }[] = []
+  for (const row of rows) {
+    const d = Math.min(within(key, soundKey(row.latin), 2), row.bVariant ? within(key, soundKey(row.bVariant), 2) : 3)
+    if (d > 2) continue
+    /**
+     * SOUNDING CLOSE IS NOT A REASON TO SUGGEST A NAME. Ranked on distance
+     * alone, "Sanskar" came back with Samkara first — whose entry in this
+     * document reads "dust, sweepings (-kuta n. a heap of rubbish)" — and the
+     * page offered it, warmly, to two people naming their son. The row is real
+     * and the spelling was honest; it was still the wrong name to put in front
+     * of them, and no amount of grounding makes it right.
+     *
+     * scoreName already encodes what makes a name worth suggesting, and it is
+     * the same judgement the rest of the page runs on: −14 where the gloss only
+     * attests a bearer, +12 where the document marked the meaning worth saying,
+     * +5 where our tagger found a sense at all. So sound decides who is in the
+     * running and MEANING decides the order they arrive in.
+     */
+    scored.push({ row, d, score: scoreName(row, EMPTY_PREFS).score })
+  }
+
+  /**
+   * A row with no sense at all — no evocative badge, no theme — is held back
+   * rather than dropped. If nothing better is near, the closest thing the
+   * document actually has is still a better answer than silence.
+   */
+  const hasSense = (row: NaamRow) => row.badges.evocative || row.themes.length > 0
+  const byMerit = (a: (typeof scored)[number], b: (typeof scored)[number]) =>
+    b.score - a.score || a.d - b.d || qualityRank(a.row) - qualityRank(b.row)
+
+  return [
+    ...scored.filter((s) => hasSense(s.row)).sort(byMerit),
+    ...scored.filter((s) => !hasSense(s.row)).sort(byMerit),
+  ]
+    .slice(0, limit)
+    .map((s) => s.row)
+}
+
+/**
+ * Names that sit next to a name you already like. "I like Bhaskara" is a
+ * statement about a whole shape — a meaning, a length, a sound — and answering
+ * it with an unrelated top-of-pool list ignores the only real signal the
+ * visitor has given. Weighted so MEANING counts most: a shared theme is the
+ * thing a person actually means by "names like this one".
+ */
+export function relatedTo(seed: NaamRow, rows: readonly NaamRow[], limit = 6): NaamRow[] {
+  const themes = new Set(seed.themes ?? [])
+  const key = soundKey(seed.latin)
+  const onset = key.slice(0, 2)
+  const scored: { row: NaamRow; score: number }[] = []
+  for (const row of rows) {
+    if (row.id === seed.id) continue
+    let score = 0
+    for (const theme of row.themes ?? []) if (themes.has(theme)) score += 5
+    if (row.syllables === seed.syllables) score += 2
+    if (row.letter === seed.letter) score += 1
+    if (soundKey(row.latin).startsWith(onset)) score += 2
+    if (score <= 0) continue
+    scored.push({ row, score })
+  }
+  scored.sort((a, b) => b.score - a.score || qualityRank(a.row) - qualityRank(b.row))
+  return scored.slice(0, limit).map((s) => s.row)
+}
+
+const soundIndexCache = new WeakMap<readonly NaamRow[], Map<string, NaamRow>>()
+
+/** The same index keyed by sound rather than spelling. First row wins, and
+ *  rows are already in quality order, so a collision resolves to the better
+ *  name rather than to whichever happened to be parsed first. */
+function soundIndex(rows: readonly NaamRow[]): Map<string, NaamRow> {
+  const cached = soundIndexCache.get(rows)
+  if (cached) return cached
+  const index = new Map<string, NaamRow>()
+  for (const row of rows) {
+    for (const spelling of [row.latin, row.bVariant]) {
+      if (!spelling) continue
+      const key = soundKey(spelling)
+      if (key.length >= 3 && !index.has(key)) index.set(key, row)
+    }
+  }
+  soundIndexCache.set(rows, index)
+  return index
+}
 
 /** latin and bVariant, lowercased, first row wins so the id order is stable. */
 function nameIndex(rows: readonly NaamRow[]): Map<string, NaamRow> {
@@ -631,10 +792,55 @@ export function parseFreeText(text: string, rows: readonly NaamRow[]): NaamAsk {
   /* — names —————————————————————————————————————————————————————— */
   const found: NaamRow[] = []
   const seen = new Set<string>()
-  for (const token of lower.match(/[a-z]+/g) ?? []) {
-    if (token.length < 3 || STOP.has(token)) continue
-    const row = index.get(token)
-    if (!row || seen.has(row.id)) continue
+  const near: NaamNearMiss[] = []
+  const sounds = soundIndex(rows)
+
+  /**
+   * Read the ORIGINAL text, not the lowercased copy, because capitalisation is
+   * the only signal separating "I like Sanskar" from "I like short ones". Exact
+   * spellings are matched either way — those are safe. Sound-matching and near
+   * misses are gated on a capital, because they are fuzzy by definition and a
+   * fuzzy match on every ordinary word would have the page answering "calm"
+   * with a name that merely sounds like it.
+   */
+  const raw = String(text ?? '').slice(0, 400)
+  /**
+   * A capital at the START of a sentence is grammar, not a name. Without this
+   * "What does light mean" read `What` as a name — soundKey folds w→v→b for the
+   * व/ब rule, so "what" becomes "bhat" and lands on Bhatta. The exception is a
+   * message short enough to be nothing BUT a name: someone who types "Sanskar?"
+   * still gets an answer, and someone who types a sentence does not have its
+   * first word mistaken for their son's name.
+   */
+  const terse = (raw.match(/[A-Za-z]+/g) ?? []).length <= 3
+
+  for (const match of raw.matchAll(/[A-Za-z]+/g)) {
+    const token = match[0]
+    const word = token.toLowerCase()
+    // What precedes it, ignoring whitespace: nothing, or . ! ? — a new sentence.
+    const before = raw.slice(0, match.index).trimEnd()
+    const sentenceInitial = before.length === 0 || /[.!?]$/.test(before)
+    if (word.length < 3 || STOP.has(word)) continue
+    const capitalised =
+      token[0] === token[0].toUpperCase() && token[0] !== token[0].toLowerCase() && (!sentenceInitial || terse)
+
+    // Spelled exactly as the document spells it.
+    let row = index.get(word)
+    // Spelled the way a person actually writes it: Bishnu for Vishnu, Samskara
+    // for Sanskar. Same name, different transliterator.
+    if (!row && capitalised) row = sounds.get(soundKey(word))
+
+    if (!row) {
+      // A name the document does not have at all. Only worth answering if it
+      // was clearly offered as a name — and only once per ask, because a list
+      // of near misses is not an answer to anything.
+      if (capitalised && word.length >= 4 && near.length === 0) {
+        const suggestions = nearestBySound(word, rows)
+        if (suggestions.length > 0) near.push({ typed: token, rows: suggestions })
+      }
+      continue
+    }
+    if (seen.has(row.id)) continue
     seen.add(row.id)
     found.push(row)
     if (found.length >= NAME_HITS_MAX) break
@@ -687,6 +893,7 @@ export function parseFreeText(text: string, rows: readonly NaamRow[]): NaamAsk {
     prefs,
     lookups: isCompare ? [] : found,
     compare: isCompare ? found : [],
+    near,
   }
 }
 

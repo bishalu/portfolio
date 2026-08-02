@@ -102,9 +102,20 @@ export const POST: APIRoute = async (context) => {
     return degraded('bad-request')
   }
 
-  const body = (payload ?? {}) as { ask?: unknown; poolIds?: unknown }
+  const body = (payload ?? {}) as { ask?: unknown; poolIds?: unknown; absent?: unknown }
   const ask = tidy(body.ask, ASK_MAX)
   if (!ask) return degraded('bad-request')
+
+  /**
+   * Names the visitor typed that the document does not contain. Untrusted like
+   * everything else on this request: tidied, length-capped, and capped in
+   * count, because it is interpolated into the prompt. It carries no authority
+   * — the pool still decides what may be named.
+   */
+  const absent = (Array.isArray(body.absent) ? body.absent : [])
+    .map((name) => tidy(name, 40))
+    .filter((name): name is string => Boolean(name))
+    .slice(0, 3)
 
   const submitted = Array.isArray(body.poolIds) ? body.poolIds : []
   const poolIds = [...new Set(submitted.filter(isRowId))].slice(0, POOL_MAX)
@@ -147,7 +158,7 @@ export const POST: APIRoute = async (context) => {
     const command = new ConverseCommand({
       modelId,
       system: [{ text: buildSystemPrompt() }],
-      messages: [{ role: 'user', content: [{ text: buildUserTurn(ask, poolRows) }] }],
+      messages: [{ role: 'user', content: [{ text: buildUserTurn(ask, poolRows, absent) }] }],
       inferenceConfig: { maxTokens: MAX_TOKENS, temperature: 0.6 },
       /**
        * gpt-oss is a reasoning model and its thinking is billed against the

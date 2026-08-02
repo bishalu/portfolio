@@ -166,7 +166,8 @@ const DEAL_EASE = 'cubic-bezier(0.05, 0.7, 0.1, 1)'
 const SLOT_EASE = 'cubic-bezier(0.34, 1.56, 0.64, 1)'
 
 type Turn =
-  | { id: string; kind: 'agent'; text: string; lead?: boolean }
+  /** `lead` is the biggest type on the page; `quiet` is the smallest. */
+  | { id: string; kind: 'agent'; text: string; lead?: boolean; quiet?: boolean }
   | { id: string; kind: 'you'; text: string }
   | { id: string; kind: 'family' }
   | { id: string; kind: 'starters' }
@@ -358,6 +359,11 @@ export default function NaamApp({ seed }: NaamAppProps) {
   const [dataFailed, setDataFailed] = useState(false)
   const [turns, setTurns] = useState<Turn[]>(() => [
     { id: 'greeting', kind: 'agent', text: C.app.greeting, lead: true },
+    // What the list actually is — the count, the two corpora, the three
+    // letters — stated once, quietly, before anything is asked. Without it a
+    // visitor cannot tell whether this page is reading a real document or
+    // inventing names, which is the one thing it must never be ambiguous about.
+    { id: 'source', kind: 'agent', text: C.app.source, quiet: true },
     { id: 'family', kind: 'family' },
     { id: 'invitation', kind: 'agent', text: C.app.invitation },
     { id: 'starters', kind: 'starters' },
@@ -583,7 +589,7 @@ export default function NaamApp({ seed }: NaamAppProps) {
       const mount = mountRef.current
       if (!dataset || !mount || asking || value.length === 0) return
 
-      const { prefs, poolIds } = readAsk(value, dataset)
+      const { prefs, poolIds, near } = readAsk(value, dataset)
       const thinkingId = nextId()
       setAsking(true)
       setTurns((prev) => [
@@ -592,7 +598,16 @@ export default function NaamApp({ seed }: NaamAppProps) {
       ])
       setAnnounce(C.app.asking)
 
-      const result = await askNaam({ ask: value, poolIds, rows: dataset, signal: mount.signal })
+      const result = await askNaam({
+        ask: value,
+        poolIds,
+        rows: dataset,
+        // Only the words they typed. The rows nearest to them are already at
+        // the head of poolIds, so this tells the model what is MISSING, which
+        // is the one thing the pool cannot say on its own.
+        absent: near.map((miss) => miss.typed),
+        signal: mount.signal,
+      })
       // askNaam never throws — an abort resolves to `unreachable` — so the
       // caller is the one that must not touch state on a dead mount.
       if (mount.signal.aborted) return
@@ -872,10 +887,23 @@ export default function NaamApp({ seed }: NaamAppProps) {
     [later, picks, pickedIds, preferB, release],
   )
 
-  /* — the last turn arrives when the hand is complete ————————————————— */
-
+  /**
+   * THE SEND ARRIVES ON THE FIRST NAME, not the third.
+   *
+   * Three is the invitation and it stays the invitation — three slots, drawn
+   * from the first frame, and the tray says so. But requiring three was the
+   * page setting a price on being heard: someone who has one name they love
+   * and no opinion on a second had no way to tell us, and the most likely
+   * thing they do about a form that will not open is close the tab.
+   *
+   * So one is enough to send, and the other two slots stay open behind the
+   * form — the endowed-progress shape is intact, and the visitor keeps
+   * choosing if they want to. The form's own lead does the asking now
+   * (`send.lead`), which is why that string had to stop saying "that is your
+   * three": it fires when there is one.
+   */
   useEffect(() => {
-    if (formShown || picks.length < PICK_MAX) return
+    if (formShown || picks.length < 1) return
     setFormShown(true)
     later(
       () => {
@@ -1073,7 +1101,6 @@ export default function NaamApp({ seed }: NaamAppProps) {
           <NaamCard
             row={match.row}
             preferB={preferB}
-            reasons={match.reasons}
             picked={pickedIds.has(match.row.id)}
             trayFull={picks.length >= PICK_MAX && !pickedIds.has(match.row.id)}
             onSwap={toggleSwap}
@@ -1139,7 +1166,11 @@ export default function NaamApp({ seed }: NaamAppProps) {
   const turnBody = (turn: Turn) => {
     switch (turn.kind) {
       case 'agent':
-        return <p className={turn.lead ? 'nm-said nm-said--lead' : 'nm-said'}>{turn.text}</p>
+        return (
+          <p className={turn.lead ? 'nm-said nm-said--lead' : turn.quiet ? 'nm-said nm-said--quiet' : 'nm-said'}>
+            {turn.text}
+          </p>
+        )
 
       case 'you':
         return <p className="nm-said nm-said--you">{turn.text}</p>
@@ -1199,12 +1230,20 @@ export default function NaamApp({ seed }: NaamAppProps) {
                  dealt then rather than what is on the plate now. */
               hand?.id !== turn.id && dealCards(turn.matches)
             )}
-            <p className="nm-turn-note">
-              <span className="nm-badge label-mono label-mono--sm" data-source={turn.badge}>
-                {BADGE[turn.badge]}
-              </span>
-              <span className="nm-turn-note-text">{turn.note}</span>
-            </p>
+            {/* THE PER-TURN PROVENANCE LINE IS GONE. "● live — A real call,
+                just now." sat under every hand restating what the rail already
+                says permanently, in a page whose whole argument is that the
+                agent is simply talking to you. Announcing the transport under
+                each answer is the page auditing itself out loud, and it read as
+                machinery in the middle of a conversation.
+
+                DESIGN.md §4 is still satisfied and this is not a quiet
+                downgrade of it: the honesty vocabulary must be VISIBLE, not
+                repeated per turn, and .nm-badge--rail carries `live` in the
+                topbar for as long as the model is answering. The one place the
+                word still earns a line of its own is a failure, where LOCAL
+                marks a deck the visitor pressed a button to see — and that
+                turn prints it. */}
           </>
         )
 
@@ -1360,7 +1399,27 @@ export default function NaamApp({ seed }: NaamAppProps) {
   }
 
   return (
-    <div className="nm-shell" ref={shellRef} data-calm={calm ? 'true' : undefined}>
+    /**
+     * THE ROOM HAS A STATE, and these four attributes are it. Everything
+     * ambient on this page — the light pool, its warmth, the dust, the focus —
+     * is CSS reading them, so the negative space stops being a painted
+     * rectangle and starts answering what the visitor is doing. A game does
+     * not hold still between inputs; neither should the empty half of this
+     * screen.
+     *
+     *   data-calm     typing — the dust settles, the flame does not
+     *   data-thinking the ask is out — the light draws in and waits
+     *   data-kept     0–3 — the ground warms a step per name kept
+     *   data-first    nothing asked yet — everything not yet usable stands down
+     */
+    <div
+      className="nm-shell"
+      ref={shellRef}
+      data-calm={calm ? 'true' : undefined}
+      data-thinking={asking ? 'true' : undefined}
+      data-kept={picks.length}
+      data-first={!asked ? 'true' : undefined}
+    >
       {/* The room the lamp lights, and the dust in it. Both are behind
           everything (z-index 0, pointer-events none) and both are decoration
           in the strict sense — aria-hidden, no content, nothing to read. They
@@ -1384,56 +1443,28 @@ export default function NaamApp({ seed }: NaamAppProps) {
         ))}
       </div>
 
-      {/* .nm-topbar, not .nm-rail: NaamCard's sound rail already owns that
-          class name and this page renders both. */}
-      <div className="nm-topbar">
-        <h1 className="nm-brand">{C.app.heading}</h1>
+      {/* THE BAR IS GONE. It held the wordmark, the व/ब toggle, the live
+          badge, the sound switch and one link — five pieces of chrome across
+          the top of a page whose whole argument is that you are in a room
+          having a conversation, and it was the first thing a visitor's eye had
+          to get past to reach the invitation. On a phone it also spent 44px of
+          a budget the send button needed.
 
-        <button type="button" className="nm-swap-rail" aria-pressed={preferB} onClick={toggleSwap}>
-          <span aria-hidden="true">{C.card.swapGlyph}</span>
-          <span className="sr-only">{C.card.swapAria}</span>
-        </button>
-
-        {/* Empty until the model has answered, and then it says live and
-            nothing else. The element itself stays in the DOM either way — the
-            verification drill reads .nm-badge--rail's text — but it drops the
-            .nm-badge class when there is nothing to say, so an empty pill is
-            not left sitting in the rail claiming a shape. */}
-        <span
-          className={source ? 'nm-badge nm-badge--rail label-mono label-mono--sm' : 'nm-badge--rail'}
-          data-source={source || undefined}
-        >
-          {source ? BADGE[source] : ''}
-        </span>
-
-        {/* Default off, and pressing it is BOTH the preference and the gesture
-            the autoplay policy requires — so there is no second "enable audio"
-            step and nothing can make a noise at somebody who did not ask. The
-            label says which state it is in; aria-pressed carries what pressing
-            it will do. */}
-        <button
-          type="button"
-          className="nm-sound label-mono label-mono--sm"
-          aria-pressed={audible}
-          onClick={() => {
-            const next = !audible
-            setSound(next)
-            // Struck on the way ON only, and it is the sample: this is what
-            // you have just switched on, at the volume it will be.
-            if (next) playCue('land')
-          }}
-        >
-          <span className="nm-sound-glyph" aria-hidden="true" data-on={audible ? 'true' : undefined} />
-          <span className="nm-sound-word">{audible ? C.app.sound.on : C.app.sound.off}</span>
-        </button>
-
-        {/* The one link the header nav does not carry. The rest of the site
-            index used to sit on the tray row competing with the slots; this is
-            what actually needed rescuing when it went. */}
-        <a className="nm-rail-a11y label-mono label-mono--sm" href="/accessibility-statement">
-          {C.app.a11yLink}
-        </a>
-      </div>
+          Where each piece went, and why none of them were simply dropped:
+            · the wordmark  → .sr-only <h1>. The page still needs exactly one
+              heading for a screen reader and for the document outline; it does
+              not need to print its own name at a visitor who just clicked a
+              link that said naam.
+            · व / ब         → deleted outright. Every card that HAS a B-form
+              already carries its own व/ब pill, and that pill sets the same
+              page-wide preference. A global copy of a control that is already
+              on the object it affects is a second way to do one thing.
+            · live · sound · accessibility → .nm-utility, hairline-small and
+              bottom-aligned with the composer. `live` stays because DESIGN.md
+              §4 requires the honesty word to be VISIBLE, and this satisfies it
+              in the place a visitor looks after reading an answer rather than
+              before. */}
+      <h1 className="sr-only">{C.app.heading}</h1>
 
       <div className="nm-streamwrap">
         {/* Both rules are wrong for a scrollable transcript, and axe is the
@@ -1593,6 +1624,46 @@ export default function NaamApp({ seed }: NaamAppProps) {
             <p className="pulse-caption nm-caption">{C.app.reading}</p>
           </div>
         )}
+
+        {/* What the bar used to hold, at the weight it actually deserves: one
+            hairline row under the composer, which is where a visitor's eye
+            already is. `live` is not decoration — DESIGN.md §4 requires the
+            honesty word to be visible whenever a model produced what is on
+            screen, and .nm-badge--rail keeps its class so the verification
+            drill still reads it. */}
+        <div className="nm-utility">
+          <span
+            className={source ? 'nm-badge nm-badge--rail label-mono label-mono--sm' : 'nm-badge--rail'}
+            data-source={source || undefined}
+          >
+            {source ? BADGE[source] : ''}
+          </span>
+
+          {/* Default off, and pressing it is BOTH the preference and the
+              gesture the autoplay policy requires — so there is no second
+              "enable audio" step and nothing makes a noise at somebody who did
+              not ask. The label says which state it is in; aria-pressed carries
+              what pressing it will do. */}
+          <button
+            type="button"
+            className="nm-sound label-mono label-mono--sm"
+            aria-pressed={audible}
+            onClick={() => {
+              const next = !audible
+              setSound(next)
+              // Struck on the way ON only, and it is the sample: this is what
+              // you have just switched on, at the volume it will be.
+              if (next) playCue('land')
+            }}
+          >
+            <span className="nm-sound-glyph" aria-hidden="true" data-on={audible ? 'true' : undefined} />
+            <span className="nm-sound-word">{audible ? C.app.sound.on : C.app.sound.off}</span>
+          </button>
+
+          <a className="nm-rail-a11y label-mono label-mono--sm" href="/accessibility-statement">
+            {C.app.a11yLink}
+          </a>
+        </div>
       </div>
 
       {/* Flying names live here. It is rendered with no children, so React
