@@ -308,10 +308,14 @@ if (!seedRow) {
     --nm-text: var(--paper);
     --nm-text-soft: var(--paper-soft);
     --nm-hair: var(--hairline-on-ink);
-    --nm-hair-strong: var(--hairline-on-ink);
+    --nm-hair-strong: var(--hairline-strong);
     --nm-accent-text: var(--crimson-text);
     --nm-keep: var(--marigold);
-    --nm-keep-fill: rgb(239 163 59 / 14%);
+    /* Mixed from the token rather than restated as a literal: the fill and the
+       mark have to be the same hue, and they stopped being so the moment
+       --marigold was re-chosen for a light ground. 14% of the old marigold on
+       bone was also invisible. */
+    --nm-keep-fill: color-mix(in srgb, var(--marigold) 18%, transparent);
     --nm-live: var(--glacier);
 
     /* Mukta is FIRST in every stack on this page and that is safe: its
@@ -363,7 +367,7 @@ if (!seedRow) {
     --nm-hair: rgb(26 29 46 / 13%);
     --nm-hair-strong: rgb(26 29 46 / 26%);
     --nm-accent-text: var(--crimson-deep);
-    --nm-keep-fill: rgb(239 163 59 / 20%);
+    --nm-keep-fill: color-mix(in srgb, var(--marigold) 20%, transparent);
     --nm-shadow: 0 1px 2px rgb(26 29 46 / 5%), 0 10px 24px -16px rgb(26 29 46 / 30%);
 
     display: flex;
