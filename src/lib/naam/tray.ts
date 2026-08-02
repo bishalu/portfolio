@@ -43,7 +43,15 @@ export interface NaamPick {
 
 type Listener = () => void
 
-const PICKS_KEY = 'naam.picks.v1'
+/**
+ * v2 because the cap went from six to three. `hydrate()` would have truncated a
+ * stored six to the first three, which is safe but silent — and on a page whose
+ * whole signature is a tray filling up, a visitor would have lost three slots
+ * with no explanation, chosen by insertion order rather than by preference.
+ * A new key ignores stale trays outright. This is sessionStorage, so the
+ * affected group is only people mid-visit across the deploy.
+ */
+const PICKS_KEY = 'naam.picks.v2'
 const SWAP_KEY = 'naam.swap.v1'
 
 /** The cap the form and the endpoint both agree on. */

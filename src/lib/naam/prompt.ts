@@ -54,8 +54,14 @@ export const NAAM_PROMPT_FACTS: NaamPromptFacts = {
 /** Forced tool call. The reply is prose; the picks are ids the page renders itself. */
 export const NAAM_TOOL_NAME = 'reply_with_picks'
 
-/** Six cards is already a lot to read. Three is usually the better answer. */
-export const NAAM_MAX_PICKS = 6
+/**
+ * Three. Independent of the tray's own cap (NAAM_COPY.limits.picks) — this one
+ * bounds how many ids the MODEL may return in a single reply — but they should
+ * agree in spirit: an agent dealing six names onto a three-slot tray is a
+ * mismatch the interface has to paper over, and three dealt cards is a hand you
+ * can read at a glance.
+ */
+export const NAAM_MAX_PICKS = 3
 
 /** A reply longer than this stopped being a kitchen-table sentence. */
 export const NAAM_MAX_REPLY_CHARS = 700

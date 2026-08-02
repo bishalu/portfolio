@@ -203,6 +203,68 @@ export const NAAM_COPY = {
       'On the eleventh day the priest gives a rashi name from the stars; the bolaune naam, the one everyone actually calls him, is ours to pick — and that is the one this page is about.',
   },
 
+  /**
+   * THE APP (docs/design/DESIGN.md §4, P8, P11).
+   *
+   * /naam is one screen now — a rail, a stream, three slots, a composer — so
+   * the words that used to be headings and standfirsts are turns in a
+   * conversation. They live here for the same reason as everything else in
+   * this file: the app, the no-JS fallback and the form must not drift apart.
+   *
+   * The Devanagari in `starters` is deliberate: it is the string that proves
+   * Mukta is first in the chip's font stack. If that chip ever renders ▯▯▯▯,
+   * the stack is wrong somewhere and this is where it shows first.
+   */
+  app: {
+    /** The rail. Lowercase — it is the page's own name, not a title. */
+    brand: 'naam',
+    /** The one visible heading with JavaScript on. */
+    heading: 'naam',
+    streamLabel: 'The conversation, and the names it has dealt',
+    /**
+     * Screen-reader speaker labels. There are no bubbles and no avatars
+     * (P11) — turns are typographic blocks, so the speaker is stated in
+     * .sr-only text rather than implied by which side of the column it is on.
+     */
+    speakerAgent: 'Naam',
+    speakerYou: 'You',
+    greeting: 'नमस्ते. Sneha and I are naming our son, and we would like your help.',
+    invitation: 'Tell me how he should sound. Or start with one of these.',
+    familyLead: 'The family likes these already',
+    starters: [
+      'something calm, about love rather than war',
+      'two beats, easy to call',
+      'names about light',
+      'what does भास्कर mean',
+    ],
+    dismissStarters: 'Hide these',
+    /** Over a fresh deal of cards. */
+    dealt: 'Keep the ones you would want on the wall.',
+    /** .pulse-line captions, lowercase: they are captions, not labels. */
+    reading: 'reading the document…',
+    asking: 'asking the model…',
+    jump: 'Jump to the latest',
+    composerLabel: 'Say what you are after',
+    composerPlaceholder: 'a feeling, a sound, a syllable…',
+    composerSend: 'Send',
+    /** The site footer is hidden on this page, so its index comes with us. */
+    indexLabel: 'The rest of the site',
+    tray: {
+      label: 'Your three',
+      /** Devanagari numerals. Free, and unmistakably Nepali. */
+      ordinals: ['१', '२', '३'],
+      empty: (slot: number) => `Slot ${slot}, empty`,
+      /** The whole slot is the control; there is no grey ✕. */
+      taken: (slot: number, name: string) => `Slot ${slot}, ${name}. Take it back.`,
+    },
+    /** The last turn: the send fields arrive in the stream when three are kept. */
+    send: {
+      lead: 'That is your three. Who should we thank for them?',
+      picksLabel: 'Sending',
+      why: 'Why these? — one line is plenty',
+    },
+  },
+
   /** The invitation on the home page, inside CloseSection. */
   invite: {
     line: 'Sneha and I are naming our son, and the shortlist is public.',
@@ -311,9 +373,14 @@ export const NAAM_COPY = {
     swapGlyph: 'व / ब',
     swapAria: 'Switch between the V and the B spelling',
     swapNote: 'Display only. The document’s spelling stays as printed.',
-    pick: 'Pick',
-    picked: 'Picked',
-    unpick: 'Remove',
+    /**
+     * Keep, not Pick. The tray is three slots a name is *kept* in, and the
+     * word on the button is the word the motion illustrates — the card arcs
+     * down and is kept. One verb for one gesture, everywhere on the page.
+     */
+    pick: 'Keep',
+    picked: 'Kept',
+    unpick: 'Take it back',
     /** The seeded family names that are not rows in the document. */
     notInDocument: 'Not in the document — a family name',
   },
@@ -427,7 +494,13 @@ export const NAAM_COPY = {
   limits: {
     name: 40,
     reason: 240,
-    picks: 6,
+    /**
+     * Three, and the cap is the point. The tray is three slots that visibly
+     * fill, so the limit is what makes a choice cost something — and three
+     * considered names are better to receive than thirty. tray.ts's PICK_MAX
+     * and /api/naam-submit both read this, so they cannot disagree.
+     */
+    picks: 3,
     names: 120,
   },
 
