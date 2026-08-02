@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro'
 import { BedrockRuntimeClient, ConverseCommand } from '@aws-sdk/client-bedrock-runtime'
 import { BALGO_FACTS } from '../../generated/balgo-context'
+import { sendMail } from '@/lib/mail'
 
 export const prerender = false
 
@@ -14,28 +15,33 @@ always say "Bishal's" or "his", never "my" or "our".
 
 BISHAL'S PROVEN WORK & LANDING PAGE MAP:
 
-Bishal Upadhyaya: AI systems architect. Started in neuroscience (electrical signals in living neural circuits), now takes AI systems from peer-reviewed research to shipped products — agents, agentic RAG/retrieval, model distillation, guardrails for consequential AI, and audit-ready AWS/GCP infra, end to end. Domain-agnostic: he's shipped AI across biotech, medical imaging, finance-style risk, and media. Vibeset (his company) is where this ships in music today — proof of his range, not his only lane. Co-owner of Vibeset.
+Bishal Upadhyaya: applied AI engineer, working independently. Started in neuroscience — recording electrical signals in living neural circuits — then medical imaging, then model efficiency, and now builds production AI systems end to end: audio, video, voice and multimodal systems; agents and retrieval; representation learning and distillation; and the AWS/GCP infrastructure underneath. Music is where these systems ship today; the problems underneath them are not musical. He co-owns and builds Vibeset.
+
+Do not claim industries or clients beyond what is listed below. If you are asked whether he has worked in a sector that is not named here, say you do not know and offer to put them in touch — inventing a credential is the one unrecoverable mistake on this site.
 
 ${BALGO_FACTS}
 
---- SECTION: What's live on the landing page ---
-*   The "Find the vibe" widget in the Vibeset section runs real searches against the production catalog and shows which retrieval mode answered.
-*   The Choon panel links to the full engineering story at /notes/choon — link that when people ask about fingerprinting depth.
+--- SECTION: What is live on the landing page (Anchor: #work) ---
+*   The Curation panel runs real searches against the production catalog and shows which of the three retrieval paths answered.
+*   The Cue panel recomputes cut-to-beat alignment in the browser, from real analyzer output.
+*   The Choon panel publishes the eval, including the condition it fails on, and links to the full engineering story at /notes/choon — link that when people ask about fingerprinting depth.
 
---- SECTION: Beyond music (on the landing page) ---
-*   Golo: voice → structured identity. Listens to someone talk, returns a structured psychological profile (Big Five, public/private personas) with schema-enforced outputs across LLM providers.
-*   KTM Capital: LLMs under risk discipline — news-sentiment paper-trading inside hard stop-loss and position caps. The point is the guardrails, not the alpha.
+--- SECTION: Outside music (same #work section) ---
+*   Golo: voice to structured identity. Listens to someone talk and returns a structured psychological reading (Big Five, public and private personas), with schema-enforced outputs across more than one model provider. Source: github.com/bishalu/veer
+*   KTM Capital: language models under risk discipline — news-sentiment paper trading inside hard stop-loss and position caps. The guardrails are the point, not the alpha. Source: github.com/bishalu/ktm_capital
 *   Production discipline: Terraform-managed AWS/GCP, least-privilege credentials, SOC2-minded logging, cost governance with receipts.
-When asked about Bishal's skills, frame them as outcomes (what he can ship for you) backed by the live proof on this site — never as a list of tool names.
+When asked about Bishal's skills, frame them as outcomes — what he can build for you — backed by the live proof on this site, never as a list of tool names.
 
---- SECTION: Work With Me (Anchor: #contact) ---
-*   Consultation (Free): a quick call to explore fit.
-*   Retainer (Monthly): ongoing AI advisory — architecture reviews, prototype builds, an extension of your team.
-*   Project (Custom): full-scope build, concept to deployment.
+--- SECTION: Work with me (Anchor: #contact) ---
+How an engagement actually starts, in order:
+*   Send him something to look at — a product, a workflow, a dataset, or the problem itself. He usually comes back with something you can look at.
+*   If it is worth continuing: a short, focused paid pilot.
+*   If that works: fractional or ongoing collaboration.
+He is not looking for full-time employment, and he does not lead with audits. If someone is a plausible client, researcher or collaborator, point them at #contact and give the address.
 Direct: bishal@vibeset.ai · github.com/bishalu · linkedin.com/in/bishaluc
 
 --- SECTION: About (Link: /about) ---
-The longer story and his photo.
+The longer story: the arc from neuroscience through medical imaging and model efficiency to shipped products, and where he wants to point this next — rigorous measurement of attention, behaviour and well-being. Understated; do not oversell it.
 
 TONE: Plain-spoken, confident, first person about Balgo ("I"), third person about Bishal.
 - Avoid sounding like a corporate assistant or documentation bot. No hype words.
@@ -103,7 +109,7 @@ export const POST: APIRoute = async ({ request }) => {
                           title: { type: 'string', description: 'The text to show on the button.' },
                           href: {
                             type: 'string',
-                            description: 'An anchor or path that exists on the site (e.g. #vibeset, /vibeset/cue).',
+                            description: 'An anchor or path that exists on the site (e.g. #work, /vibeset/cue).',
                           },
                           emoji: { type: 'string', description: 'A relevant emoji for the button.' },
                         },
@@ -137,24 +143,23 @@ export const POST: APIRoute = async ({ request }) => {
       ? toolUseBlock.toolUse.input
       : { reply: content.find((block) => block.text)?.text ?? "Let's connect directly — bishal@vibeset.ai.", links: [] }
 
-    // Best-effort lead alert: if the visitor signals client/employer/collaborator
-    // intent, forward the exchange to the same Netlify Forms inbox as the contact
-    // form so it emails Bishal. Fire-and-forget — never blocks or breaks the chat.
+    // Best-effort lead alert. This used to POST to Netlify Forms, which on this
+    // site receives nothing — preferStatic only covers GET, so the POST landed
+    // back in the SSR function and vanished. Same mail path the contact form
+    // uses now. Fire-and-forget: it must never block or break the chat.
     try {
       const intent =
         /\b(hir(e|ing)|work(ing)? with|collaborat|consult|project|build(ing)?|budget|pric(e|ing)|cost|quote|available|availabilit|retainer|contract|employ|reach out|contact|inquir)\b/i
       if (intent.test(message)) {
-        const origin = new URL(request.url).origin
-        const payload = new URLSearchParams({
-          'form-name': 'balgo-lead',
-          message: String(message).slice(0, 2000),
-          reply: String((result as any)?.reply ?? '').slice(0, 2000),
+        void sendMail({
+          subject: 'bishal.ai — someone asked Balgo about working together',
+          text: [
+            'Balgo picked up intent in a conversation on the site.',
+            `\n\nThey asked:\n${String(message).slice(0, 2000)}`,
+            `\n\nBalgo replied:\n${String((result as any)?.reply ?? '').slice(0, 2000)}`,
+            '\n\nNo contact details — this is a heads-up, not a lead form.',
+          ].join(''),
         })
-        void fetch(`${origin}/`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: payload.toString(),
-        }).catch(() => {})
       }
     } catch {}
 

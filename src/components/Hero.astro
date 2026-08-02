@@ -13,12 +13,15 @@
   <div class="hero-container">
     <p class="hero-kicker label-mono" id="hero-kicker">Bishal Upadhyaya · applied AI engineer</p>
 
-    <!-- The headline is what I build, not who I am. A founder landing here is
-         scanning for the domain; the byline above carries the person. -->
+    <!-- Three lines that are the offer and the engagement path at once:
+         understand it fast, build a proof worth arguing with, make it survive
+         production. The byline above carries the person; the domains sit
+         underneath, where someone scanning for "audio" or "multimodal" will
+         find them without the headline having to list keywords. -->
     <h1 class="hero-name" id="hero-name">
-      <span class="name-line"><span class="name-word">Production AI for</span></span>
-      <span class="name-line"><span class="name-word">audio, video, voice,</span></span>
-      <span class="name-line"><span class="name-word">and human data.</span></span>
+      <span class="name-line"><span class="name-word">Hard problems,</span></span>
+      <span class="name-line"><span class="name-word">proved quickly,</span></span>
+      <span class="name-line"><span class="name-word">built to hold.</span></span>
     </h1>
 
     <div class="hero-scope" id="hero-scope" aria-hidden="true">
@@ -28,13 +31,16 @@
     <div class="hero-split" id="split-layout">
       <div class="hero-left-column" id="hero-left">
         <p class="hero-tagline">
-          I help product and research teams turn hard multimodal ideas into systems that run — and hold
-          up once real data hits them.
+          Audio, video, voice and multimodal systems. Agents and retrieval. Scientific and behavioural
+          data. I work independently, with founders and research teams.
         </p>
 
+        <!-- The primary action is an invitation to hand something over, not a
+             request for a meeting. Sending a link costs a visitor nothing and
+             it is the fastest route to the thing this site is actually for. -->
         <p class="hero-actions">
-          <a class="btn-pill" href="/contact">Discuss a project</a>
-          <a class="hero-action-quiet" href="/work">Selected work ↳</a>
+          <a class="btn-pill" href="/#contact">Send me something</a>
+          <a class="hero-action-quiet" href="/#work">Selected work ↳</a>
         </p>
       </div>
 
@@ -84,9 +90,9 @@
           </form>
 
           <div class="balgo-starters" id="balgo-starters" aria-label="Suggested questions">
-            <button type="button" class="balgo-starter btn" data-prompt="What is Vibeset?">What is Vibeset?</button>
-            <button type="button" class="balgo-starter btn" data-prompt="Tell me about the research behind this site.">The research</button>
-            <button type="button" class="balgo-starter btn" data-prompt="How do I work with Bishal?">Work with Bishal</button>
+            <button type="button" class="balgo-starter btn" data-prompt="What has Bishal actually built?">The work</button>
+            <button type="button" class="balgo-starter btn" data-prompt="What is the research behind this site?">The research</button>
+            <button type="button" class="balgo-starter btn" data-prompt="How would a project with Bishal start?">How to start</button>
           </div>
         </div>
       </div>
@@ -605,7 +611,7 @@
             if (targetId && targetId.startsWith('#')) {
               e.preventDefault()
               let scrollTargetId = targetId
-              if (targetId.startsWith('#vibeset-')) scrollTargetId = '#vibeset'
+              if (targetId.startsWith('#vibeset-') || targetId === '#vibeset') scrollTargetId = '#work'
               else if (targetId.startsWith('#paper-')) scrollTargetId = targetId
               const targetElement = document.querySelector(scrollTargetId)
               if (targetElement) {
@@ -739,8 +745,9 @@
     margin: 0;
     color: var(--paper);
     font-weight: 600;
-    /* Three longer lines now, not two short words. */
-    font-size: clamp(1.9rem, 5.6vw, 4.2rem);
+    /* Three short lines. Big enough to be the first thing read, well short of
+       the 8.5rem the two-word version used — a claim is not a nameplate. */
+    font-size: clamp(2.4rem, 7vw, 5rem);
     line-height: 0.98;
     letter-spacing: -0.02em;
     font-family: var(--font-display);

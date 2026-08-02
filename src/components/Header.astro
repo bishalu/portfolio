@@ -7,7 +7,7 @@ import { Icon } from 'astro-icon/components'
  * Header Component - Bishal Upadhyaya Portfolio
  * Transparent → frosted-glass compressed bar on scroll (dvdrod.com pattern).
  *
- * Section links are root-relative (/#vibeset) so they work from every page,
+ * Section links are root-relative (/#work) so they work from every page,
  * not just home — the script below intercepts them and smooth-scrolls when
  * the target is already on this page. About is a real route; Research lives
  * on the home page and its full list hangs off that section, not the nav.
@@ -31,7 +31,7 @@ const isHome = Astro.url.pathname === '/'
       <a href="/#hero" class="nav-anchor">Home</a>
     </li>
     <li class="menu-item">
-      <a href="/#vibeset" class="nav-anchor">Vibeset</a>
+      <a href="/#work" class="nav-anchor">Work</a>
     </li>
     <li class="menu-item">
       <a href="/#research" class="nav-anchor">Research</a>
@@ -59,8 +59,8 @@ const isHome = Astro.url.pathname === '/'
     const header = document.getElementById('site-header') as HTMLElement | null
     if (!header) return
 
-    // Non-home pages sit on paper — keep the ink frost permanently so the
-    // header is always legible. Home starts transparent over the ink hero.
+    // Non-home pages keep the frost permanently so the bar always separates
+    // from the content under it. Home starts transparent over the hero.
     const isHome = window.location.pathname === '/'
 
     // Scroll compression — add .scrolled when past 60px
@@ -89,6 +89,41 @@ const isHome = Astro.url.pathname === '/'
         history.pushState(null, '', hash)
       })
     })
+
+    /* ── Where am I ────────────────────────────────────────────────────────
+       The home page is one long scroll through four sections, and until now the
+       nav gave no indication which one you were in. This marks the current
+       section as you pass through it — no new nav items, no new colours, just
+       the existing label losing its dimming and gaining a rule.
+
+       aria-current="true" rather than "page": the target is a section of this
+       page, not a different page. */
+    if (!isHome) return
+    const sections = Array.from(anchors)
+      .map((a) => ({ a, el: a.hash ? document.querySelector(a.hash) : null }))
+      .filter((s): s is { a: HTMLAnchorElement; el: Element } => !!s.el)
+    if (!sections.length) return
+
+    const mark = (active: Element | null) => {
+      for (const { a, el } of sections) {
+        const on = el === active
+        a.classList.toggle('is-current', on)
+        if (on) a.setAttribute('aria-current', 'true')
+        else a.removeAttribute('aria-current')
+      }
+    }
+
+    // Threshold sits near the top of the viewport so the "current" section is
+    // the one being read, not whichever happens to be largest on screen.
+    const spy = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) mark(entry.target)
+        }
+      },
+      { rootMargin: '-20% 0px -70% 0px' },
+    )
+    sections.forEach(({ el }) => spy.observe(el))
   })
 </script>
 
@@ -150,6 +185,24 @@ const isHome = Astro.url.pathname === '/'
       &:focus-visible {
         opacity: 0.7 !important;
         text-decoration: none;
+      }
+    }
+
+    /* The section you are in. Marked with a rule as well as weight — a colour
+       or opacity difference alone would be the only signal, and WCAG 1.4.1
+       rules that out. Nothing moves; the label just stops being one of five. */
+    a.is-current {
+      position: relative;
+      font-weight: 700;
+
+      &::after {
+        position: absolute;
+        bottom: -5px;
+        left: 0;
+        background: var(--crimson);
+        width: 100%;
+        height: 2px;
+        content: '';
       }
     }
 

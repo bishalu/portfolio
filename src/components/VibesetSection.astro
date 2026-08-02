@@ -1,9 +1,18 @@
 ---
 /**
- * Vibeset — the lifecycle triptych (docs/design/DESIGN.md §5–6).
- * Three stations on the signal: FIND (Curation, live search demo),
- * FIT (Cue, the shipped app), PROVE (Choon, in-browser stress test).
- * Eyebrows encode the real music lifecycle — not decoration.
+ * Work — the spine (docs/design/DESIGN.md §0, §5–6).
+ *
+ * Five stations on one signal path, not a card grid. Three of them are the
+ * Vibeset products, each with a running instrument: Curation (live search),
+ * Cue (local sync workbench), Choon (published eval, failing row included).
+ * Two are outside music — Golo and KTM Capital — and they are IN this spine
+ * rather than in a footnote strip after it, because they are the only evidence
+ * on the site for voice and for behaviour-shaped data, and those are two of the
+ * things the positioning leads with. A capability mentioned after the proof
+ * section has already lost the argument.
+ *
+ * Each station carries a transferable line: the thing it demonstrates that has
+ * nothing to do with music. That line is the section's whole job.
  */
 import { getCollection } from 'astro:content'
 import VibeFinder from '@components/VibeFinder.tsx'
@@ -19,14 +28,19 @@ const cue = bySlug['cue']
 const choon = bySlug['choon']
 ---
 
-<section class="vs" id="vibeset">
+<section class="vs" id="work">
+  <!-- /#work was the anchor for a year and is linked from the product pages,
+       the footer and anything anyone has bookmarked. It stays as an alias. -->
+  <span id="vibeset" class="vs-anchor" aria-hidden="true"></span>
   <div class="vs-inner">
     <header class="vs-head" data-reveal>
-      <p class="label-mono">Vibeset</p>
-      <h2 class="vs-title">One catalog, three products.</h2>
+      <p class="vs-head-eyebrow">Work</p>
+      <h2 class="vs-title">Where these systems ship today.</h2>
       <p class="vs-lede">
-        I co-own and build <a href="https://vibeset.ai" rel="noopener">Vibeset</a>. Find the track. Fit it to
-        picture. Prove what it is. All three are running below, if you'd like to try them.
+        Music is where this ships today. The problems underneath are not musical: audio understood at
+        catalog scale, video and sound aligned in time, retrieval that has to be cheap <em>and</em> right,
+        models small enough to run anywhere, and evaluation honest enough to trust. Three of these are
+        running below — the last two are not about music at all.
       </p>
     </header>
 
@@ -34,6 +48,7 @@ const choon = bySlug['choon']
     <article class="vs-station" data-reveal="settle">
       <div class="vs-copy">
         <p class="vs-eyebrow label-mono"><span class="vs-eyebrow-stage">{curation.eyebrow}</span> · {curation.name}</p>
+        <p class="vs-transfer">Retrieval that picks its own strategy</p>
         <h3 class="vs-name"><a href="/vibeset/curation">{curation.tagline}</a></h3>
         <p class="vs-desc">{curation.description}</p>
         <p class="vs-stats label-mono">
@@ -58,6 +73,7 @@ const choon = bySlug['choon']
     <article class="vs-station" data-reveal="settle">
       <div class="vs-copy">
         <p class="vs-eyebrow label-mono"><span class="vs-eyebrow-stage">{cue.eyebrow}</span> · {cue.name}</p>
+        <p class="vs-transfer">Two modalities, aligned in time</p>
         <h3 class="vs-name"><a href="/vibeset/cue">{cue.tagline}</a></h3>
         <p class="vs-desc">{cue.description}</p>
         <p class="vs-stats label-mono">
@@ -80,6 +96,7 @@ const choon = bySlug['choon']
     <article class="vs-station" data-reveal="settle">
       <div class="vs-copy">
         <p class="vs-eyebrow label-mono"><span class="vs-eyebrow-stage">{choon.eyebrow}</span> · {choon.name}</p>
+        <p class="vs-transfer">Representation learning, small enough to run</p>
         <h3 class="vs-name"><a href="/vibeset/choon">{choon.tagline}</a></h3>
         <p class="vs-desc">{choon.description}</p>
         <p class="vs-stats label-mono">
@@ -126,9 +143,49 @@ const choon = bySlug['choon']
       </div>
     </article>
 
-    <!-- ── The pipeline underneath all three ───────────────────────────── -->
+    <!-- ── Outside music ────────────────────────────────────────────────
+         Same spine, no demo panel: these have public source rather than a
+         running instrument, and pretending otherwise would need a fourth badge
+         word (DESIGN.md §4 allows exactly three). They are stations, not a
+         footnote, because voice and behaviour-shaped data are two of the things
+         the top of this page claims. -->
+    <article class="vs-station vs-station--quiet" data-reveal="settle">
+      <div class="vs-copy">
+        <p class="vs-eyebrow label-mono"><span class="vs-eyebrow-stage">VOICE</span> · Golo</p>
+        <p class="vs-transfer">Speech into a structured profile</p>
+        <h3 class="vs-name">
+          <a href="https://github.com/bishalu/veer" target="_blank" rel="noopener noreferrer">
+            Two minutes of talking, read as a personality profile ↳
+          </a>
+        </h3>
+        <p class="vs-desc">
+          Listens to someone speak and returns a structured psychological reading — Big Five, public and
+          private personas — with schema-enforced outputs across more than one model provider. The
+          interesting problem is making a model commit to a shape when the input is a human being talking.
+        </p>
+      </div>
+    </article>
+
+    <article class="vs-station vs-station--quiet" data-reveal="settle">
+      <div class="vs-copy">
+        <p class="vs-eyebrow label-mono"><span class="vs-eyebrow-stage">GUARDRAILS</span> · KTM Capital</p>
+        <p class="vs-transfer">Language models inside hard limits</p>
+        <h3 class="vs-name">
+          <a href="https://github.com/bishalu/ktm_capital" target="_blank" rel="noopener noreferrer">
+            News sentiment, traded against stop-losses that do not negotiate ↳
+          </a>
+        </h3>
+        <p class="vs-desc">
+          Paper trading on news sentiment, inside hard stop-loss and position caps the model cannot argue
+          its way past. The guardrails are the point, not the alpha — this is the shape any consequential
+          agent needs before it is allowed near anything real.
+        </p>
+      </div>
+    </article>
+
+    <!-- ── The pipeline underneath the music three ─────────────────────── -->
     <aside class="vs-pipe" data-reveal>
-      <p class="label-mono vs-pipe-title">Underneath</p>
+      <p class="label-mono vs-pipe-title">Underneath the three above</p>
       <!-- tabindex: the strip scrolls horizontally on narrow viewports, so it
            needs to be reachable and scrollable by keyboard. -->
       <ol class="vs-pipe-flow" aria-label="The pipeline underneath" tabindex="0">
@@ -157,6 +214,35 @@ const choon = bySlug['choon']
   .vs-head {
     margin-bottom: var(--space-2xl);
     max-width: 720px;
+  }
+
+  /* An eyebrow says where you are. It is not data, so it is not mono — that
+     voice is reserved for numbers and status (docs/design/DESIGN.md §3), and
+     spending it on every section header is what made the page read as an
+     instrument panel rather than a page. */
+  .vs-head-eyebrow {
+    margin: 0 0 var(--space-xs);
+    color: var(--paper-soft);
+    font-size: 0.95rem;
+  }
+
+  /* Retired anchor, kept addressable. Offset so a jump clears the fixed header. */
+  .vs-anchor {
+    display: block;
+    position: relative;
+    top: -80px;
+  }
+
+  /* What this station demonstrates that has nothing to do with music. It sits
+     above the product name deliberately: the transferable claim is what a
+     stranger is scanning for, and the product is the evidence for it. */
+  .vs-transfer {
+    margin: 0 0 var(--space-2xs);
+    color: var(--paper);
+    font-weight: 600;
+    font-size: clamp(1.05rem, 1.6vw, 1.2rem);
+    line-height: 1.35;
+    letter-spacing: -0.01em;
   }
 
   .vs-title {
@@ -190,6 +276,21 @@ const choon = bySlug['choon']
     gap: clamp(1.5rem, 4vw, 4rem);
     border-top: 1px solid var(--hairline-on-paper);
     padding: var(--space-2xl) 0;
+  }
+
+  /* No demo panel, so no empty right-hand column — the copy takes the measure
+     it would have had anyway rather than stretching across the full grid. */
+  .vs-station--quiet {
+    grid-template-columns: minmax(0, 1fr);
+    padding: var(--space-xl) 0;
+
+    .vs-copy {
+      max-width: 62ch;
+    }
+
+    .vs-name {
+      font-size: clamp(1rem, 1.6vw, 1.15rem);
+    }
   }
 
   .vs-eyebrow {

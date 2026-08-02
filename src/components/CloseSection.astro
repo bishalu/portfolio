@@ -13,7 +13,7 @@ import { NAAM_COPY } from '@/lib/naam/copy'
     <span id="work-with-me" class="cs-anchor" aria-hidden="true"></span>
 
     <header class="cs-head" data-reveal>
-      <p class="label-mono">Work with me</p>
+      <p class="cs-head-eyebrow">Work with me</p>
       <h2 class="cs-title">Bring me the hard part.</h2>
     </header>
 
@@ -30,8 +30,10 @@ import { NAAM_COPY } from '@/lib/naam/copy'
         <img src="/about-portrait.webp" alt="Bishal Upadhyaya" width="88" height="88" loading="lazy" decoding="async" />
       </span>
       <p class="cs-intro-line">
-        Start with a call. No charge. After that it's usually a monthly retainer, or a project I take end
-        to end. If I'm not the right fit, I'll say so, and point you to someone who is.
+        Send me a product, a workflow, a dataset, or the problem you can't get anyone to take seriously.
+        I'll usually come back with something you can look at. If it's worth continuing, a short paid
+        pilot; if that works, fractional or ongoing. And if I'm not the right fit, I'll say so and point
+        you to someone who is.
       </p>
     </div>
 
@@ -53,8 +55,13 @@ import { NAAM_COPY } from '@/lib/naam/copy'
           </svg>
         </div>
 
-        <form id="cs-form" class="cs-form" name="quick-contact" method="POST" action="/thank-you" data-netlify="true">
-          <input type="hidden" name="form-name" value="quick-contact" />
+        <!-- Posts to a real endpoint. This used to carry data-netlify and post
+             to Netlify Forms, which never received a single submission: Forms
+             intercepts at the edge, but this site is output:'server' and the
+             adapter's preferStatic only covers GET, so every POST landed in the
+             SSR function instead. /api/contact sends the mail itself. No JS
+             required — the endpoint answers a plain form POST with a 303. -->
+        <form id="cs-form" class="cs-form" name="contact" method="POST" action="/api/contact">
           <div class="cs-form-row">
             <label>
               <span class="label-mono">Name</span>
@@ -66,9 +73,24 @@ import { NAAM_COPY } from '@/lib/naam/copy'
             </label>
           </div>
           <label>
-            <span class="label-mono">What are we building?</span>
+            <span class="label-mono">A link, if there is one</span>
+            <input type="url" name="link" autocomplete="url" placeholder="https://" />
+          </label>
+          <label>
+            <span class="label-mono">What would you like me to look at?</span>
             <textarea name="message" rows="4" required></textarea>
           </label>
+
+          <!-- Honeypot. Real people never see it; bots fill everything. Kept out
+               of the accessibility tree AND out of tab order, so it cannot be
+               reached by keyboard or announced. -->
+          <div class="cs-hp" aria-hidden="true">
+            <label>
+              Company
+              <input type="text" name="company" tabindex="-1" autocomplete="off" />
+            </label>
+          </div>
+
           <button type="submit" class="cs-send btn">Send it ↳</button>
         </form>
       </div>
@@ -119,6 +141,12 @@ import { NAAM_COPY } from '@/lib/naam/copy'
 
   .cs-head {
     margin-bottom: var(--space-xl);
+  }
+
+  .cs-head-eyebrow {
+    margin: 0 0 var(--space-xs);
+    color: var(--paper-soft);
+    font-size: 0.95rem;
   }
 
   .cs-title {
@@ -215,6 +243,14 @@ import { NAAM_COPY } from '@/lib/naam/copy'
       outline: none;
       border-color: var(--crimson);
     }
+  }
+
+  .cs-hp {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
   }
 
   .cs-send {
