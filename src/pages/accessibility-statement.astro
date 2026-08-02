@@ -36,9 +36,8 @@ const lastVerified = 'August 2026'
     <div class="a11y-inner">
       <section class="a11y-section" data-reveal>
         <p class="a11y-lede">
-          This site targets <strong>WCAG 2.2 Level AA</strong>. That claim is checked by a script rather
-          than asserted — every number below is a gate in the build, and the check fails if any of them
-          regresses.
+          This site targets <strong>WCAG 2.2 Level AA</strong>. A script checks it on every build, and the
+          build fails if any of these slip.
         </p>
       </section>
 
@@ -64,52 +63,46 @@ const lastVerified = 'August 2026'
         <h2 class="a11y-h2"><span class="label-mono a11y-no">Built in</span>What that means in practice</h2>
         <ul class="a11y-list">
           <li>
-            <strong>Keyboard first.</strong> Every control is reachable and operable by keyboard, and focus
-            is always visible — a 2px crimson outline, never merged with the hover style.
+            <strong>Keyboard first.</strong> Every control works without a mouse, and focus is always
+            visible.
           </li>
           <li>
-            <strong>Motion is optional.</strong> With <code>prefers-reduced-motion</code> set, the page is
-            complete, functional and fully drawn — just still. Nothing is hidden and nothing collapses;
-            animated indicators render their resting state instead.
+            <strong>Motion is optional.</strong> Turn it off and the page is complete and fully drawn —
+            just still. Nothing hides, nothing collapses.
           </li>
           <li>
-            <strong>Nothing depends on JavaScript to be read.</strong> Scroll-reveal animations are
-            opt-out: without JS, all content renders immediately rather than staying invisible.
+            <strong>Nothing needs JavaScript to be read.</strong> Without it, everything renders
+            immediately instead of staying invisible.
           </li>
           <li>
-            <strong>Type is chosen for legibility.</strong> Body copy is set in Atkinson Hyperlegible,
-            designed to raise character distinction for low-vision readers.
+            <strong>Type is chosen for legibility.</strong> Body copy is Atkinson Hyperlegible, built to
+            keep characters distinct for low-vision readers.
           </li>
           <li>
-            <strong>Contrast is tokenized.</strong> Accent colours that do not meet AA at small sizes have
-            separate text-safe variants, so the accessible value is the easy one to reach for.
+            <strong>Contrast is built in.</strong> Accents that fail AA at small sizes have text-safe
+            variants, so the accessible colour is the easy one to reach for.
           </li>
           <li>
-            <strong>Loading never traps you.</strong> There are no spinners or skeleton screens; progress
-            is a labelled status region with a text caption.
+            <strong>No spinners.</strong> Progress is a labelled status region with a text caption.
           </li>
         </ul>
       </section>
 
       <section class="a11y-section" data-reveal>
         <h2 class="a11y-h2"><span class="label-mono a11y-no">Gaps</span>Where it falls short</h2>
-        <p>
-          A statement that lists no problems isn't a statement, it's marketing. Current known issues:
-        </p>
+        <p>A statement with no problems in it isn't a statement. So here are mine.</p>
         <ul class="a11y-list">
           <li>
-            <strong>The audio workbench is visual-first.</strong> The Choon stress test communicates
-            through a spectrum canvas. Results are announced as text, but the live spectrum itself has no
-            non-visual equivalent.
+            <strong>The audio workbench is visual-first.</strong> Results are announced as text, but the
+            live spectrum has no non-visual equivalent.
           </li>
           <li>
-            <strong>Automated testing has limits.</strong> Zero axe violations is a floor, not a
-            guarantee. Axe catches roughly a third to a half of real accessibility problems; the rest need
-            people. This site has not yet been tested by a screen-reader user who does not build it.
+            <strong>Automated testing has limits.</strong> Axe catches maybe half of real problems; the
+            rest need people. No screen-reader user other than me has tested this yet.
           </li>
           <li>
-            <strong>Third-party content isn't covered.</strong> Links out to the Vibeset products lead to
-            applications with their own, separately-tracked accessibility posture.
+            <strong>Third-party content isn't covered.</strong> The Vibeset products are separate
+            applications with their own posture.
           </li>
         </ul>
       </section>
@@ -117,8 +110,8 @@ const lastVerified = 'August 2026'
       <section class="a11y-section" data-reveal>
         <h2 class="a11y-h2"><span class="label-mono a11y-no">Contact</span>Found a barrier?</h2>
         <p>
-          Tell me and I'll fix it. Accessibility bugs go to the front of the queue — they're the one
-          category where "works for most people" isn't a passing grade.
+          Tell me and I'll fix it. These go to the front of the queue. It's the one place where "works for
+          most people" isn't good enough.
         </p>
         <p class="a11y-contact">
           <a class="a11y-mail" href="mailto:bishal@vibeset.ai?subject=Accessibility%20on%20bishal.ai"

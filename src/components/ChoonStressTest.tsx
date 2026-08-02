@@ -323,14 +323,14 @@ export default function ChoonStressTest() {
 
       <div className="ch-scope-wrap">
         <canvas ref={canvasRef} className="ch-scope" aria-hidden="true"></canvas>
-        {!playing && <p className="ch-scope-hint label-mono">▶ play the clip, mangle it, then identify it</p>}
+        {!playing && <p className="ch-scope-hint label-mono">▶ play it, mangle it, identify it</p>}
       </div>
 
       <div className="ch-id-row">
         <button type="button" className="ch-identify btn" onClick={identify} disabled={identifying}>
           Identify this
         </button>
-        <span className="ch-note label-mono">runs the real matcher on GCP</span>
+        <span className="ch-note label-mono">real matcher</span>
       </div>
 
       <div className="ch-result-zone" aria-live="polite">

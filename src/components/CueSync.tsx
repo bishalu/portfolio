@@ -266,13 +266,13 @@ export default function CueSync({ data }: { data: Fixture }) {
         <span className="cx-score-meta">
           <span className="cx-score-label label-mono">fit</span>
           <span className="cx-score-where">
-            {picks[pick]?.label ? `opens on the ${picks[pick].label}` : 'ordinary mid-song moment'}
+            {picks[pick]?.label ? `opens on the ${picks[pick].label}` : 'mid-song'}
           </span>
         </span>
       </p>
 
       <p className="cx-count label-mono">
-        {`${fit.count} of ${fit.total} cuts land on a beat · the other ${fit.total - fit.count} keep their own timing`}
+        {`${fit.count} of ${fit.total} cuts on a beat`}
       </p>
 
       <div className="cx-controls">
@@ -297,7 +297,7 @@ export default function CueSync({ data }: { data: Fixture }) {
 
       <p className="cx-note">
         {
-          'Three of the six offsets the ranker returned. This track is metronomic, so the same cuts land on a beat wherever you start — what changes is which beats, and what the song is doing there. The fit is recomputed here in your browser, with no call to anything; only each candidate’s audio is a separate clip, loaded when you pick it.'
+          'Three of six offsets the ranker picked. The cuts land on a beat wherever you start. What changes is which beats, and what the song is doing there.'
         }
       </p>
     </div>

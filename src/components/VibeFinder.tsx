@@ -244,7 +244,7 @@ export default function VibeFinder() {
       <div className="vf-results" aria-live="polite">
         {status === 'idle' && (
           <button type="button" className="vf-example btn" onClick={runExample}>
-            ▶ try it — melodic techno at 124–128 bpm
+            ▶ try melodic techno at 124–128
           </button>
         )}
 
@@ -263,7 +263,7 @@ export default function VibeFinder() {
                 {meta.ms != null ? `${meta.ms} ms · ` : ''}live
               </span>
             ) : (
-              <span className="vf-badge vf-badge-replay label-mono">replay — the API was napping; these are cached results</span>
+              <span className="vf-badge vf-badge-replay label-mono">replay — the API was napping</span>
             )}
 
             {/* Which of the three paths the router picked. Exact artist names
@@ -283,7 +283,7 @@ export default function VibeFinder() {
         )}
 
         {status === 'done' && tracks && tracks.length === 0 && (
-          <p className="vf-empty">Nothing matched that combination — loosen a filter and try again.</p>
+          <p className="vf-empty">Nothing matched. Try loosening a filter.</p>
         )}
 
         {status === 'done' && tracks && tracks.length > 0 && (

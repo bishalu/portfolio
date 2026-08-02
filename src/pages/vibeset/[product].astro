@@ -40,7 +40,7 @@ const routes = [
     hi: 10,
     when: 'The query names something exactly',
     example: 'artist = "Bicep", 124–128 bpm',
-    why: 'Indexed columns answer it. No model runs at all.',
+    why: 'Indexed columns answer it. No model runs.',
   },
   {
     name: 'hybrid',
@@ -48,7 +48,7 @@ const routes = [
     hi: 150,
     when: 'Part literal, part description',
     example: '"like Bicep but slower"',
-    why: 'Lexical match narrows the field, then vectors rank what survives.',
+    why: 'Text match narrows it down, then vectors rank what is left.',
   },
   {
     name: 'semantic',
@@ -56,7 +56,7 @@ const routes = [
     hi: 300,
     when: 'No literal to match on',
     example: '"last hour of a warehouse set"',
-    why: 'Embedding search over the whole catalog. The expensive path, earned.',
+    why: 'Embedding search across the catalog. The expensive path, earned.',
   },
 ]
 const LAT_TICKS = [1, 10, 100, 1000]
@@ -68,17 +68,17 @@ const LAT_TICKS = [1, 10, 100, 1000]
  * own route definitions.
  */
 const endpoints = [
-  { m: 'POST', p: '/v1/match', d: 'Match music to an analyzed video. Returns synchronously.' },
-  { m: 'POST', p: '/v1/videos/ingest', d: 'Hand over a video URL. Returns a job to poll.' },
-  { m: 'POST', p: '/v1/underscore', d: 'Score a cut end to end — analysis and match in one call.' },
-  { m: 'GET', p: '/v1/videos/{id}', d: 'Poll an ingest until analysis is ready.' },
-  { m: 'GET', p: '/v1/match/jobs/{id}', d: 'Poll an async match.' },
+  { m: 'POST', p: '/v1/match', d: 'Music for a video you have already sent.' },
+  { m: 'POST', p: '/v1/videos/ingest', d: 'Send a video URL. Returns a job to poll.' },
+  { m: 'POST', p: '/v1/underscore', d: 'Analyse and match in one call.' },
+  { m: 'GET', p: '/v1/videos/{id}', d: 'Is the analysis ready yet?' },
+  { m: 'GET', p: '/v1/match/jobs/{id}', d: 'Is the match ready yet?' },
 ]
 const apiFacts = [
   ['auth', 'per-account API keys, scoped and revocable'],
-  ['retries', 'Idempotency-Key header — a repeat is not a second charge'],
-  ['cost control', 'monthly spend cap per account, enforced server-side'],
-  ['metering', 'every call attributed to an account and key'],
+  ['retries', 'Idempotency-Key — a repeat is not a second charge'],
+  ['cost control', 'monthly spend cap, enforced server-side'],
+  ['metering', 'every call attributed to a key'],
 ]
 
 // Per-product media (visual artifacts live here, not in the collection)
@@ -171,11 +171,11 @@ const m = media[slug] ?? { type: 'gradient' }
       {
         slug === 'curation' && (
           <div class="vbp-demo">
-            <h2 class="vbp-demo-label label-mono">One query box, three ways to answer it</h2>
+            <h2 class="vbp-demo-label label-mono">Three ways to answer one query</h2>
             <p class="vbp-demo-note">
-              Most searches don't need an embedding model, and the ones that do are ruined by exact
-              matching. The router reads each query and picks. Note the axis: it's logarithmic,
-              because the cheap path is a hundred times cheaper.
+              Most searches don't need an embedding model. The ones that do are ruined by exact matching.
+              So the router reads the query and picks. The axis is logarithmic: the cheap path really is a
+              hundred times cheaper.
             </p>
 
             <div class="rt-router">
@@ -214,8 +214,8 @@ const m = media[slug] ?? { type: 'gradient' }
           <div class="vbp-demo">
             <h2 class="vbp-demo-label label-mono">There's an API behind it</h2>
             <p class="vbp-demo-note">
-              Cue is a product and a service. The endpoints below are the real contract — key-gated,
-              so this is a reference rather than something you can run from here.
+              Cue is a service too. Here is the contract. It's key-gated, so this is a reference rather
+              than something you can run from here.
             </p>
 
             <ul class="api-list">
@@ -243,15 +243,12 @@ const m = media[slug] ?? { type: 'gradient' }
       {
         slug === 'choon' && (
           <div class="vbp-demo">
-            <h2 class="vbp-demo-label label-mono">
-              Break it yourself — degrade a clip, then ask it what the track is
-            </h2>
+            <h2 class="vbp-demo-label label-mono">Try breaking it</h2>
             <p class="vbp-demo-note">
-              The distortion runs in your browser so you can hear it, and the same settings go to
-              the production matcher on GCP — so what it identifies is what you heard. Watch the
-              two channels: clean audio is answered by the fast spectral pass, and anything
-              degraded collapses that score to nothing while the embedding model carries it. Full
-              numbers in the <a href="/notes/choon">case note</a>.
+              The distortion runs in your browser, and the same settings go to the real matcher. So it
+              identifies what you just heard. Watch the two channels. Clean audio goes to the fast one;
+              anything mangled falls to the model. Full numbers in the
+              <a href="/notes/choon">case note</a>.
             </p>
             <ChoonStressTest client:visible />
           </div>
