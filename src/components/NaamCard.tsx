@@ -54,6 +54,7 @@
  * unfocusable; a dead enabled one is neither. Sizes are identical either way,
  * so nothing shifts (CLS floor is 0).
  */
+import type { MouseEvent } from 'react'
 import { NAAM_COPY } from '@/lib/naam/copy'
 import { naamPreferredDevanagari, naamPreferredForm, type NaamRow } from '@/types/naam'
 
@@ -112,8 +113,39 @@ export default function NaamCard({
     C.page(row.page),
   ]
 
+  /**
+   * THE WHOLE CARD KEEPS THE NAME. Asking someone to find a small pill in the
+   * corner of a card is three steps — notice it, aim at it, work out that it
+   * and not the name above it is the thing that chooses — for one idea.
+   *
+   * Two regions opt out, because they do a different job and both are one tap
+   * of their own: the व/ब pill, which changes how a name is SPELLED rather
+   * than choosing it, and "from the document", which is the source disclosure
+   * this entire page exists to honour. Anything else on the card is Keep.
+   *
+   * The real <button> is still rendered and still does the work, so the
+   * accessibility tree has exactly one properly-named control per card and the
+   * keyboard path is unchanged — this only widens where a pointer may land.
+   * The button's own click is left to bubble: forwarding it here as well would
+   * keep the name and immediately un-keep it.
+   */
+  const keepFromCard = (event: MouseEvent<HTMLElement>) => {
+    if (!onPick || (trayFull && !picked)) return
+    const target = event.target as HTMLElement
+    if (target.closest('.nm-source') || target.closest('.nm-swap') || target.closest('.nm-pick')) return
+    onPick()
+  }
+
   return (
-    <article className="nm-card" data-nm-card={row.id} data-picked={picked ? 'true' : undefined}>
+    /* Both rules are asking for the keyboard path, and the keyboard path is the
+       real <button> rendered inside this article — properly labelled, in the
+       tab order, doing exactly this. Adding onKeyDown here would give a
+       screen-reader user a second, unlabelled way to keep the same name, and
+       making the <article> a button would nest the disclosure inside it, which
+       axe rejects outright (nested-interactive). This widens where a POINTER
+       may land and changes nothing else. */
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
+    <article className="nm-card" data-nm-card={row.id} data-picked={picked ? 'true' : undefined} onClick={keepFromCard}>
       <div className="nm-card-name">
         <span className="nm-deva" data-nm-deva lang="sa-Deva">
           {devanagari}

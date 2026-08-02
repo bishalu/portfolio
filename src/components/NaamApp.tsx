@@ -395,6 +395,12 @@ export default function NaamApp({ seed }: NaamAppProps) {
   const [sending, setSending] = useState(false)
   const [sendNote, setSendNote] = useState('')
   /**
+   * A name they typed rather than kept. Controlled, because Send has to know
+   * whether it is empty: with no picks AND no typed name there is nothing to
+   * send, and with either one there is.
+   */
+  const [own, setOwn] = useState('')
+  /**
    * Passed turns the visitor has pressed back open. It is never cleared: a bead
    * they chose to re-open stays open, because closing it again on the next ask
    * would be the page overruling a decision it had just been asked to make.
@@ -935,6 +941,10 @@ export default function NaamApp({ seed }: NaamAppProps) {
       const from = String(data.get('from') ?? '').trim()
       const relation = String(data.get('relation') ?? '')
       const reason = String(data.get('reason') ?? '')
+      // The name they typed themselves, if any. It has always been carried by
+      // both endpoints; the app was the only surface that never collected it
+      // and posted an empty string every time.
+      const names = String(data.get('names') ?? '').trim()
       setSending(true)
       setSendNote('')
 
@@ -943,7 +953,7 @@ export default function NaamApp({ seed }: NaamAppProps) {
         from,
         relation,
         picks: JSON.stringify(picks),
-        names: '',
+        names,
         reason,
       })
 
@@ -968,7 +978,7 @@ export default function NaamApp({ seed }: NaamAppProps) {
         const res = await fetch('/api/naam-submit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ from, relation, reason, names: '', picks }),
+          body: JSON.stringify({ from, relation, reason, names, picks }),
           keepalive: true,
         })
         rateLimited = res.status === 429
@@ -1327,6 +1337,36 @@ export default function NaamApp({ seed }: NaamAppProps) {
               </span>
             </div>
 
+            {/* A NAME OF THEIR OWN, and this is the right place for it rather
+                than a button on the first screen. Someone arrives with a name
+                already in mind — that is the commonest thing a relative has —
+                and until now the page had no answer but "it is not in the
+                document". The field has existed in /api/naam-submit and in the
+                no-JS form since the beginning; the app simply never showed it,
+                and posted names:'' every time.
+
+                It sits UNDER the picks and above Kina?, so it reads as "and
+                also this" rather than as an alternative to the whole exercise,
+                and it is invisible until the visitor has engaged enough for the
+                form to open. Not in the way; obvious once you are looking for
+                it. */}
+            <span className="nm-field">
+              <label className="label-mono label-mono--sm" htmlFor="nma-own">
+                {C.form.names.label}
+              </label>
+              <input
+                id="nma-own"
+                name="names"
+                type="text"
+                value={own}
+                maxLength={C.limits.names}
+                placeholder={C.form.names.placeholder}
+                autoComplete="off"
+                onChange={(event) => setOwn(event.target.value)}
+              />
+              <span className="nm-field-help label-mono label-mono--sm">{C.form.names.helper}</span>
+            </span>
+
             <span className="nm-field">
               <label className="label-mono label-mono--sm" htmlFor="nma-reason">
                 {C.app.send.why}
@@ -1334,7 +1374,14 @@ export default function NaamApp({ seed }: NaamAppProps) {
               <textarea id="nma-reason" name="reason" rows={2} maxLength={C.limits.reason}></textarea>
             </span>
 
-            <button type="submit" className="nm-send-go" disabled={sending || picks.length === 0}>
+            {/* Either a kept name or one they typed is enough to send. Requiring
+                a pick would make the field above unreachable for the one person
+                it exists for. */}
+            <button
+              type="submit"
+              className="nm-send-go"
+              disabled={sending || (picks.length === 0 && own.trim().length === 0)}
+            >
               {C.app.send.submit}
             </button>
 

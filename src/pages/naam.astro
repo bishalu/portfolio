@@ -462,6 +462,30 @@ if (!seedRow) {
       overflow: clip;
     }
 
+    /* THE SLOTS ARE PINNED; THE HAND SCROLLS. `overflow: clip` on the tray was
+       silently eating whichever end of the column ran out of room, and opening
+       "from the document" is enough to do it: the disclosure adds a verbatim
+       block to a card, the hand grows by a couple of hundred pixels, and the
+       three slots — the thing the page is asking the visitor to fill — were
+       pushed off the bottom of their own column with no way to reach them.
+
+       The hand is the part that varies, so the hand is the part that gives.
+       Same arrangement as the stacked layout, for the same reason. */
+    .nm-hand {
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+
+    .nm-hand > .nm-deal {
+      max-height: 100%;
+      overflow-y: auto;
+    }
+
+    .nm-tray-head,
+    .nm-slots {
+      flex: 0 0 auto;
+    }
+
     .nm-composer {
       grid-area: composer;
     }
@@ -611,6 +635,14 @@ if (!seedRow) {
     box-shadow:
       0 0 0 1px color-mix(in srgb, var(--nm-keep) 34%, transparent),
       0 6px 22px -12px color-mix(in srgb, var(--nm-keep) 60%, transparent);
+  }
+
+  /* Under an optional field, explaining the one thing a label cannot: that any
+     spelling is fine and it need not come from the document. */
+  .nm-field-help {
+    display: block;
+    margin-top: 0.2rem;
+    color: var(--nm-text-soft);
   }
 
   /* What the topbar used to hold, at the weight it deserved all along. */
@@ -1556,9 +1588,14 @@ if (!seedRow) {
 
   .nm-card {
     display: flex;
+    /* The stretched Keep overlay is positioned against this. */
+    position: relative;
     flex-direction: column;
     gap: var(--space-2xs);
-    transition: border-color var(--dur-base) ease;
+    transition:
+      border-color var(--dur-base) ease,
+      box-shadow var(--dur-base) ease,
+      transform var(--dur-base) ease;
     box-shadow: var(--nm-shadow, none);
     border: 1px solid var(--nm-hair);
     border-radius: 12px;
@@ -1743,14 +1780,36 @@ if (!seedRow) {
     padding-top: var(--space-2xs);
   }
 
+  /* ── KEEP ──────────────────────────────────────────────────────────────
+     THE WHOLE CARD IS THE TARGET. A quiet outlined pill in a corner asks the
+     visitor to notice it, aim at it, and work out that it — and not the name
+     above it — is the thing that chooses. Three steps for one idea.
+
+     The click lives on the <article> in NaamCard.tsx; the real <button> is
+     still there and still does the work, so keyboard and screen-reader users
+     get one properly-labelled control per card and nothing is nested inside
+     anything interactive.
+
+     I tried the stretched-pseudo-element pattern first — `.nm-pick::after`
+     with `inset: 0` over the card — and it is written up everywhere, but it
+     did not survive verification here: `elementFromPoint` reported the button
+     at every point on the card while a real mouse press produced no click at
+     all. Rather than ship an interaction whose only evidence was a synthetic
+     event I had dispatched onto the button myself, it went.
+
+     The pill is FILLED now rather than outlined. Marigold is ~2:1 on rice and
+     can never carry type here, so the fill is the pale keep-fill with a
+     marigold edge and the word stays in --nm-text: it reads as a control at a
+     glance without putting text on a colour that cannot hold it. */
   .nm-pick {
     transition:
       border-color var(--dur-base) ease,
-      background var(--dur-base) ease;
+      background var(--dur-base) ease,
+      box-shadow var(--dur-base) ease;
     cursor: pointer;
-    border: 1px solid var(--nm-hair-strong);
+    border: 1px solid var(--nm-keep);
     border-radius: 999px;
-    background: transparent;
+    background: color-mix(in srgb, var(--nm-keep) 10%, transparent);
     padding: 0.32rem 0.9rem;
     color: var(--nm-text);
 
@@ -1763,6 +1822,27 @@ if (!seedRow) {
       opacity: 0.5;
       cursor: default;
     }
+  }
+
+  /* The card is the target, so the card is what reacts — and it reacts to
+     :focus-within too, or a keyboard user gets none of the feedback a mouse
+     user gets for free. */
+  .nm-card:has(.nm-pick:not(:disabled)) {
+    cursor: pointer;
+  }
+
+  .nm-card:has(.nm-pick:not(:disabled)):hover,
+  .nm-card:has(.nm-pick:focus-visible) {
+    transform: translateY(-2px);
+    box-shadow:
+      0 2px 4px -2px color-mix(in srgb, var(--nm-text) 14%, transparent),
+      0 12px 24px -14px color-mix(in srgb, var(--nm-keep) 70%, transparent);
+    border-color: var(--nm-keep);
+  }
+
+  .nm-card:has(.nm-pick:not(:disabled)):hover .nm-pick,
+  .nm-card:has(.nm-pick:focus-visible) .nm-pick {
+    background: var(--nm-keep-fill);
   }
 
   .nm-source {
@@ -2375,6 +2455,22 @@ if (!seedRow) {
 
     .nm-dealt {
       animation: none;
+    }
+
+    /* The card still ANSWERS a hover — the border and the shadow warm, which is
+       how a visitor knows the whole surface is the button — it just stops
+       moving. WCAG 2.3.3 is about motion, not about feedback, and taking the
+       feedback away would leave the one control on the card with no hover
+       state at all. */
+    .nm-card,
+    .nm-card:has(.nm-pick:not(:disabled)):hover,
+    .nm-card:has(.nm-pick:focus-visible) {
+      transform: none;
+    }
+
+    /* The ground still changes state per name kept; it stops easing into it. */
+    .nm-room {
+      transition: none;
     }
 
     /* The lamp stays LIT and stops moving — it is not hidden. An unmoving lit
