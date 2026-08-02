@@ -11,11 +11,14 @@
 
 <section class="hero on-ink" id="hero">
   <div class="hero-container">
-    <p class="hero-kicker label-mono" id="hero-kicker">AI systems architect · research → production</p>
+    <p class="hero-kicker label-mono" id="hero-kicker">Bishal Upadhyaya · applied AI engineer</p>
 
+    <!-- The headline is what I build, not who I am. A founder landing here is
+         scanning for the domain; the byline above carries the person. -->
     <h1 class="hero-name" id="hero-name">
-      <span class="name-line"><span class="name-word">Bishal</span></span>
-      <span class="name-line"><span class="name-word">Upadhyaya.</span></span>
+      <span class="name-line"><span class="name-word">Production AI for</span></span>
+      <span class="name-line"><span class="name-word">audio, video, voice,</span></span>
+      <span class="name-line"><span class="name-word">and human data.</span></span>
     </h1>
 
     <div class="hero-scope" id="hero-scope" aria-hidden="true">
@@ -25,9 +28,13 @@
     <div class="hero-split" id="split-layout">
       <div class="hero-left-column" id="hero-left">
         <p class="hero-tagline">
-          I build AI systems, start to finish.<br />
-          Research becomes something people use.<br />
-          <strong>Right now, that's Vibeset.</strong>
+          I help product and research teams turn hard multimodal ideas into systems that run — and hold
+          up once real data hits them.
+        </p>
+
+        <p class="hero-actions">
+          <a class="btn-pill" href="/contact">Discuss a project</a>
+          <a class="hero-action-quiet" href="/work">Selected work ↳</a>
         </p>
       </div>
 
@@ -35,7 +42,7 @@
         <div class="balgo-portal" id="balgo-portal" data-state="collapsed">
           <div class="portal-header" id="portal-header">
             <span class="live-dot" aria-hidden="true"></span>
-            <span class="portal-status label-mono">Available for work</span>
+            <span class="portal-status label-mono">Ask about the work</span>
           </div>
 
           <button type="button" class="portal-close" id="portal-close" aria-label="Close chat">
@@ -715,7 +722,8 @@
     margin: 0;
     color: var(--paper);
     font-weight: 600;
-    font-size: clamp(3.2rem, 11.5vw, 8.5rem);
+    /* Three longer lines now, not two short words. */
+    font-size: clamp(1.9rem, 5.6vw, 4.2rem);
     line-height: 0.98;
     letter-spacing: -0.02em;
     font-family: var(--font-display);
@@ -791,6 +799,23 @@
 
   .hero-left-column {
     opacity: 0;
+  }
+
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-s) var(--space-m);
+    margin: var(--space-m) 0 0;
+  }
+
+  .hero-action-quiet {
+    color: var(--paper-soft);
+    font-size: 0.95rem;
+
+    &:hover {
+      color: var(--marigold-text);
+    }
   }
 
   .hero-tagline {
@@ -888,7 +913,7 @@
     color: var(--paper-soft);
 
     &:hover .label-mono {
-      color: var(--marigold);
+      color: var(--marigold-text);
     }
   }
 
@@ -988,7 +1013,7 @@
     background: var(--crimson-deep);
     width: 40px;
     height: 40px;
-    color: var(--paper);
+    color: var(--on-fill);
 
     &:hover:not(:disabled) {
       box-shadow: var(--glow-crimson);
@@ -1027,7 +1052,7 @@
 
     &:hover {
       border-color: var(--marigold);
-      color: var(--marigold);
+      color: var(--marigold-text);
     }
   }
 
@@ -1084,7 +1109,7 @@
   }
 
   :global(.msg-ai-name) {
-    color: var(--marigold);
+    color: var(--marigold-text);
   }
 
   :global(.msg-links) {
@@ -1112,11 +1137,11 @@
 
   :global(.msg-link:hover) {
     border-color: var(--marigold);
-    color: var(--marigold);
+    color: var(--marigold-text);
   }
 
   :global(.msg-link-glyph) {
-    color: var(--marigold);
+    color: var(--marigold-text);
   }
 
   /* ── Responsive ─────────────────────────────────────────────────────────── */

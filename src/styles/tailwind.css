@@ -67,7 +67,7 @@ a {
 }
 
 a:hover {
-  color: var(--marigold);
+  color: var(--marigold-text);
 }
 
 /* Mono label — eyebrows, data, badges. The site's labeling voice. */
@@ -101,7 +101,7 @@ a:hover {
   border-radius: var(--radius-pill);
   background: var(--crimson-deep);
   padding: 0.58rem 1.3rem;
-  color: var(--paper);
+  color: var(--on-fill);
   font-weight: 500;
   font-size: 0.8rem;
   letter-spacing: var(--tracking-label);
@@ -112,7 +112,7 @@ a:hover {
 
 .btn-pill:hover {
   box-shadow: var(--glow-crimson);
-  color: var(--paper);
+  color: var(--on-fill);
 }
 
 /* Legacy: full-bleed "ink bands" — now transparent; the night is everywhere.

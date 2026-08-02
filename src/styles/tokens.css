@@ -27,6 +27,12 @@
   --glacier: #4ca8a2; /* live/success dots and non-text accents */
   --glacier-text: #6fc7c1; /* AA-safe glacier for LIVE badge text on night */
 
+  /* Label colour for text sitting ON a filled --crimson-deep surface. Distinct
+     from --paper because the two only coincide on the night canvas: the page's
+     primary text and a button's label are different jobs and they diverge the
+     moment the ground changes. */
+  --on-fill: var(--paper);
+
   /* Legacy alias — secondary text (was ink-on-paper, now paper-on-night) */
   --ink-soft: var(--paper-soft);
 
@@ -36,6 +42,11 @@
   /* ── Hairlines & glow ─────────────────────────────────────────────────── */
   --hairline-on-ink: rgba(250, 247, 241, 0.14);
   --hairline-on-paper: var(--hairline-on-ink); /* legacy alias — one world now */
+  /* The faintest possible fill — hover states, wells, chart reference lines.
+     Hand-written as bone-at-8-to-12% in three places today; those consumers move
+     onto this token in the same change that flips the ground, because that is
+     the change where a 2% alpha difference stops being invisible. */
+  --wash: rgba(250, 247, 241, 0.1);
   --glow-crimson: 0 0 28px rgba(214, 69, 83, 0.35);
   --glow-marigold: 0 0 28px rgba(239, 163, 59, 0.3);
   --glow-glacier: 0 0 24px rgba(76, 168, 162, 0.35);
@@ -72,7 +83,7 @@
   --foreground-color: var(--paper);
   --background-color: var(--void);
   --link-color: var(--crimson-text);
-  --link-hover-color: var(--marigold);
+  --link-hover-color: var(--marigold-text);
   --border-color: var(--hairline-on-ink);
   --border-color-subtle: rgba(250, 247, 241, 0.08);
   --text-decoration-color: var(--hairline-on-ink);
@@ -81,7 +92,7 @@
 
   --color-living-teal: var(--glacier);
   --color-moss-green: var(--glacier);
-  --color-sunset-coral: var(--marigold);
+  --color-sunset-coral: var(--marigold-text);
   --color-warm-gray: var(--paper-soft);
   --color-charcoal-text: var(--paper);
   --color-deep-moss: var(--ink);
