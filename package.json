@@ -9,10 +9,11 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
-    "prebuild": "node scripts/check-claims.mjs && node scripts/gen-balgo-context.mjs",
+    "prebuild": "node scripts/check-claims.mjs && node scripts/gen-balgo-context.mjs && node scripts/naam/build-dataset.mjs --check",
     "build": "astro build",
     "preview": "astro preview",
     "claims": "node scripts/check-claims.mjs",
+    "naam:build": "node scripts/naam/build-dataset.mjs",
     "verify": "node scripts/verify/run.mjs"
   },
   "keywords": [

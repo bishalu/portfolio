@@ -50,10 +50,18 @@ footer a {
   }
 }
 
-*:focus,
-*:focus-visible {
-  @include outline;
-}
+/* Focus belongs to src/styles/motion.css, which declares the spec's own ring:
+   2px solid var(--crimson) at 2px offset (docs/design/MOTION.md §2, DESIGN.md
+   P10). This file used to shadow it with `@include outline` — 2px DASHED BLACK
+   plus a 2px white box-shadow. Both rules sit at (0,1,0) specificity and the
+   global SCSS bundle is imported after tailwind.css, so the black one won and
+   motion.css's rule was dead code. Worse, components that set their own
+   box-shadow (`.btn-pill`) wiped out the white halo, leaving a black dashed
+   ring on the --void canvas: keyboard focus was invisible site-wide, which is
+   WCAG 2.4.7 and the one thing P10 calls a floor. Black-on-white is a leftover
+   from before the site went dark-only (P1).
+
+   Deleting the override is the fix; motion.css already says the right thing. */
 
 *:focus:not(:focus-visible) {
   outline: none;

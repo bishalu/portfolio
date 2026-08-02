@@ -1,0 +1,1802 @@
+---
+/**
+ * /naam — a family asking for help naming their son.
+ * Spec: docs/design/DESIGN.md (Alpenglow) · docs/design/MOTION.md.
+ *
+ * WHY THIS PAGE LOOKS LIKE THIS. The site's thesis is an instrument reading a
+ * signal (DESIGN.md §0). A name is a signal — a sound you will say ten
+ * thousand times — and the source document says so itself: its legend defines
+ * `f?` as "grammatically feminine ending (say it aloud to judge)". So the page
+ * is a listening instrument, every name sits on a --grad-signal rule with one
+ * tick per syllable, and the व/ब swap lives on the first tick because that is
+ * the syllable it changes. See src/components/NaamCard.tsx.
+ *
+ * WHY PROVENANCE IS TYPE AND NOT A BADGE: §4 allows three badge words and
+ * forbids a fourth, and P5 already makes mono the voice of data. So every
+ * meaning — on the card and in its disclosure — is mono at --paper-soft,
+ * because a meaning always originates with the document; our tidy expands
+ * abbreviations and drops citation debris, it never writes a new sentence.
+ * This site's own voice is the match reasons and the assistant's framing, and
+ * those are Atkinson prose. Verbatim-vs-tidied is then stated in words inside
+ * the disclosure rather than encoded in a typeface — see NaamCard.tsx for why
+ * switching face per row read as a rendering bug rather than as provenance.
+ *
+ * WHY THE SHORTLIST IS SERVER-RENDERED: it is the no-JS content guarantee.
+ * With JavaScript off, the three disclosures below still open, and every name
+ * in them still carries its meaning, its sources and its page number — and the
+ * suggestion form still posts, because action="/thank-you" is the no-JS path.
+ * The islands are the enhancement, not the content.
+ *
+ * WHY THE STYLES ARE HERE AND is:global: island CSS cannot live in
+ * _widgets.scss, which is inside the 68 KB global bundle every route pays for;
+ * a frontmatter/page style block is chunked per page in Astro 5. is:global is
+ * required because Astro's scoping never reaches React-rendered DOM. Every
+ * class is .nm-* so it cannot collide with anything.
+ *
+ * The PDF is untracked and this repo is public, so page numbers are cited as
+ * text and the document itself is not served.
+ */
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import DefaultLayout from '@layouts/DefaultLayout.astro'
+import NaamBrowse from '@components/NaamBrowse.tsx'
+import NaamCard from '@components/NaamCard.tsx'
+import NaamGuide from '@components/NaamGuide.tsx'
+import { NAAM_COPY, NAAM_RELATIONS } from '@/lib/naam/copy'
+import { NAAM_SEED_DOCUMENTED, NAAM_SEED_ROWS } from '@/lib/naam/seeds'
+import { NAAM_COUNTS, NAAM_FEATURED, NAAM_PROVENANCE } from '@/generated/naam-facts'
+import { isNaamGold, type NaamLetter, type NaamRow } from '@/types/naam'
+
+export const prerender = true
+
+const C = NAAM_COPY
+
+/**
+ * Read at build time, not imported: a 1.1 MB JSON import would hand tsc a
+ * 2,097-element literal to infer and drag the whole dataset into the server
+ * bundle. This runs at prerender time only, off the project root — resolving
+ * against import.meta.url would land in the adapter's build directory. The
+ * browser fetches the same file on idle (src/lib/naam/tray.ts).
+ */
+const rows = JSON.parse(readFileSync(resolve(process.cwd(), 'public/naam/names-core.json'), 'utf8')) as NaamRow[]
+const byId = new Map(rows.map((row) => [row.id, row]))
+
+/**
+ * Enough to be genuinely useful without turning the page into a directory.
+ * 24 each put 72 cards under three collapsed disclosures and ran the page to
+ * 5,856px on a phone; the browse section below does the same job with filters.
+ * 12 is still a real shortlist and halves both the DOM and the scroll.
+ */
+const PER_LETTER = 12
+const LETTERS: NaamLetter[] = ['B', 'S', 'V']
+
+/**
+ * The generated featured set first (deterministic, curated by the dataset
+ * build), then the document's own gold rows — attested AND evocative — in
+ * document order. Both halves are a pure function of the committed data, so
+ * two builds produce the same page.
+ */
+const shortlist = LETTERS.map((letter) => {
+  const featured = NAAM_FEATURED.map((id) => byId.get(id)).filter(
+    (row): row is NaamRow => row !== undefined && row.letter === letter,
+  )
+  const taken = new Set(featured.map((row) => row.id))
+  const gold = rows.filter(
+    (row) => row.letter === letter && isNaamGold(row) && !row.badges.hardCluster && !taken.has(row.id),
+  )
+  return { letter, rows: [...featured, ...gold].slice(0, PER_LETTER) }
+})
+
+/**
+ * Byan is a real row — Vyan / Byan, p.120 — so it renders as a full card, with
+ * a source block and a working व/ब control, because it is itself a V→B name.
+ * It is the seed that makes the wall's point.
+ *
+ * It is also the seed that silently vanished: the document files it under
+ * "More", this page reads only names-core.json, `byId.get('vyan')` returned
+ * undefined and `{seedRow && …}` rendered nothing at all — no error, no build
+ * failure, no gap in the layout, and a wall whose five remaining cards all read
+ * "not in the document". scripts/naam/build-dataset.mjs now forces it into core
+ * (CORE_EXTRA_IDS); this throws rather than shrugging if that ever stops being
+ * true.
+ */
+const seedRow = byId.get(NAAM_SEED_DOCUMENTED.id)
+if (!seedRow) {
+  throw new Error(
+    `/naam: the documented seed '${NAAM_SEED_DOCUMENTED.id}' is not in public/naam/names-core.json. ` +
+      'Add it to CORE_EXTRA_IDS in scripts/naam/build-dataset.mjs and re-run `npm run naam:build`.',
+  )
+}
+
+const letterOptions = C.guide.questions.find((q) => q.key === 'letters')?.options ?? []
+const letterNote = (letter: NaamLetter) =>
+  (letterOptions as readonly { value: unknown; label: string; note?: string }[]).find((o) => o.value === letter)
+    ?.note ?? ''
+---
+
+<DefaultLayout title={C.meta.title} description={C.meta.description}>
+  <link slot="head" rel="preload" href="/fonts/Mukta-Devanagari-400.woff2" as="font" type="font/woff2" crossorigin />
+
+  <article class="nm">
+    <div class="nm-inner">
+      <header class="nm-head" data-reveal>
+        <p class="label-mono nm-eyebrow">
+          <a href="/">← bishal.ai</a> · {C.hero.eyebrow}
+        </p>
+        <h1 class="nm-title">{C.hero.headline}</h1>
+        <p class="nm-standfirst">{C.hero.standfirst}</p>
+
+        <!-- Controls before footnotes. The B/S/V line is the nicest detail on
+             the page but it is not the ask, and it used to sit between the
+             standfirst and the doors along with a Devanagari disclaimer about
+             glyphs that had not appeared yet. Both are now below the fold-line
+             control (the Devanagari note moved to the page footer, next to the
+             source attribution where the claim it qualifies actually lives). -->
+        <ul class="nm-doors">
+          <li><a class="btn-pill nm-start" href="#nm-guide">{C.doors.guided.label}</a></li>
+          <li><a class="nm-quiet-link" href="#nm-ask">{C.doors.freeform.label}</a></li>
+        </ul>
+
+        <p class="nm-letters">{C.hero.letters}</p>
+      </header>
+
+      <section class="nm-section" id="nm-guide" aria-label={C.doors.guided.label}>
+        <noscript>
+          <p class="nm-note">{C.noscript}</p>
+        </noscript>
+        <NaamGuide client:idle />
+      </section>
+
+      <section class="nm-section" id="nm-shortlist" data-reveal>
+        <h2 class="nm-h2">{C.shortlist.heading}</h2>
+        <p class="nm-standfirst">{C.shortlist.standfirst(PER_LETTER)}</p>
+
+        {
+          shortlist.map((group) => (
+            <details class="nm-letter">
+              <summary class="label-mono nm-letter-summary">
+                <span class="nm-letter-key">{group.letter}</span>
+                <span class="nm-letter-note">{letterNote(group.letter)}</span>
+                <span class="nm-letter-count">
+                  {C.shortlist.letterCount(group.rows.length, NAAM_COUNTS.perLetter[group.letter])}
+                </span>
+              </summary>
+              <div class="nm-grid">
+                {group.rows.map((row) => (
+                  <NaamCard row={row} preferB={true} />
+                ))}
+              </div>
+            </details>
+          ))
+        }
+      </section>
+
+      <section class="nm-section" id="nm-browse" data-reveal>
+        <h2 class="nm-h2">{C.browse.heading}</h2>
+        <NaamBrowse client:visible />
+      </section>
+
+      <section class="nm-section" id="nm-form" data-reveal>
+        <h2 class="nm-h2">{C.form.heading}</h2>
+        <p class="nm-standfirst">{C.form.standfirst}</p>
+
+        <form
+          class="nm-form"
+          name="naam-suggestion"
+          method="POST"
+          action="/thank-you"
+          data-netlify="true"
+          netlify-honeypot="bot-field"
+        >
+          <input type="hidden" name="form-name" value="naam-suggestion" />
+          <p hidden>
+            <label>bot-field<input name="bot-field" tabindex="-1" autocomplete="off" /></label>
+          </p>
+
+          <div class="nm-form-row">
+            <label class="nm-field">
+              <span class="label-mono">{C.form.name.label}</span>
+              <input type="text" name="from" required maxlength={C.limits.name} autocomplete="name" />
+            </label>
+            <label class="nm-field">
+              <span class="label-mono">{C.form.relation.label}</span>
+              <select name="relation" required>
+                <option value="">{C.form.relation.placeholder}</option>
+                {NAAM_RELATIONS.map((relation) => <option value={relation}>{relation}</option>)}
+              </select>
+            </label>
+          </div>
+
+          <fieldset class="nm-field nm-form-picks">
+            <legend class="label-mono">{C.form.picks.label}</legend>
+            <p class="nm-form-picklist" data-nm-picklist data-empty="true">{C.form.picks.empty}</p>
+            <input type="hidden" name="picks" value="[]" data-nm-picks />
+          </fieldset>
+
+          {
+            /*
+            The always-usable half of the form, and the reason the no-JS path is
+            real. Every Pick button on the prerendered shortlist ships disabled
+            — it needs the dataset in memory to know what it is picking — so
+            with JavaScript off the hidden `picks` array stays `[]` forever and
+            the form could be submitted carrying no name at all. Registered in
+            public/__forms.html byte-for-byte, or Netlify discards it silently.
+            It is also useful with JS on: a name someone loves is often not in a
+            Vedic corpus, which is the wall's own point.
+          */
+          }
+          <label class="nm-field">
+            <span class="label-mono">{C.form.names.label}</span>
+            <input
+              type="text"
+              name="names"
+              maxlength={C.limits.names}
+              autocomplete="off"
+              placeholder={C.form.names.placeholder}
+            />
+          </label>
+          <p class="nm-form-help">{C.form.names.helper}</p>
+
+          <label class="nm-field">
+            <span class="label-mono">{C.form.reason.label}</span>
+            <textarea name="reason" rows="3" maxlength={C.limits.reason} data-nm-reason></textarea>
+          </label>
+          <p class="nm-form-help">
+            {C.form.reason.helper}
+            <span class="label-mono label-mono--sm" data-nm-counter>{C.form.reason.counter(0, C.limits.reason)}</span>
+          </p>
+
+          <button type="submit" class="btn-pill nm-send">{C.form.submit}</button>
+        </form>
+
+        <div class="nm-form-done" data-nm-form-done hidden tabindex="-1">
+          <p class="nm-form-done-head">{C.form.confirmation.heading}</p>
+          <p class="nm-standfirst">{C.form.confirmation.body}</p>
+          <button type="button" class="nm-quiet" data-nm-form-again>{C.form.confirmation.again}</button>
+        </div>
+
+        <p class="nm-form-status" aria-live="polite" data-nm-form-status></p>
+      </section>
+
+      <section class="nm-section" id="nm-wall" data-reveal>
+        <h2 class="nm-h2">{C.wall.heading}</h2>
+        <p class="nm-standfirst">{C.wall.standfirst}</p>
+
+        <p class="label-mono nm-wall-label">{C.wall.seedLabel}</p>
+        <div class="nm-grid">
+          <NaamCard row={seedRow} preferB={true} pickable={false} />
+          {NAAM_SEED_ROWS.map((row) => <NaamCard row={row} preferB={true} pickable={false} undocumented />)}
+        </div>
+
+        <div class="nm-wall-entries" data-nm-wall></div>
+        <p class="nm-note" data-nm-wall-note>{C.wall.empty}</p>
+      </section>
+
+      <footer class="nm-foot" data-reveal>
+        <p class="nm-provenance">{NAAM_PROVENANCE}</p>
+        <!-- The Devanagari caveat belongs with the source attribution, not in
+             the hero: it qualifies a claim, and the claim is "this came from
+             the document". Every glyph on the page is ours. -->
+        <p class="label-mono label-mono--sm nm-deva-note">{C.card.devanagariNote}</p>
+        <p class="nm-nwaran">{C.hero.nwaran}</p>
+      </footer>
+    </div>
+  </article>
+</DefaultLayout>
+
+<script>
+  /**
+   * The one enhancement script (docs/design/MOTION.md §3, DESIGN.md P10).
+   *
+   * It upgrades what the server rendered: the shortlist's swap and pick
+   * controls arrive `disabled` and are enabled here, the form intercepts its
+   * own submit so the visitor stays on the page, and the wall's approved
+   * entries are fetched and appended under the family's own seeds.
+   *
+   * EVERY piece of visitor- or model-supplied text goes in through
+   * textContent. src/pages/api/chat.ts's reply reaches the DOM through
+   * innerHTML in Hero.astro (lines 491 and 559); this page does not repeat
+   * that, on any path.
+   *
+   * One AbortController per page-load, aborted on `astro:before-swap`, so
+   * nothing accumulates across view transitions.
+   */
+  import { NAAM_COPY } from '@/lib/naam/copy'
+  import {
+    clearPicks,
+    getPicks,
+    getPreferB,
+    hydrate,
+    loadCoreRows,
+    onIdle,
+    peekRows,
+    subscribe,
+    togglePick,
+    toggleSwap,
+  } from '@/lib/naam/tray'
+  import { naamPreferredDevanagari, naamPreferredForm, type NaamRow } from '@/types/naam'
+
+  const C = NAAM_COPY
+
+  function init() {
+    const root = document.querySelector<HTMLElement>('.nm')
+    if (!root) return
+
+    // Captured after the guard: `paint()` below is hoisted, so TypeScript
+    // cannot carry the null-narrowing of `root` into it.
+    const scope: HTMLElement = root
+    const ac = new AbortController()
+    const { signal } = ac
+    document.addEventListener('astro:before-swap', () => ac.abort(), { once: true })
+
+    hydrate()
+
+    /* — the server-rendered cards ——————————————————————————————————— */
+
+    // Swap AND pick wait for the rows. The swap used to be enabled immediately,
+    // but paint() can only re-letter a card whose row it has — so a click
+    // during the idle-callback + 1.2 MB fetch window flipped aria-pressed while
+    // the card still read the other spelling, i.e. announced state and rendered
+    // state disagreed. A control that cannot do its job is honest as disabled.
+    let rows: NaamRow[] | null = peekRows()
+    const enableControls = () => {
+      for (const button of root.querySelectorAll<HTMLButtonElement>('[data-nm-pick], [data-nm-swap]')) {
+        button.disabled = false
+      }
+    }
+    if (rows) enableControls()
+
+    const cancelIdle = onIdle(() => {
+      loadCoreRows()
+        .then((loaded) => {
+          if (signal.aborted) return
+          rows = loaded
+          enableControls()
+          paint()
+          // The wall's small cards are drawn from the dataset, not from the
+          // stored spelling, so it repaints once the rows are here.
+          renderWall()
+        })
+        .catch(() => {})
+    })
+
+    root.addEventListener(
+      'click',
+      (event) => {
+        const target = event.target as HTMLElement | null
+        const control = target?.closest<HTMLElement>('[data-nm-swap], [data-nm-pick]')
+        if (!control) return
+        if (control.hasAttribute('data-nm-swap')) {
+          toggleSwap()
+          return
+        }
+        const id = control.getAttribute('data-nm-pick')
+        const row = id && rows ? rows.find((r) => r.id === id) : undefined
+        if (row) togglePick(row)
+      },
+      { signal },
+    )
+
+    /* — the form ————————————————————————————————————————————————————— */
+
+    const form = root.querySelector<HTMLFormElement>('form.nm-form')
+    const picksInput = root.querySelector<HTMLInputElement>('[data-nm-picks]')
+    const picklist = root.querySelector<HTMLElement>('[data-nm-picklist]')
+    const reason = root.querySelector<HTMLTextAreaElement>('[data-nm-reason]')
+    const counter = root.querySelector<HTMLElement>('[data-nm-counter]')
+    const status = root.querySelector<HTMLElement>('[data-nm-form-status]')
+    const done = root.querySelector<HTMLElement>('[data-nm-form-done]')
+    const again = root.querySelector<HTMLButtonElement>('[data-nm-form-again]')
+
+    reason?.addEventListener(
+      'input',
+      () => {
+        if (counter) counter.textContent = C.form.reason.counter(reason.value.length, C.limits.reason)
+      },
+      { signal },
+    )
+
+    again?.addEventListener(
+      'click',
+      () => {
+        if (done) done.hidden = true
+        if (form) form.hidden = false
+        if (status) status.textContent = ''
+      },
+      { signal },
+    )
+
+    const namesInput = root.querySelector<HTMLInputElement>('input[name="names"]')
+
+    form?.addEventListener(
+      'submit',
+      (event) => {
+        event.preventDefault()
+        const picks = getPicks()
+        // Picked names or typed names. Either is a suggestion; neither is not.
+        if (picks.length === 0 && !namesInput?.value.trim()) {
+          if (status) status.textContent = C.form.picks.empty
+          namesInput?.focus()
+          return
+        }
+        void send(form, picks)
+      },
+      { signal },
+    )
+
+    async function send(target: HTMLFormElement, picks: readonly { id: string; spelling: string }[]) {
+      if (status) status.textContent = C.form.sending
+      const data = new FormData(target)
+      data.set('picks', JSON.stringify(picks))
+
+      const encoded = new URLSearchParams()
+      for (const [key, value] of data.entries()) encoded.append(key, String(value))
+
+      try {
+        // The Netlify Forms post is the durable path — it emails us. It does
+        // NOT ride the page signal: a visitor who submits and immediately
+        // clicks a nav link would have their suggestion aborted in flight and
+        // never know. keepalive lets it outlive the page instead.
+        const res = await fetch('/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: encoded.toString(),
+          keepalive: true,
+        })
+        if (!res.ok) throw new Error(String(res.status))
+      } catch {
+        if (status) status.textContent = C.form.error.network
+        return
+      }
+
+      // The Blobs record is the moderation queue. Its failure is not a lost
+      // submission — the email already went — but it IS the half that decides
+      // whether this can ever reach the wall, so the visitor is told which half
+      // happened rather than being shown "sent" for both.
+      let queued = false
+      let rateLimited = false
+      try {
+        const res = await fetch('/api/naam-submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: data.get('from'),
+            relation: data.get('relation'),
+            reason: data.get('reason'),
+            names: data.get('names'),
+            picks,
+          }),
+          keepalive: true,
+        })
+        rateLimited = res.status === 429
+        const body = (await res.json()) as { ok?: unknown; stored?: unknown }
+        queued = body.ok === true && body.stored === true
+      } catch {
+        /* the email path already succeeded */
+      }
+
+      clearPicks()
+      target.reset()
+      target.hidden = true
+      if (done) {
+        done.hidden = false
+        // Focus follows the content: the form that held it has just been
+        // hidden, and without this the visitor lands back on <body> and hears
+        // nothing at all.
+        done.focus()
+      }
+      if (status) {
+        status.textContent = rateLimited
+          ? C.form.error.rateLimited
+          : queued
+            ? C.form.confirmation.heading
+            : C.form.confirmation.emailOnly
+      }
+      if (counter) counter.textContent = C.form.reason.counter(0, C.limits.reason)
+    }
+
+    /* — the wall ————————————————————————————————————————————————————— */
+
+    const wall = root.querySelector<HTMLElement>('[data-nm-wall]')
+    const wallNote = root.querySelector<HTMLElement>('[data-nm-wall-note]')
+
+    let wallEntries: Array<Record<string, unknown>> | null = null
+    function renderWall() {
+      if (wall && wallEntries) paintWall(wall, wallNote, wallEntries)
+    }
+
+    if (wall) {
+      fetch('/api/naam-wall', { signal })
+        .then((res) => {
+          // Without this a 404's HTML body lands in .json(), throws, and the
+          // catch below reports it as "the wall did not load" — which is true
+          // by accident rather than by check.
+          if (!res.ok) throw new Error(String(res.status))
+          return res.json()
+        })
+        .then((data: unknown) => {
+          if (signal.aborted) return
+          wallEntries = Array.isArray((data as { entries?: unknown })?.entries)
+            ? ((data as { entries: unknown[] }).entries as Array<Record<string, unknown>>)
+            : []
+          renderWall()
+        })
+        .catch(() => {
+          if (!signal.aborted && wallNote) wallNote.textContent = C.wall.failure
+        })
+    }
+
+    /* — keep the DOM in step with the store ————————————————————————— */
+
+    function paint() {
+      const preferB = getPreferB()
+      const picks = getPicks()
+      const picked = new Set(picks.map((p) => p.id))
+
+      for (const card of scope.querySelectorAll<HTMLElement>('[data-nm-card]')) {
+        const id = card.getAttribute('data-nm-card')
+        const row = id && rows ? rows.find((r) => r.id === id) : undefined
+        if (row) {
+          const main = card.querySelector<HTMLElement>('.nm-latin-main')
+          const alt = card.querySelector<HTMLElement>('.nm-latin-alt')
+          const deva = card.querySelector<HTMLElement>('[data-nm-deva]')
+          if (main) main.textContent = naamPreferredForm(row, preferB)
+          if (alt) alt.textContent = preferB ? row.latin : (row.bVariant ?? row.latin)
+          // The script follows the spelling, or the card says वस्तु over Bastu.
+          if (deva) deva.textContent = naamPreferredDevanagari(row, preferB)
+          const swap = card.querySelector<HTMLButtonElement>('[data-nm-swap]')
+          if (swap) swap.setAttribute('aria-pressed', String(preferB))
+        }
+
+        const pick = card.querySelector<HTMLButtonElement>('[data-nm-pick]')
+        if (pick && id) {
+          const on = picked.has(id)
+          pick.setAttribute('aria-pressed', String(on))
+          // The whole card lights up, not just the word. Without this the
+          // prerendered cards changed a 0.7rem label and nothing else while
+          // the React-rendered ones took a marigold glow from their props —
+          // the same gesture with two different outcomes on one page.
+          // 'true', not the empty string toggleAttribute() would leave — the
+          // React side writes data-picked="true" and the CSS matches on it.
+          if (on) card.setAttribute('data-picked', 'true')
+          else card.removeAttribute('data-picked')
+          const word = pick.querySelector<HTMLElement>('[data-nm-pick-word]')
+          // textContent on the button would take the .sr-only name with it.
+          if (word) word.textContent = on ? C.card.picked : C.card.pick
+        }
+      }
+
+      if (picksInput) picksInput.value = JSON.stringify(picks)
+      if (picklist) {
+        picklist.textContent = picks.length === 0 ? C.form.picks.empty : picks.map((p) => p.spelling).join(' · ')
+        // Marigold means "chosen" on this page. The empty state is an
+        // instruction, so it does not get to wear it.
+        picklist.setAttribute('data-empty', String(picks.length === 0))
+      }
+    }
+
+    const unsubscribe = subscribe(paint)
+    signal.addEventListener('abort', () => {
+      unsubscribe()
+      cancelIdle()
+    })
+    paint()
+  }
+
+  /**
+   * Approved entries. Built with createElement + textContent — a stranger's
+   * name and reason never touch innerHTML — and the picked names are drawn
+   * from the local dataset by id, never from the stored spelling alone.
+   */
+  function paintWall(wall: HTMLElement, note: HTMLElement | null, entries: Array<Record<string, unknown>>) {
+    wall.replaceChildren()
+    if (entries.length === 0) {
+      if (note) note.textContent = NAAM_COPY.wall.empty
+      return
+    }
+    if (note) note.textContent = ''
+
+    const rows = peekRows()
+    for (const entry of entries) {
+      const from = String(entry.from ?? '')
+      const relation = String(entry.relation ?? '')
+      const reason = String(entry.reason ?? '')
+      const names = String(entry.names ?? '')
+      const picksRaw = Array.isArray(entry.picks) ? (entry.picks as Array<Record<string, unknown>>) : []
+      if (!from || (picksRaw.length === 0 && !names)) continue
+
+      const article = document.createElement('article')
+      article.className = 'nm-wall-entry'
+
+      const who = document.createElement('p')
+      who.className = 'label-mono nm-wall-who'
+      who.textContent = NAAM_COPY.wall.entry(from, relation)
+      article.append(who)
+
+      // Names the visitor typed rather than picked. They are not rows, so they
+      // get no Devanagari, no gloss and no citation — there is nothing to cite.
+      // textContent, like everything else a stranger wrote.
+      if (names) {
+        const typed = document.createElement('p')
+        typed.className = 'nm-wall-typed'
+        typed.textContent = names
+        article.append(typed)
+      }
+
+      if (picksRaw.length > 0) {
+        const list = document.createElement('ul')
+        list.className = 'nm-wall-picks'
+        for (const pick of picksRaw) {
+          const id = String(pick.id ?? '')
+          const row = rows?.find((r) => r.id === id)
+          const item = document.createElement('li')
+
+          const deva = document.createElement('span')
+          deva.className = 'nm-deva nm-deva--sm'
+          deva.lang = 'sa-Deva'
+          // The wall shows the family's preferred spelling, so it shows the
+          // script that goes with it.
+          deva.textContent = row ? naamPreferredDevanagari(row, getPreferB()) : ''
+          item.append(deva)
+
+          const latin = document.createElement('span')
+          latin.className = 'nm-wall-pick-name'
+          latin.textContent = row ? naamPreferredForm(row, getPreferB()) : String(pick.spelling ?? '')
+          item.append(latin)
+
+          if (row) {
+            const gloss = document.createElement('span')
+            gloss.className = 'nm-wall-pick-gloss'
+            gloss.textContent = row.gloss
+            item.append(gloss)
+          }
+          list.append(item)
+        }
+        article.append(list)
+      }
+
+      if (reason) {
+        const line = document.createElement('p')
+        line.className = 'nm-wall-reason'
+        line.textContent = reason
+        article.append(line)
+      }
+
+      wall.append(article)
+    }
+  }
+
+  document.addEventListener('astro:page-load', init)
+</script>
+
+<style lang="scss" is:global>
+  /* ═══════════════════════════════════════════════════════════════════════
+     /naam — page-scoped, is:global because Astro's scoping does not reach
+     React-rendered DOM. Every class is .nm-* .
+     Tokens only: docs/design/DESIGN.md §1 (P1, P3), src/styles/tokens.css.
+     ═══════════════════════════════════════════════════════════════════════ */
+
+  /* One new script, not one new role (DESIGN.md P5). Mukta covers Devanagari
+     and nothing else, so Bricolage and Atkinson keep every Latin role they
+     already have. font-display: optional, never swap — swap is a CLS
+     generator and the CLS floor is 0. U+200C-200D must stay in the range or
+     conjuncts and half-forms stop rendering. */
+  @font-face {
+    font-style: normal;
+    font-weight: 400;
+    src: url('/fonts/Mukta-Devanagari-400.woff2') format('woff2');
+    font-family: 'Mukta';
+    font-display: optional;
+    unicode-range: U+0900-097F, U+200C-200D, U+20A8, U+25CC, U+A830-A839;
+  }
+
+  /* The system fallback, restricted to the same range by the same mechanism.
+     A bare 'Noto Sans Devanagari' in the stack would also serve Latin, and
+     would beat Atkinson to it — this way both Devanagari faces can only ever
+     answer for Devanagari. */
+  @font-face {
+    font-style: normal;
+    font-weight: 400;
+    src: local('Noto Sans Devanagari'), local('Nirmala UI'), local('Mangal'), local('Kohinoor Devanagari');
+    font-family: 'Naam Deva Fallback';
+    font-display: optional;
+    unicode-range: U+0900-097F, U+200C-200D;
+  }
+
+  .nm {
+    /* Both members are unicode-range-restricted, so this prefix can be put in
+       front of any role stack without touching a single Latin glyph. */
+    --font-deva: 'Mukta', 'Naam Deva Fallback';
+
+    padding: clamp(6rem, 14vh, 8rem) 0 var(--space-3xl);
+
+    /* Mukta is FIRST in every stack on this page and that is safe: its
+       @font-face carries a unicode-range, so it can only ever supply
+       Devanagari and every Latin glyph falls straight through to Bricolage,
+       Atkinson or DM Mono. Without this, any Devanagari outside .nm-deva —
+       the व/ब control, the B/S/V line, a name inside a reason — renders as
+       tofu, and shipping boxes is worse than shipping no Devanagari at all. */
+    font-family: var(--font-deva), var(--font-body);
+  }
+
+  .nm h1,
+  .nm h2,
+  .nm h3 {
+    font-family: var(--font-deva), var(--font-display);
+  }
+
+  .nm .label-mono,
+  .nm .pulse-caption {
+    font-family: var(--font-deva), var(--font-mono);
+  }
+
+  .nm-inner {
+    margin: 0 auto;
+    padding: 0 var(--space-l);
+    max-width: 980px;
+  }
+
+  /* ── Header ─────────────────────────────────────────────────────────── */
+  .nm-eyebrow {
+    margin: 0 0 var(--space-m);
+
+    a {
+      color: var(--paper-soft);
+
+      &:hover {
+        color: var(--marigold);
+      }
+    }
+  }
+
+  .nm-title {
+    margin: 0 0 var(--space-m);
+    font-size: clamp(2.4rem, 6vw, 4.25rem);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+
+  .nm-standfirst {
+    margin: 0 0 var(--space-s);
+    max-width: 62ch;
+    color: var(--paper-soft);
+    font-size: clamp(1.05rem, 1.8vw, 1.2rem);
+    line-height: 1.7;
+  }
+
+  .nm-letters {
+    margin: 0 0 var(--space-2xs);
+    color: var(--crimson-text);
+    font-size: 0.98rem;
+    line-height: 1.7;
+  }
+
+  .nm-deva-note {
+    opacity: 0.8;
+    margin: 0 0 var(--space-l);
+    color: var(--paper-soft);
+  }
+
+  .nm-doors {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-m) var(--space-l);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    span {
+      color: var(--paper-soft);
+    }
+  }
+
+  /* "Six taps. Runs in your browser, sends nothing." — two sentences. They were
+     .label-mono, so they read as SIX TAPS. RUNS IN YOUR BROWSER, SENDS NOTHING.
+     §3 gives mono to labels and metadata; a helper is neither. */
+  .nm-door-help {
+    color: var(--paper-soft);
+    font-size: 0.92rem;
+    line-height: 1.6;
+  }
+
+  .nm-quiet-link {
+    color: var(--crimson-text);
+    font-size: 0.92rem;
+  }
+
+  /* ── Sections ───────────────────────────────────────────────────────── */
+  .nm-section {
+    margin-top: var(--space-3xl);
+  }
+
+  /* The ask and the first question are one unit, not two sections. --space-3xl
+     is the site's between-sections rhythm (DESIGN.md §2, and it must not
+     shrink) — but this gap is not between sections, it is between a question
+     and its own controls. At 3xl it read as 120px of nothing directly under
+     the only call to action on the page. */
+  .nm-head + .nm-section {
+    margin-top: var(--space-xl);
+  }
+
+  .nm-h2 {
+    margin: 0 0 var(--space-m);
+    font-size: clamp(2rem, 4.5vw, 3.25rem);
+    line-height: 1.02;
+    letter-spacing: -0.015em;
+  }
+
+  .nm-note {
+    margin: var(--space-s) 0 0;
+    color: var(--paper-soft);
+    font-size: 0.98rem;
+    line-height: 1.7;
+  }
+
+  /* ── The card ───────────────────────────────────────────────────────── */
+  .nm-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: var(--space-s);
+    margin-top: var(--space-m);
+  }
+
+  .nm-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xs);
+    border: 1px solid var(--hairline-on-ink);
+    border-radius: 12px;
+    background: var(--ink);
+    padding: var(--space-s);
+  }
+
+  .nm-card[data-picked='true'] {
+    box-shadow: var(--glow-marigold);
+    border-color: var(--marigold);
+  }
+
+  .nm-card-name {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  /* Devanagari gets a fixed block so a late font swap shifts nothing. */
+  .nm-deva {
+    display: block;
+    min-height: 2.5rem;
+    color: var(--paper);
+    font-size: 1.7rem;
+    line-height: 2.5rem;
+    font-family: var(--font-deva), var(--font-body);
+  }
+
+  .nm-deva--sm {
+    min-height: 1.8rem;
+    font-size: 1.15rem;
+    line-height: 1.8rem;
+  }
+
+  .nm-latin {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin: 0;
+  }
+
+  .nm-latin-main {
+    color: var(--paper);
+    font-size: 1.15rem;
+    font-family: var(--font-display);
+  }
+
+  .nm-latin-alt {
+    color: var(--paper-soft);
+    text-transform: none;
+  }
+
+  /* ── The sound rail ─────────────────────────────────────────────────── */
+
+  /* The 26px is headroom for the swap control, which hangs above the first
+     tick — so only the rows that HAVE one pay for it. Reserving it on every
+     card put a band of void above two thirds of the grid. */
+  .nm-rail[data-swap='true'] {
+    padding-top: 26px;
+  }
+
+  /* width: max-content is what makes this an instrument rather than a divider.
+     The rule used to be pinned right:0; left:0 behind a left-packed tick row,
+     so it drew the same full-width gradient underline with two dots huddled at
+     one end under every name on the page — 252px of line for 63px of ticks,
+     identical on a one-syllable name and a three-syllable one. Ending it at the
+     last tick makes its length the syllable count, which is the only reason a
+     gradient is allowed here at all (DESIGN.md P4, MOTION.md §0 rule 1: motion
+     and marks carry meaning or they are decoration). max-width keeps a long
+     name inside its card. */
+  .nm-ticks {
+    display: flex;
+    position: relative;
+    align-items: flex-start;
+    gap: clamp(0.9rem, 4vw, 1.75rem);
+    margin: 0;
+    padding: 0;
+    width: max-content;
+    max-width: 100%;
+    list-style: none;
+
+    /* DESIGN.md P4 — the gradient is a line, never a fill. */
+    &::before {
+      position: absolute;
+      top: 4px;
+      right: 0;
+      left: 0;
+      border-radius: 999px;
+      background: var(--grad-signal);
+      height: 2px;
+      content: '';
+    }
+  }
+
+  .nm-tick {
+    display: flex;
+    position: relative;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .nm-tick-dot {
+    display: block;
+    border-radius: 999px;
+    background: var(--paper);
+    width: 10px;
+    height: 10px;
+  }
+
+  .nm-tick-syllable {
+    color: var(--paper-soft);
+    text-transform: uppercase;
+  }
+
+  /* The document's own `!` — a harder consonant cluster, marked on the
+     syllable whose onset carries it. */
+  .nm-tick[data-cluster='true'] .nm-tick-dot {
+    box-shadow: var(--ring-crimson);
+    background: var(--crimson);
+  }
+
+  .nm-tick[data-cluster='true'] .nm-tick-syllable {
+    color: var(--crimson-text);
+  }
+
+  /* The swap sits on the first tick because that is the syllable it changes.
+     A wrapper carries the centring so the global hover translateY() cannot
+     clobber it. */
+  .nm-swap-slot {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .nm-swap {
+    transition:
+      border-color var(--dur-base) ease,
+      color var(--dur-base) ease;
+    cursor: pointer;
+    border: 1px solid var(--hairline-on-ink);
+    border-radius: 999px;
+    background: var(--ink-2);
+    padding: 0.15rem 0.5rem;
+    color: var(--paper-soft);
+    white-space: nowrap;
+
+    &[aria-pressed='true'] {
+      border-color: var(--crimson);
+      color: var(--paper);
+    }
+
+    &:disabled {
+      opacity: 0.55;
+      cursor: default;
+    }
+  }
+
+  /* Ours: Atkinson, bone. The site is speaking. */
+  /* The document is speaking, and P5 says mono is the voice of data. Same size
+     as body copy — this is not a third label size — and deliberately NOT
+     .label-mono: §3 assigns uppercase to labels, and a 60-character quotation
+     set in caps is unreadable.
+
+     Clamped to three lines. Monier-Williams glosses run from four characters
+     ("sun") to four hundred, and in a three-column grid every row stretches to
+     its tallest card: one plant-taxonomy entry left 200px of dead space beside
+     it. The full text is one tap away in the disclosure directly below, so
+     nothing is lost by clamping — and the grid stops looking broken. */
+  .nm-gloss,
+  .nm-source-gloss {
+    display: -webkit-box;
+    margin: 0;
+    overflow: hidden;
+    color: var(--paper-soft);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    font-family: var(--font-deva), var(--font-mono);
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  /* Inside the disclosure there is no grid to keep even, so let it run. */
+  .nm-source-gloss {
+    display: block;
+    overflow: visible;
+  }
+
+  .nm-undocumented,
+  .nm-reasons {
+    margin: 0;
+    color: var(--paper-soft);
+  }
+
+  .nm-card-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2xs) var(--space-s);
+    margin-top: auto;
+    padding-top: var(--space-2xs);
+  }
+
+  /* Sizing only. The labeling voice comes from .label-mono, which every
+     mono-labelled control on this page now wears rather than re-declaring its
+     own font-size / family / tracking / transform triple (DESIGN.md §3 — two
+     mono sizes, and improvising a third is how a labeling system dies). */
+  .nm-pick {
+    transition: border-color var(--dur-base) ease;
+    cursor: pointer;
+    border: 1px solid var(--hairline-on-ink);
+    border-radius: 999px;
+    background: transparent;
+    padding: 0.32rem 0.9rem;
+    color: var(--paper);
+
+    /* DESIGN.md P2 — emphasis by glow, never by a second fill. Marigold
+       marks the honoured one. */
+    &[aria-pressed='true'] {
+      box-shadow: var(--glow-marigold);
+      border-color: var(--marigold);
+      color: var(--marigold);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+  }
+
+  /* Everything below this line in a card is the document's, verbatim. */
+  .nm-source {
+    summary {
+      cursor: pointer;
+      color: var(--paper-soft);
+    }
+
+    summary:hover {
+      color: var(--marigold);
+    }
+  }
+
+  .nm-source-body {
+    margin-top: var(--space-2xs);
+    border-left: 1px solid var(--hairline-on-ink);
+    padding-left: var(--space-2xs);
+  }
+
+  .nm-source-gloss {
+    margin: 0 0 0.35rem;
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+
+  .nm-source-meta,
+  .nm-source-note {
+    opacity: 0.8;
+    margin: 0;
+    color: var(--paper-soft);
+  }
+
+  /* ── The guide island ───────────────────────────────────────────────── */
+  .nm-guide {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-m);
+  }
+
+  /* Capped at a measure, not stretched to the column. At 1024 and up the page
+     column is ~900px and a six-option question only ever fills ~360px of it, so
+     a full-width panel put three small chips in the top-left corner of a wide
+     empty box. Capping the panel makes it read as one focused object — which is
+     the whole point of asking one question at a time — and it keeps the panel's
+     left edge aligned with the h1 above it rather than centring it into a
+     second, competing axis. */
+  .nm-panel {
+    border: 1px solid var(--hairline-on-ink);
+    border-radius: 14px;
+    background: var(--ink);
+    padding: var(--space-m);
+    max-width: 46rem;
+  }
+
+  .nm-step-count {
+    margin: 0 0 var(--space-2xs);
+    color: var(--crimson-text);
+  }
+
+  .nm-step-label {
+    margin-bottom: 0.35rem;
+  }
+
+  .nm-step-helper {
+    margin: 0 0 var(--space-s);
+    color: var(--paper-soft);
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+
+  .nm-opts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2xs);
+  }
+
+  .nm-opt {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    transition: border-color var(--dur-base) ease;
+    cursor: pointer;
+    border: 1px solid var(--hairline-on-ink);
+    border-radius: 10px;
+    background: var(--ink-2);
+    padding: 0.5rem 0.8rem;
+    color: var(--paper);
+    text-align: left;
+
+    &[aria-pressed='true'] {
+      box-shadow: var(--ring-crimson);
+      border-color: var(--crimson);
+    }
+
+    &:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+  }
+
+  .nm-opt-label {
+    font-size: 0.92rem;
+  }
+
+  /* Prose. "The smallest set in the document by a long way." is a sentence
+     with a verb, not a label, so it is set in the body face — §3 assigns mono
+     to labels, eyebrows and metadata, and a note is none of those. */
+  .nm-opt-note {
+    color: var(--paper-soft);
+    font-size: 0.82rem;
+    line-height: 1.5;
+    font-family: var(--font-deva), var(--font-body);
+  }
+
+  .nm-step-nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-s);
+    margin-top: var(--space-m);
+  }
+
+  /* A quiet text link that happens to be a <button>. Body face, because these
+     are sentences and half-sentences ("Change an answer", "what does Bhaskara
+     mean"), not labels. */
+  .nm-quiet {
+    cursor: pointer;
+    border: none;
+    background: none;
+    padding: 0;
+    color: var(--crimson-text);
+    font-size: 0.92rem;
+    font-family: var(--font-deva), var(--font-body);
+    text-align: left;
+
+    &:hover {
+      color: var(--marigold);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+  }
+
+  .nm-next {
+    transition: border-color var(--dur-base) ease;
+    cursor: pointer;
+    border: 1px solid var(--crimson);
+    border-radius: 999px;
+    background: transparent;
+    padding: 0.4rem 1.1rem;
+    color: var(--paper);
+
+    &:hover {
+      box-shadow: var(--glow-crimson);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+  }
+
+  /* ── The ask ────────────────────────────────────────────────────────── */
+  .nm-ask-label {
+    display: block;
+    margin-bottom: 0.3rem;
+    color: var(--crimson-text);
+  }
+
+  .nm-ask-hint {
+    margin: 0 0 var(--space-s);
+    color: var(--paper-soft);
+    font-size: 0.9rem;
+  }
+
+  .nm-ask-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2xs);
+  }
+
+  /* border-color on :focus-visible, never `outline: none`. The three
+     `outline: none` declarations this page used to carry beat the global
+     :focus-visible rule in motion.css on specificity, so the only remaining
+     indicator on six controls was a legacy WHITE 2px box-shadow from
+     _general.scss — on a page whose focus colour is crimson. They were also on
+     :focus rather than :focus-visible, which merges focus into hover, and
+     MOTION.md §2 forbids that by name. */
+  .nm-ask-input {
+    flex: 1 1 260px;
+    transition: border-color var(--dur-base) ease;
+    border: 1px solid var(--hairline-on-ink);
+    border-radius: 10px;
+    background: var(--ink-2);
+    padding: 0.6rem 0.85rem;
+    color: var(--paper);
+    font-size: 0.95rem;
+    font-family: var(--font-deva), var(--font-body);
+
+    &:focus-visible {
+      border-color: var(--crimson);
+    }
+
+    &:disabled {
+      opacity: 0.55;
+      cursor: default;
+    }
+  }
+
+  /* .btn-pill carries the fill, the padding and the label voice — the one
+     filled CTA in the system (DESIGN.md P2, tailwind.css:96). This used to
+     re-declare all of it from scratch, which is the fifth independent copy of
+     a rule that exists because the first four drifted. */
+  .nm-ask-go {
+    cursor: pointer;
+    border: none;
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+  }
+
+  .nm-ask-examples {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2xs) var(--space-s);
+    margin: var(--space-s) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* .nm-status carries full sentences — "The model did not answer, so these
+     are the document's own best matches." — so it is prose, not a label. The
+     LIVE / LOCAL badge beside the results is the label; this is the caption
+     that explains it. .nm-browse-status is a bare count and keeps .label-mono. */
+  .nm-status {
+    margin: 0;
+    max-width: 62ch;
+    min-height: 1.2rem;
+    color: var(--paper-soft);
+    font-size: 0.92rem;
+    line-height: 1.6;
+  }
+
+  .nm-browse-status {
+    margin: 0;
+    min-height: 1.2rem;
+    color: var(--paper-soft);
+  }
+
+  .nm-loading {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: var(--space-s);
+  }
+
+  .nm-ask-log {
+    min-height: 0;
+  }
+
+  .nm-reply {
+    margin: 0;
+    border-left: 2px solid var(--crimson);
+    padding-left: var(--space-s);
+    max-width: 62ch;
+    color: var(--paper);
+    font-size: 1rem;
+    line-height: 1.7;
+  }
+
+  /* ── Results ────────────────────────────────────────────────────────── */
+  .nm-results-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-s);
+  }
+
+  /* One declared sub-scale for every panel heading on the page. There were
+     three h2 sizes plus a 12px one; the section triple stays where DESIGN.md
+     §1 P5 fixes it and everything below it uses this. */
+  .nm-panel-title {
+    margin: 0;
+    color: var(--paper);
+    font-size: clamp(1.2rem, 2.4vw, 1.55rem);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+
+  /* DESIGN.md §4 — two of the three words, and never a fourth. */
+  .nm-badge {
+    border: 1px solid var(--hairline-on-ink);
+    border-radius: 999px;
+    padding: 0.15rem 0.6rem;
+    color: var(--paper-soft);
+  }
+
+  .nm-badge[data-source='live'] {
+    border-color: var(--glacier);
+    color: var(--glacier-text);
+  }
+
+  /* ── The tray ───────────────────────────────────────────────────────── */
+  .nm-tray {
+    border-top: 1px solid var(--hairline-on-ink);
+    padding-top: var(--space-s);
+  }
+
+  .nm-tray-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-s);
+  }
+
+  .nm-tray-count {
+    color: var(--paper-soft);
+  }
+
+  .nm-tray-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2xs);
+    margin: var(--space-2xs) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .nm-tray-item {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    cursor: pointer;
+    border: 1px solid var(--marigold);
+    border-radius: 999px;
+    background: transparent;
+    padding: 0.25rem 0.75rem;
+    color: var(--marigold);
+
+    span:last-child {
+      opacity: 0.7;
+    }
+  }
+
+  .nm-tray-name {
+    font-size: 0.9rem;
+    font-family: var(--font-display);
+  }
+
+  .nm-tray-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-s);
+    margin: var(--space-s) 0 0;
+  }
+
+  .nm-tray-note {
+    color: var(--paper-soft);
+  }
+
+  /* ── The prerendered shortlist ──────────────────────────────────────── */
+  .nm-letter {
+    margin-top: var(--space-s);
+    border: 1px solid var(--hairline-on-ink);
+    border-radius: 12px;
+    padding: var(--space-s);
+  }
+
+  .nm-letter-summary {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-s);
+    cursor: pointer;
+    color: var(--paper);
+
+    &:hover {
+      color: var(--marigold);
+    }
+  }
+
+  /* No font-size: it inherits .label-mono. A bespoke 1rem here was a third
+     mono size (DESIGN.md §3), and the letter is a label like any other. */
+  .nm-letter-key {
+    color: var(--crimson-text);
+  }
+
+  /* "Which is B once anyone at home says it" is the warmest line on the page.
+     It sat inside a .label-mono summary, so it was shouted. The letter key and
+     the count stay mono — they are a label and a number, which is exactly what
+     mono is for. */
+  .nm-letter-note {
+    color: var(--paper-soft);
+    font-size: 0.92rem;
+    font-family: var(--font-deva), var(--font-body);
+    letter-spacing: normal;
+    text-transform: none;
+  }
+
+  .nm-letter-count {
+    margin-left: auto;
+    color: var(--paper-soft);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Browse ─────────────────────────────────────────────────────────── */
+  .nm-filters {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s);
+    margin-bottom: var(--space-s);
+  }
+
+  .nm-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2xs) var(--space-s);
+  }
+
+  .nm-filter-label {
+    color: var(--paper-soft);
+  }
+
+  .nm-search,
+  .nm-select {
+    transition: border-color var(--dur-base) ease;
+    border: 1px solid var(--hairline-on-ink);
+    border-radius: 10px;
+    background: var(--ink-2);
+    padding: 0.5rem 0.75rem;
+    min-width: 220px;
+    color: var(--paper);
+    font-size: 0.92rem;
+    font-family: var(--font-deva), var(--font-body);
+
+    &:focus-visible {
+      border-color: var(--crimson);
+    }
+
+    &:disabled {
+      opacity: 0.55;
+    }
+  }
+
+  .nm-select {
+    min-width: 160px;
+  }
+
+  .nm-filter-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3xs);
+    border: none;
+    padding: 0;
+
+    legend {
+      float: left;
+      margin-right: var(--space-2xs);
+      color: var(--paper-soft);
+      line-height: 2;
+    }
+  }
+
+  .nm-chip {
+    transition: border-color var(--dur-base) ease;
+    cursor: pointer;
+    border: 1px solid var(--hairline-on-ink);
+    border-radius: 999px;
+    background: var(--ink-2);
+    padding: 0.28rem 0.75rem;
+    color: var(--paper-soft);
+
+    &[aria-pressed='true'] {
+      box-shadow: var(--ring-crimson);
+      border-color: var(--crimson);
+      color: var(--paper);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+  }
+
+  /* A sentence about provenance, so prose — the same string that appears in
+     .nm-status, and the two must not disagree about what kind of thing it is. */
+  .nm-browse-note {
+    margin: 0 0 var(--space-s);
+    color: var(--paper-soft);
+    font-size: 0.92rem;
+    line-height: 1.6;
+  }
+
+  .nm-browse-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-s);
+    margin-top: var(--space-m);
+  }
+
+  /* ── The form ───────────────────────────────────────────────────────── */
+  .nm-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s);
+    margin-top: var(--space-m);
+    max-width: 640px;
+  }
+
+  .nm-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-s);
+  }
+
+  .nm-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    border: none;
+    padding: 0;
+
+    input,
+    select,
+    textarea {
+      transition: border-color var(--dur-base) ease;
+      border: 1px solid var(--hairline-on-ink);
+      border-radius: 10px;
+      background: var(--ink-2);
+      padding: 0.65rem 0.85rem;
+      color: var(--paper);
+      font-size: 0.95rem;
+      font-family: var(--font-deva), var(--font-body);
+
+      &:focus-visible {
+        border-color: var(--crimson);
+      }
+    }
+  }
+
+  .nm-form-picks legend {
+    margin-bottom: 0.35rem;
+    color: var(--paper-soft);
+  }
+
+  /* Marigold has one job on this page: the picked state. The empty state is an
+     instruction, not a chosen name, so it does not get to wear it. */
+  .nm-form-picklist {
+    margin: 0;
+    color: var(--marigold);
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+
+  .nm-form-picklist[data-empty='true'] {
+    color: var(--paper-soft);
+  }
+
+  .nm-form-help {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-2xs);
+    margin: 0;
+    color: var(--paper-soft);
+    font-size: 0.85rem;
+
+    span {
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  /* .btn-pill again — see .nm-ask-go. */
+  .nm-send {
+    align-self: flex-start;
+    cursor: pointer;
+    border: none;
+  }
+
+  .nm-form-done {
+    margin-top: var(--space-m);
+    border-left: 2px solid var(--marigold);
+    padding-left: var(--space-s);
+  }
+
+  .nm-form-done-head {
+    margin: 0 0 0.35rem;
+    color: var(--paper);
+    font-size: 1.15rem;
+    font-family: var(--font-display);
+  }
+
+  /* Sentences again: "No picks yet — tap Pick on any name, or type one below."
+     Prose, not a label. */
+  .nm-form-status {
+    margin: var(--space-s) 0 0;
+    max-width: 62ch;
+    min-height: 1.2rem;
+    color: var(--crimson-text);
+    font-size: 0.92rem;
+    line-height: 1.6;
+  }
+
+  /* ── The wall ───────────────────────────────────────────────────────── */
+  .nm-wall-label {
+    margin: var(--space-m) 0 0;
+    color: var(--paper-soft);
+  }
+
+  .nm-wall-entry {
+    margin-top: var(--space-m);
+    border-top: 1px solid var(--hairline-on-ink);
+    padding-top: var(--space-s);
+  }
+
+  .nm-wall-who {
+    margin: 0 0 var(--space-2xs);
+    color: var(--crimson-text);
+  }
+
+  .nm-wall-picks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2xs) var(--space-m);
+    margin: 0 0 var(--space-2xs);
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+      border-left: 1px solid var(--hairline-on-ink);
+      padding-left: var(--space-2xs);
+      max-width: 22ch;
+    }
+  }
+
+  .nm-wall-pick-name {
+    color: var(--paper);
+    font-size: 1rem;
+    font-family: var(--font-display);
+  }
+
+  .nm-wall-pick-gloss {
+    color: var(--paper-soft);
+    font-size: 0.82rem;
+    line-height: 1.5;
+  }
+
+  /* Names someone typed rather than picked. No Devanagari, no gloss, no cite —
+     there is nothing to cite, and inventing one is the failure P9 exists for. */
+  .nm-wall-typed {
+    margin: 0 0 var(--space-2xs);
+    color: var(--paper);
+    font-size: 1rem;
+    line-height: 1.5;
+    font-family: var(--font-deva), var(--font-display);
+  }
+
+  .nm-wall-reason {
+    margin: 0;
+    max-width: 62ch;
+    color: var(--paper);
+    font-size: 1rem;
+    line-height: 1.7;
+  }
+
+  /* ── Foot ───────────────────────────────────────────────────────────── */
+  .nm-foot {
+    margin-top: var(--space-3xl);
+    border-top: 1px solid var(--hairline-on-ink);
+    padding-top: var(--space-l);
+  }
+
+  /* The page's proof-of-work paragraph — 400 characters of it — and it was set
+     in 0.7rem uppercase mono across 78ch, which is the least readable
+     configuration on the site for the one block that most needs reading (P9).
+     It is prose. */
+  .nm-provenance {
+    margin: 0 0 var(--space-s);
+    max-width: 68ch;
+    color: var(--paper-soft);
+    font-size: 0.9rem;
+    line-height: 1.7;
+  }
+
+  .nm-nwaran {
+    margin: 0;
+    max-width: 68ch;
+    color: var(--paper-soft);
+    font-size: 0.95rem;
+    line-height: 1.7;
+  }
+
+  /* ── Responsive ─────────────────────────────────────────────────────── */
+  @media (max-width: 599px) {
+    .nm-form-row {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 479px) {
+    .nm-inner {
+      padding: 0 var(--space-m);
+    }
+
+    .nm-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

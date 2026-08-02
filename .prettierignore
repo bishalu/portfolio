@@ -1,0 +1,15 @@
+# Generated artifacts are formatted by their generator, not by Prettier.
+# `npm run prebuild` compares them byte-for-byte against a fresh build, so a
+# `prettier --write` over them would fail the build rather than tidy anything.
+src/generated/
+public/naam/
+
+# Committed provenance: the text dump of Boy_Name_Candidates.pdf is hashed.
+src/data/naam/source-text.txt
+
+# Build output and tooling caches.
+dist/
+.astro/
+.netlify/
+scripts/verify/out/
+package-lock.json

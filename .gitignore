@@ -51,3 +51,9 @@ docs/*
 !docs/design/
 scripts/verify/out/
 deno.lock
+
+# The source PDF for /naam. Untracked on purpose: this repo is public, and
+# committing it publishes 172 pages of the family's name research. The committed
+# text dump (src/data/naam/source-text.txt) is the input of record, and both
+# hashes are asserted by scripts/naam/build-dataset.mjs.
+Boy_Name_Candidates.pdf

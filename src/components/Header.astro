@@ -30,6 +30,9 @@ import { Icon } from 'astro-icon/components'
       <a href="/about">About</a>
     </li>
     <li class="menu-item">
+      <a href="/naam">Naam</a>
+    </li>
+    <li class="menu-item">
       <a href="/#contact" class="nav-anchor">Contact</a>
     </li>
     <li class="menu-item type-icon animate-rotate">
@@ -82,7 +85,6 @@ import { Icon } from 'astro-icon/components'
 <style lang="scss" is:global>
   #site-header {
     position: fixed;
-    width: 100%;
     top: 0;
     z-index: 200;
     transition:
@@ -90,17 +92,18 @@ import { Icon } from 'astro-icon/components'
       background 0.35s cubic-bezier(0.4, 0, 0.2, 1),
       box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1),
       backdrop-filter 0.35s ease;
-    background-color: transparent;
-    border: none;
     box-shadow: none;
+    border: none;
+    background-color: transparent;
     padding: 0;
+    width: 100%;
 
     /* ── Compressed state (after scroll): ink frost, works over both canvases ── */
     &.scrolled {
-      background: rgba(24, 28, 48, 0.82);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
       border-bottom: 1px solid var(--hairline-on-ink);
+      background: rgba(24, 28, 48, 0.82);
 
       /* Tighten inner padding */
       > .container {
@@ -122,18 +125,18 @@ import { Icon } from 'astro-icon/components'
 
     a,
     button {
-      color: var(--paper) !important;
       opacity: 1 !important;
+      color: var(--paper) !important;
       font-weight: 500;
       font-size: 0.72rem;
-      letter-spacing: var(--tracking-label);
       font-family: var(--font-mono);
+      letter-spacing: var(--tracking-label);
       text-transform: uppercase;
 
       &:hover,
       &:focus-visible {
-        text-decoration: none;
         opacity: 0.7 !important;
+        text-decoration: none;
       }
     }
 
@@ -142,10 +145,10 @@ import { Icon } from 'astro-icon/components'
       margin-inline: -7px;
 
       svg {
+        fill: currentColor;
         inline-size: 26px;
         block-size: 26px;
         color: var(--paper) !important;
-        fill: currentColor;
       }
     }
   }
