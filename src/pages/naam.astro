@@ -566,6 +566,18 @@ if (!seedRow) {
     font-family: var(--font-display);
   }
 
+  /* Who sent it. Only the approved entries carry one — the six seeds are the
+     family's own and do not need attributing — so this is what visibly
+     separates "ours, to start" from "someone else already chose this". */
+  .nm-family-who {
+    margin-left: 0.4rem;
+    color: var(--nm-text-faint, var(--nm-text-soft));
+    font-size: 0.62rem;
+    font-family: var(--font-mono);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+  }
+
   /* ── Starter chips ────────────────────────────────────────────────────── */
   .nm-chips {
     display: flex;

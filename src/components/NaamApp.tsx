@@ -123,6 +123,20 @@ type Turn =
   | { id: string; kind: 'form' }
   | { id: string; kind: 'sent'; text: string }
 
+/**
+ * One approved suggestion, as /api/naam-wall serves it. Every field is a
+ * stranger's typed text and reaches the DOM through JSX interpolation only —
+ * never innerHTML — so a payload in `from` arrives as literal characters. The
+ * names are re-resolved against the local dataset rather than trusted from the
+ * record, so the Devanagari on screen is always the document's.
+ */
+interface WallEntry {
+  id: string
+  from: string
+  relation: string
+  picks: { id: string; spelling: string }[]
+}
+
 let turnSeq = 0
 function nextId(): string {
   turnSeq += 1
@@ -186,6 +200,8 @@ export interface NaamAppProps {
 
 export default function NaamApp({ seed }: NaamAppProps) {
   const [rows, setRows] = useState<NaamRow[] | null>(null)
+  /** Approved suggestions from /api/naam-wall. Empty until one is approved. */
+  const [wall, setWall] = useState<readonly WallEntry[]>([])
   const [dataFailed, setDataFailed] = useState(false)
   const [turns, setTurns] = useState<Turn[]>(() => [
     { id: 'greeting', kind: 'agent', text: C.app.greeting, lead: true },
@@ -247,6 +263,24 @@ export default function NaamApp({ seed }: NaamAppProps) {
       })
       .catch(() => {
         if (!signal.aborted) setDataFailed(true)
+      })
+
+    /**
+     * What other people have already sent, once Bishal has approved it. Without
+     * this the moderation flow is a dead end: a suggestion is stored, emailed,
+     * approved into wall.json — and displayed nowhere. The endpoint answers
+     * `{ entries: [] }` on any failure rather than erroring, so a silent catch
+     * is the whole error path; an empty wall and an unreachable one look the
+     * same on purpose, because neither is worth a message to a visitor who came
+     * to name a baby.
+     */
+    fetch('/api/naam-wall', { signal })
+      .then((res) => (res.ok ? res.json() : { entries: [] }))
+      .then((data: { entries?: WallEntry[] }) => {
+        if (!signal.aborted && Array.isArray(data.entries)) setWall(data.entries)
+      })
+      .catch(() => {
+        /* the family strip still has its seeds */
       })
 
     /**
@@ -681,6 +715,29 @@ export default function NaamApp({ seed }: NaamAppProps) {
                   <span className="nm-family-latin">{naamPreferredForm(row, preferB)}</span>
                 </li>
               ))}
+              {/* Then what other people have sent, once approved. They carry a
+                  name because that is the warm part — you are choosing next to
+                  people who already chose — and the ones that resolve to a real
+                  row get their Devanagari from the dataset rather than from the
+                  stored spelling. */}
+              {wall.flatMap((entry) =>
+                entry.picks.map((pick) => {
+                  const row = rows?.find((r) => r.id === pick.id)
+                  return (
+                    <li className="nm-family-item" key={`${entry.id}-${pick.id}`}>
+                      {row && (
+                        <span className="nm-family-deva" lang="sa-Deva">
+                          {naamPreferredDevanagari(row, preferB)}
+                        </span>
+                      )}
+                      <span className="nm-family-latin">{row ? naamPreferredForm(row, preferB) : pick.spelling}</span>
+                      <span className="nm-family-who">
+                        {entry.relation ? `${entry.from} · ${entry.relation}` : entry.from}
+                      </span>
+                    </li>
+                  )
+                }),
+              )}
             </ul>
           </li>
         )
@@ -796,7 +853,7 @@ export default function NaamApp({ seed }: NaamAppProps) {
               </span>
 
               <button type="submit" className="nm-send-go" disabled={sending || picks.length === 0}>
-                {C.tray.send}
+                {C.app.send.submit}
               </button>
 
               {sending && (

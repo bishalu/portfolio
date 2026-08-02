@@ -1,14 +1,19 @@
 /**
- * The browser-side state /naam shares between its two islands and its one
- * progressive-enhancement script (docs/design/DESIGN.md §4, P8, P10).
+ * The browser-side state /naam holds outside React (docs/design/DESIGN.md §4,
+ * P8, P10).
  *
  * WHY one module instead of three: the page has exactly three pieces of state
  * that outlive a single component — the picks tray, the व/ब display
- * preference, and the parsed dataset — and all three are read by both
- * NaamGuide and NaamBrowse *and* by the vanilla script that upgrades the
- * server-rendered shortlist cards. Duplicating any of them is how the swap
- * ends up flipped in one half of the page and not the other. So: one store,
- * one subscription, no framework.
+ * preference, and the parsed dataset. It had three readers when the page was
+ * an editorial document (two islands and a vanilla script upgrading the
+ * server-rendered cards); the rebuild left one, NaamApp.tsx.
+ *
+ * SO WHY IS THIS STILL A STORE. Two reasons that did not go away with the
+ * second island. The dataset is a 1.2 MB parse that must survive an unmount
+ * and must not be re-fetched, and the tray is sessionStorage-backed, so the
+ * state has a lifetime the component does not. Module scope plus a
+ * subscription is what `useSyncExternalStore` wants; folding it into a hook
+ * would make both of those the component's problem.
  *
  * THREE THINGS TO KNOW BEFORE EDITING:
  *

@@ -38,9 +38,18 @@ const VIEWPORTS = [
   { w: 390, h: 844, name: '390-rm', rm: true },
 ]
 
-/** Skip the intro overlay and walk the page so scroll reveals fire. */
+/**
+ * Skip the intro overlay and walk the page so scroll reveals fire.
+ *
+ * The click exists only to dismiss LoadingScreen, and app-shell routes (/naam)
+ * never render it — DefaultLayout gates it on `appShell`. On those pages (10,10)
+ * is the site header's home link, so an unguarded click navigates away and every
+ * assertion after it runs against '/'. Click only when the overlay is present;
+ * it stays in the DOM as display:none after it finishes, so this stays true for
+ * the second and later visits in a session.
+ */
 async function settle(page) {
-  await page.mouse.click(10, 10)
+  if (await page.locator('#loading-screen').count()) await page.mouse.click(10, 10)
   await page.waitForTimeout(1500)
   await page.evaluate(async () => {
     const step = window.innerHeight * 0.7
@@ -189,7 +198,17 @@ async function widgets(browser) {
   // matcher — so "names arrived" is the assertion, and the badge says which
   // half produced them. Note this navigates away from '/', so it must stay last.
   await page.goto(base + '/naam', { waitUntil: 'networkidle' })
-  await page.waitForTimeout(2500) // the dataset lands on mount; the composer is disabled until it does
+
+  // EVERY SELECTOR HERE IS SCOPED UNDER .nm-stream. The no-JS fallback renders
+  // twelve more .nm-card / .nm-pick nodes into the normal DOM and hides them
+  // with CSS (src/pages/naam.astro) — an unscoped '.nm-card' therefore counts
+  // twelve cards on a page that dealt none, and an unscoped Keep locator
+  // resolves to a hidden, disabled fallback button that never accepts a click.
+  const stream = page.locator('.nm-stream')
+
+  // The composer ships disabled until names-core.json lands, so wait on the
+  // control rather than on a guessed number of milliseconds.
+  await page.locator('#nma-ask:not([disabled])').waitFor({ timeout: 20000 })
 
   // The app owns the viewport. If the document scrolls, the shell broke.
   const naamScrolls = await page.evaluate(() => document.documentElement.scrollHeight > window.innerHeight + 1)
@@ -198,15 +217,24 @@ async function widgets(browser) {
     problems += 1
   }
 
-  await page.fill('.nm-composer input, .nm-composer textarea', 'something calm, two syllables')
-  await page.keyboard.press('Enter')
-  await page.waitForTimeout(11000) // Bedrock cold start, past the client's 12s ceiling
+  await page.fill('#nma-ask', 'something calm, two syllables')
+  await page.click('.nm-composer-go')
 
-  const cards = await page.$$eval('.nm-card', (e) => e.length)
-  const naamBadge = ((await page.textContent('.nm-badge').catch(() => '')) || '').trim()
-  console.log(`naam — cards: ${cards}, badge: ${naamBadge || 'none'}`)
+  // A turn must arrive. /api/naam-chat always answers 200 — `degraded` rather
+  // than an error — and the client falls back to the local matcher, so "names
+  // arrived" is the assertion and the badge says which half produced them.
+  // ~9s covers a Bedrock cold start; the client's own ceiling is 12s.
+  await stream
+    .locator('.nm-card')
+    .first()
+    .waitFor({ timeout: 15000 })
+    .catch(() => {})
+
+  const cards = await stream.locator('.nm-card').count()
+  const naamBadge = ((await page.textContent('.nm-badge--rail').catch(() => '')) || '').trim()
+  console.log(`naam — cards dealt: ${cards}, badge: ${naamBadge || 'none'}`)
   if (cards === 0) {
-    console.log('  FAIL: no names rendered — the local matcher should have answered even with the model down')
+    console.log('  FAIL: no names dealt — the local matcher should have answered even with the model down')
     problems += 1
   }
   if (!/^(live|local)$/.test(naamBadge)) {
@@ -214,15 +242,17 @@ async function widgets(browser) {
     problems += 1
   }
 
-  // Keep one, and confirm it reaches the tray. The pick is state, not animation.
-  const keep = page.locator('.nm-card button', { hasText: /keep/i }).first()
+  // Keep one, and confirm it reaches the tray. The pick is state, not animation:
+  // togglePick() runs on the click, so the slot is filled well before the arc
+  // lands and this does not have to wait out FLIGHT_MS to be true.
+  const keep = stream.locator('.nm-pick').first()
   if (await keep.count()) {
     await keep.click()
     await page.waitForTimeout(900)
-    const filled = await page.$$eval('.nm-slot[data-filled]', (e) => e.length)
+    const filled = await page.locator('.nm-slot[data-filled]').count()
     console.log(`naam — slots filled after one keep: ${filled}`)
     if (filled !== 1) {
-      console.log('  FAIL: keeping a name did not fill exactly one slot')
+      console.log(`  FAIL: keeping a name filled ${filled} slots, expected exactly 1`)
       problems += 1
     }
   } else {
@@ -230,13 +260,18 @@ async function widgets(browser) {
     problems += 1
   }
 
-  // The panes clip, so run.mjs's own overflow sweep skips inside them.
-  const paneOverflow = await page.evaluate(() => {
-    const el = document.querySelector('.nm-stream')
-    return el ? el.scrollWidth > el.clientWidth : false
-  })
-  if (paneOverflow) {
-    console.log('  FAIL: .nm-stream overflows horizontally')
+  // responsive()'s overflow sweep skips descendants of clipped ancestors, and
+  // the whole app is clipped — so the panes have to be measured by hand.
+  const naamOverflow = await page.evaluate(() =>
+    ['.nm-stream', '.nm-slots', '.nm-composer']
+      .filter((sel) => {
+        const el = document.querySelector(sel)
+        return el && el.scrollWidth > el.clientWidth
+      })
+      .join(', '),
+  )
+  if (naamOverflow) {
+    console.log(`  FAIL: overflows horizontally: ${naamOverflow}`)
     problems += 1
   }
 

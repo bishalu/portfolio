@@ -46,8 +46,9 @@ const TIMEOUT_MS = 8000
 /**
  * The whole request's budget, model call included. The dataset fetch has its
  * own 6s timeout in front of the model call, so on a cold instance 6 + 8 = 14s
- * of server work sat behind a client that gives up at 12s (NaamGuide.tsx
- * CHAT_TIMEOUT_MS) — harmless, because the page had already answered LOCAL, but
+ * of server work sat behind a client that gives up at 12s (CHAT_TIMEOUT_MS,
+ * now in src/lib/naam/ask.ts) — harmless, because the page had already
+ * answered LOCAL, but
  * it meant the numbers did not describe the system. One deadline taken at entry
  * fixes that: a warm instance still gets the full 8s, a cold one gets what is
  * left, and nothing outlives the client that is waiting for it.

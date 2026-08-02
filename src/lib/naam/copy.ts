@@ -28,130 +28,7 @@
  * every degradation falls back to the matcher, which is real.
  */
 import { NAAM_COUNTS } from '@/generated/naam-facts'
-import { NAAM_SOURCE_LABEL, NAAM_THEMES, type NaamLetter, type NaamSource, type NaamTheme } from '@/types/naam'
-import type { Prefs } from './match'
-
-/* ────────────────────────────────────────────────────────────────────────────
-   The guided flow — six questions, each answerable in one tap.
-   Option values are typed against Prefs, so a question that stops matching the
-   matcher stops compiling.
-   ──────────────────────────────────────────────────────────────────────────── */
-
-export interface NaamOption<V> {
-  value: V
-  /** What the visitor reads on the control. */
-  label: string
-  /** One clause under it. Optional, and often better absent. */
-  note?: string
-}
-
-export interface NaamQuestion<K extends keyof Prefs, V> {
-  /** The Prefs field this question fills. */
-  key: K
-  label: string
-  helper: string
-  /** true = chips, any number of them. false = one answer. */
-  multiple: boolean
-  /** Only set where a cap is real. */
-  max?: number
-  options: readonly NaamOption<V>[]
-}
-
-export type NaamAnyQuestion =
-  | NaamQuestion<'syllables', number>
-  | NaamQuestion<'letters', NaamLetter>
-  | NaamQuestion<'themes', NaamTheme>
-  | NaamQuestion<'sources', NaamSource>
-  | NaamQuestion<'wants', Prefs['wants']>
-  | NaamQuestion<'easySay', boolean>
-
-/** Labels for the closed theme lexicon, in NAAM_THEMES order. */
-const THEME_LABEL: Record<NaamTheme, string> = {
-  light: 'Light',
-  strength: 'Strength',
-  wisdom: 'Wisdom',
-  compassion: 'Kindness',
-  joy: 'Joy',
-  auspicious: 'Good fortune',
-  sky: 'Sky',
-  water: 'Water',
-  earth: 'Earth',
-  sound: 'Sound',
-  protection: 'Protection',
-  lotus: 'Lotus',
-  peace: 'Calm',
-  deity: 'The gods',
-  monk: 'The monastic',
-  royal: 'Kings',
-  purity: 'Purity',
-  swift: 'Speed',
-  truth: 'Truth',
-}
-
-const QUESTIONS: readonly NaamAnyQuestion[] = [
-  {
-    key: 'syllables',
-    label: 'How long should it be?',
-    helper: 'Say it out loud.',
-    multiple: true,
-    options: [
-      { value: 1, label: 'One syllable', note: 'A short list.' },
-      { value: 2, label: 'Two', note: 'Easy to call.' },
-      { value: 3, label: 'Three', note: 'Room for meaning.' },
-    ],
-  },
-  {
-    key: 'letters',
-    label: 'Which letter?',
-    helper: 'One, two, or all three.',
-    multiple: true,
-    options: [
-      { value: 'B', label: 'B', note: 'Bishal' },
-      { value: 'S', label: 'S', note: 'Sneha' },
-      { value: 'V', label: 'V', note: 'Which we say as B' },
-    ],
-  },
-  {
-    key: 'themes',
-    label: 'What should it mean?',
-    helper: 'Up to three. Our reading of the document.',
-    multiple: true,
-    max: 3,
-    options: NAAM_THEMES.map((theme) => ({ value: theme, label: THEME_LABEL[theme] })),
-  },
-  {
-    key: 'sources',
-    label: 'Where should it come from?',
-    helper: 'Which text it comes from.',
-    multiple: true,
-    options: [
-      { value: 'V', label: NAAM_SOURCE_LABEL.V, note: 'The oldest layer.' },
-      { value: 'C', label: NAAM_SOURCE_LABEL.C, note: 'Epic and later Sanskrit.' },
-      { value: 'T', label: NAAM_SOURCE_LABEL.T, note: 'The Pali suttas.' },
-    ],
-  },
-  {
-    key: 'wants',
-    label: 'Which matters more?',
-    helper: `The document marks both, and ${n(NAAM_COUNTS.gold)} names carry both.`,
-    multiple: false,
-    options: [
-      { value: 'attested', label: 'Someone real bore it', note: 'A person or a god in the text.' },
-      { value: 'meaning', label: 'The meaning', note: 'What it says.' },
-      { value: 'both', label: 'No preference' },
-    ],
-  },
-  {
-    key: 'easySay',
-    label: 'Easy for anyone to say?',
-    helper: 'Drops the harder clusters.',
-    multiple: false,
-    options: [
-      { value: true, label: 'Yes', note: 'Kathmandu and Ohio both.' },
-      { value: false, label: 'Does not matter' },
-    ],
-  },
-]
+import { NAAM_SOURCE_LABEL, type NaamSource } from '@/types/naam'
 
 /* ────────────────────────────────────────────────────────────────────────────
    The relation list. Warmest thing on the page, and genuinely worth knowing.
@@ -180,21 +57,21 @@ export const NAAM_COPY = {
   meta: {
     title: 'Naam — help us name our son',
     description:
-      'Sneha and Bishal are naming their son. Answer six questions or just say what you are after, and send back a shortlist.',
+      'Sneha and Bishal are naming their son. Say what you are after, keep three names from what the document offers, and send them back.',
     /** The nav and footer entry. */
     navLabel: 'Naam',
   },
 
+  /**
+   * THE NO-JS FALLBACK'S WORDS, and nothing else now (src/pages/naam.astro).
+   * With JavaScript on there is no hero — the greeting in `app` is the opening
+   * line and the app owns the viewport. These four strings are the ordinary
+   * document a visitor without JavaScript gets instead, so they are still live
+   * and must not be retired with the rest of the editorial frame.
+   */
   hero: {
-    eyebrow: 'A family ask',
     headline: 'Help us name our son.',
-    /**
-     * One sentence. The two doors below say what to do, so the standfirst does
-     * not need to; "tell us why / we read every one" moved to the send step,
-     * where it is the thing actually being asked for. Nine text blocks used to
-     * sit above the first control — on a phone that is 700px of scrolling
-     * before you can act.
-     */
+    /** One sentence. The form below is the ask, so the standfirst is not. */
     standfirst: `Sneha and I have ${n(NAAM_COUNTS.total)} candidates and no decision.`,
     /** Quiet, one line, not the headline. */
     letters: 'B is Bishal, S is Sneha. V is here because Nepali says व as ब.',
@@ -216,9 +93,11 @@ export const NAAM_COPY = {
    * the stack is wrong somewhere and this is where it shows first.
    */
   app: {
-    /** The rail. Lowercase — it is the page's own name, not a title. */
-    brand: 'naam',
-    /** The one visible heading with JavaScript on. */
+    /**
+     * The one visible heading with JavaScript on, and it is the rail's brand
+     * too — the <h1> in the topbar is the wordmark. Lowercase: it is the page's
+     * own name, not a title.
+     */
     heading: 'naam',
     streamLabel: 'The conversation, and the names it has dealt',
     /**
@@ -257,11 +136,19 @@ export const NAAM_COPY = {
       /** The whole slot is the control; there is no grey ✕. */
       taken: (slot: number, name: string) => `Slot ${slot}, ${name}. Take it back.`,
     },
-    /** The last turn: the send fields arrive in the stream when three are kept. */
+    /**
+     * The last turn: the send fields arrive in the stream when three are kept.
+     * `submit` lives here rather than in a `tray` block of its own — the old
+     * one described a six-pick sidebar that could be cleared, counted and
+     * declared full, and every string in it but this one described something
+     * the page no longer has. Two blocks called tray, one of them dead, is how
+     * the next reader picks the wrong one.
+     */
     send: {
       lead: 'That is your three. Who should we thank for them?',
       picksLabel: 'Sending',
       why: 'Why these? — one line is plenty',
+      submit: 'Send these to us',
     },
   },
 
@@ -272,65 +159,24 @@ export const NAAM_COPY = {
   },
 
   /**
-   * The wizard and the ask both need JavaScript; the names below them do not.
-   * Without this line a no-JS visitor meets a panel of dead controls and no
-   * explanation of where the real content is.
+   * The app needs JavaScript; the names and the form below it do not. Without
+   * this line a no-JS visitor meets a page with no explanation of why the thing
+   * they were sent a link to is not on it.
    */
-  noscript:
-    'The six questions and the ask need JavaScript. Everything below — the names, their meanings and the form — does not.',
+  noscript: 'The naming app needs JavaScript. Everything below — the names, their meanings and the form — does not.',
 
   /**
-   * Two doors, no helpers. A label that needs a sentence under it explaining
-   * what it does is a label that has not been written yet — and two helpers
-   * here pushed the first control below the fold on every viewport.
+   * What the app says ABOUT a set of names, as opposed to the names themselves.
+   * Whittled to three: the wizard's headings, its "show 50 more", its
+   * side-by-side lookup and its two loading captions all went with the
+   * editorial page, and the app's own captions live under `app` instead.
    */
-  doors: {
-    guided: { label: 'Answer six questions' },
-    freeform: { label: 'Say what you are after' },
-  },
-
-  guide: {
-    questions: QUESTIONS,
-    /** Every question is skippable; none of them is required. */
-    skip: 'No preference',
-    back: 'Back',
-    next: 'Next',
-    finish: 'Show me names',
-    restart: 'Start over',
-    change: 'Change an answer',
-    stepLabel: (step: number, total: number) => `Question ${step} of ${total}`,
-    /** Shown while the six answers are still being taken. */
-    answersLabel: 'So far',
-  },
-
-  ask: {
-    label: 'Tell us what you are after',
-    placeholder: 'something short and calm that starts with S',
-    hint: 'A line or two is plenty.',
-    send: 'Ask',
-    examples: [
-      'what does Bhaskara mean',
-      'Bhaskara or Bodhi',
-      'a strong two-syllable Vedic name my cousins can pronounce',
-    ],
-  },
-
   results: {
-    heading: 'What the document offers',
     /** Above the computed match reasons. They are never written by a model. */
     reasonsLabel: 'Matched on',
-    lookupHeading: 'That one, in the document',
-    compareHeading: 'Side by side',
-    more: 'Show 50 more',
-    /** .pulse-line captions. Lowercase — they are mono captions, not labels. */
-    loading: 'reading the document…',
-    loadingAsk: 'asking…',
-    empty: 'Nothing answers all of that. Loosen one answer — syllables is usually the one to give back.',
     emptyAsk: 'Nothing matched that. Try a meaning rather than a spelling.',
     /** Shown when the hard filters intersected to nothing and were given back. */
     relaxed: 'Nothing answered all of that, so one answer has been given back. These are the closest the document has.',
-    /** For a name the visitor asked about that the document does not carry. */
-    notFound: (name: string) => `${name} is not in this document. The closest things that are:`,
   },
 
   /** DESIGN.md §4. Two of the three words; there is no REPLAY on this page. */
@@ -372,66 +218,29 @@ export const NAAM_COPY = {
      */
     swapGlyph: 'व / ब',
     swapAria: 'Switch between the V and the B spelling',
-    swapNote: 'Display only. The document’s spelling stays as printed.',
     /**
      * Keep, not Pick. The tray is three slots a name is *kept* in, and the
      * word on the button is the word the motion illustrates — the card arcs
      * down and is kept. One verb for one gesture, everywhere on the page.
+     *
+     * There is no `unpick` here any more. Taking a name back is done on the
+     * seated slot, not on the card, so the words for it belong to the slot —
+     * `app.tray.taken` carries them.
      */
     pick: 'Keep',
     picked: 'Kept',
-    unpick: 'Take it back',
     /** The seeded family names that are not rows in the document. */
     notInDocument: 'Not in the document — a family name',
   },
 
   /**
-   * The prerendered names, and the reason they have their own heading: this
-   * section used to run C.results.heading over C.browse.standfirst — a title
-   * that also labels the wizard's result list, over a sentence describing the
-   * browse island two sections down. Two different things wearing one phrase,
-   * and a standfirst about a list that is not on screen.
+   * ONE HEADING, over the twelve names the no-JS fallback prerenders. Its
+   * standfirst and per-letter counter went with the browse island: the fallback
+   * shows four under each letter and says so by showing them, and a count of a
+   * list nobody can filter is a number doing no work.
    */
   shortlist: {
     heading: 'Where we would start',
-    standfirst: (perLetter: number) =>
-      `${n(perLetter)} under each letter, out of the ${n(NAAM_COUNTS.gold)} the document marks as both a real name and a meaning worth having.`,
-    /** Shown, out of everything the document holds under that letter. */
-    letterCount: (shown: number, total: number) => `${n(shown)} of ${n(total)}`,
-  },
-
-  browse: {
-    heading: 'The whole list',
-    standfirst: `${n(NAAM_COUNTS.core)} names load first; the other ${n(NAAM_COUNTS.rest)} on request.`,
-    searchLabel: 'Search names and meanings',
-    searchPlaceholder: 'bhas, lotus, king…',
-    filterLetter: 'Letter',
-    filterSyllables: 'Syllables',
-    filterSource: 'Source',
-    /**
-     * Its own axis. "Attested" and "Evocative" sat under the Source legend
-     * beside Vedic/Classical/Theravada, which made a chip row that mixed where
-     * a name came from with what kind of entry it is — two different questions
-     * under one label.
-     */
-    filterKind: 'Kind',
-    filterTheme: 'Meaning',
-    clear: 'Clear filters',
-    loadRest: 'Load the rest',
-    loading: 'loading the rest…',
-    empty: 'Nothing matches those filters.',
-    count: (shown: number, total: number) => `${n(shown)} of ${n(total)}`,
-  },
-
-  tray: {
-    heading: 'Your picks',
-    empty: 'No picks yet. Pick a name and it waits here.',
-    count: (picks: number) => (picks === 1 ? '1 name' : `${n(picks)} names`),
-    full: (max: number) => `That is ${max}, which is plenty. Send these first.`,
-    clear: 'Clear',
-    send: 'Send these to us',
-    /** The tray survives the two paths and a reload. */
-    persisted: 'Kept on this device until you send them.',
   },
 
   form: {
@@ -448,9 +257,14 @@ export const NAAM_COPY = {
       options: NAAM_RELATIONS,
       error: 'Pick one — any one.',
     },
+    /**
+     * Reachable, and only one way: the send turn arrives when the third slot
+     * fills, and taking names back afterwards leaves the form on screen with
+     * nothing to send. It names the gesture the tray actually has — Keep, and
+     * three slots — not the old grid's "tap Pick on any name".
+     */
     picks: {
-      label: 'Your picks',
-      empty: 'No picks yet — tap Pick on any name, or type one below.',
+      empty: 'All three slots are empty again. Keep a name and it lands here.',
     },
     /**
      * The always-usable half of the form. With JavaScript off nothing can fill
