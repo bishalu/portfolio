@@ -10,9 +10,9 @@
 
 Motion on this site is **signal propagation**, not decoration. The vocabulary is named
 `sig-*` because it descends from the same metaphor as everything else: Bishal's research is
-electrical signalling between neurons, so content *arrives* the way a pulse arrives, and the
-loading indicator is literally described in the source as *"a line carries a traveling
-action-potential spike."*
+electrical signalling between neurons, so content _arrives_ the way a pulse arrives, and the
+loading indicator is literally described in the source as _"a line carries a traveling
+action-potential spike."_
 
 Two consequences that shape every rule below:
 
@@ -27,13 +27,13 @@ Two consequences that shape every rule below:
 ## 1. Physics
 
 ```css
---ease-out:    cubic-bezier(0.22, 1, 0.36, 1);     /* default — expo-out */
---ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);  /* rare, playful. Currently unused. */
---ease-exit:   cubic-bezier(0.45, 0, 0.7, 0.2);    /* leaving */
+--ease-out: cubic-bezier(0.22, 1, 0.36, 1); /* default — expo-out */
+--ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* rare, playful. Currently unused. */
+--ease-exit: cubic-bezier(0.45, 0, 0.7, 0.2); /* leaving */
 
---dur-fast: 120ms;   /* micro-feedback */
---dur-base: 200ms;   /* state changes, pops */
---dur-slow: 400ms;   /* entrances */
+--dur-fast: 120ms; /* micro-feedback */
+--dur-base: 200ms; /* state changes, pops */
+--dur-slow: 400ms; /* entrances */
 ```
 
 Scripted (WAAPI) motion in `Hero.astro` and `LoadingScreen.astro` uses
@@ -50,19 +50,21 @@ what keeps CLS at 0 and TBT under 200ms.
 
 ### Entrances — "the pulse arrives"
 
-| Verb | Motion | Use |
-|---|---|---|
-| `sig-arrive` | `translateY(12px)` + fade | **Default.** Content settles up into place. |
-| `sig-settle` | fade only | Heavy compositions where a rise would feel like a shove. |
-| `sig-pop` | `scale(0.985) → 1` + fade | Overlays, menus, result cards. |
+| Verb         | Motion                    | Use                                                      |
+| ------------ | ------------------------- | -------------------------------------------------------- |
+| `sig-arrive` | `translateY(12px)` + fade | **Default.** Content settles up into place.              |
+| `sig-settle` | fade only                 | Heavy compositions where a rise would feel like a shove. |
+| `sig-pop`    | `scale(0.985) → 1` + fade | Overlays, menus, result cards.                           |
 
 Markup is declarative:
 
 ```html
-<div data-reveal>…</div>              <!-- sig-arrive -->
+<div data-reveal>…</div>
+<!-- sig-arrive -->
 <div data-reveal="settle">…</div>
 <div data-reveal="pop">…</div>
-<div data-reveal-stagger>…</div>      <!-- children delayed in reading order -->
+<div data-reveal-stagger>…</div>
+<!-- children delayed in reading order -->
 ```
 
 `src/scripts/reveal.ts` observes at `threshold: 0.3, rootMargin: '0px 0px -5% 0px'`, adds
@@ -75,13 +77,14 @@ a long list turns into a slow wipe.
 ### Drawing — "a measured line writes itself"
 
 ```html
-<polyline data-draw pathLength="1" … />   <!-- inside a [data-reveal] ancestor -->
+<polyline data-draw pathLength="1" … />
+<!-- inside a [data-reveal] ancestor -->
 ```
 
 `sig-draw` animates `stroke-dashoffset` 1 → 0 over 900ms. `pathLength="1"` is required
 so the dash maths is independent of the path's real geometry.
 
-Borrowed from the Choon monitor, where the same treatment marks a plot as a *reading*
+Borrowed from the Choon monitor, where the same treatment marks a plot as a _reading_
 rather than a picture. Reserve it for charts whose data is a sequence — a line that draws
 itself says "this was measured over something". A bar chart doesn't qualify; bars are
 categories, not a traversal.
@@ -107,12 +110,12 @@ spike becomes a static full-width gradient bar — still legible as "something i
 
 Rationed to the budget in DESIGN.md P7.
 
-| Verb | Where | Notes |
-|---|---|---|
-| `sig-live-breathe` | `.live-dot` | opacity 0.45↔1 @ 1.8s. Declared in-source as the only infinite ambient animation permitted outside the hero. |
-| `sig-eq` | `.sig-eq` | Three bars, `scaleY(0.26 → 1)`, periods 0.9s / 0.7s / 1.1s, delays 0 / 0.18s / 0.36s. **Rests at `scaleY(0.35)`** so reduced motion freezes it into a legible idle equalizer rather than a flat line. |
-| aurora drift | `Atmosphere.astro` | 110s and 140s, `translate3d` + `scale` only, disabled below 768px. |
-| oscilloscope | `Hero.astro` | `requestAnimationFrame` canvas. Paused by IntersectionObserver and `visibilitychange`; never starts under reduced motion (draws one static frame instead). |
+| Verb               | Where              | Notes                                                                                                                                                                                                 |
+| ------------------ | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sig-live-breathe` | `.live-dot`        | opacity 0.45↔1 @ 1.8s. Declared in-source as the only infinite ambient animation permitted outside the hero.                                                                                          |
+| `sig-eq`           | `.sig-eq`          | Three bars, `scaleY(0.26 → 1)`, periods 0.9s / 0.7s / 1.1s, delays 0 / 0.18s / 0.36s. **Rests at `scaleY(0.35)`** so reduced motion freezes it into a legible idle equalizer rather than a flat line. |
+| aurora drift       | `Atmosphere.astro` | 110s and 140s, `translate3d` + `scale` only, disabled below 768px.                                                                                                                                    |
+| oscilloscope       | `Hero.astro`       | `requestAnimationFrame` canvas. Paused by IntersectionObserver and `visibilitychange`; never starts under reduced motion (draws one static frame instead).                                            |
 
 **`live-dot` vs `sig-eq`:** both mean "this is alive", in two idioms. A dot suits a service
 ("the server is up"); bars suit an audio system ("something is running, and here is its
@@ -128,7 +131,7 @@ vocabulary and should be named as such when reused:
   exit `scale(1) → 1.06` @ 300ms `--ease-exit`. Also the phone sheet's
   `translateY(100%) → 0`.
 - **The handoff** — `LoadingScreen` dispatches `bishal:hero-go` and the hero entrance begins
-  *underneath* the overlay fade, so the drawn trace hands off into the oscilloscope instead
+  _underneath_ the overlay fade, so the drawn trace hands off into the oscilloscope instead
   of cutting to it. Do not "simplify" this into a sequential animation; the overlap is the
   whole effect.
 
@@ -143,7 +146,7 @@ focus  → outline: 2px solid var(--crimson); outline-offset: 2px
 ```
 
 **Focus is never merged with hover.** A `hocus`-style combined variant (as used in two of the
-Vibeset product codebases) is wrong here: focus needs a *stronger, different* treatment than
+Vibeset product codebases) is wrong here: focus needs a _stronger, different_ treatment than
 hover, not the same one.
 
 ---
@@ -161,7 +164,7 @@ The contract is that the page must be **complete, functional, and fully drawn �
 - Hover/press transforms → none
 - The oscilloscope draws a single static frame rather than not rendering
 
-Components opt into *stillness*, never into *absence*. Anything that vanishes under reduced
+Components opt into _stillness_, never into _absence_. Anything that vanishes under reduced
 motion is a bug.
 
 **Colour and tint feedback are not motion** and are deliberately left intact — hover
@@ -199,6 +202,36 @@ Before adding a verb, answer all four:
 `sig-eq` is the worked example: it added the one missing semantic ("a process is running,
 and here is its magnitude"), it swapped rather than stacked, and its resting `scaleY(0.35)`
 means the reduced-motion state still reads as an equalizer.
+
+### The `/naam` set — scoped, and the only one
+
+`/naam` is an app, not a document: names are **dealt** onto a surface and keeping one **flies
+it into a tray**. The closed `sig-*` vocabulary above covers neither, so that page carries its
+own set. It is scoped to `#naam-app` and to `src/components/NaamApp.tsx`; nothing else on the
+site may use it, and a second page wanting a deal is a reason to reopen this section rather
+than to copy it. The numbers are research, not taste:
+
+| Moment          | Spec                                                                                                                                                                                                                                          |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Deal — stagger  | **100ms** between cards. Under ~50ms reads as "they all appeared"                                                                                                                                                                             |
+| Deal — per card | **420ms**, `cubic-bezier(0.05, 0.7, 0.1, 1)` (Material emphasized-decelerate). Rotation ±3°, **seeded off the row id** so it is stable across re-renders                                                                                      |
+| Keep — flight   | **430ms**. Scale finishes at **80% of the path**, so the name _arrives_ small rather than shrinking on landing. Opacity never below **0.9** — fading mid-flight is what makes these read as cheap. −22px lift at the midpoint makes it an arc |
+| Keep — hold     | **90ms of total stillness** on landing. Hitstop; it is what makes the landing an event                                                                                                                                                        |
+| Keep — settle   | **160ms**, on the seated name                                                                                                                                                                                                                 |
+| Slot reaction   | `scale(0.96, 1.03)` over 90ms, then 220ms on `cubic-bezier(0.34, 1.56, 0.64, 1)` — **the receiver reacts, not just the card**                                                                                                                 |
+| Un-keep         | **260ms** and the emptied slot recoils. Removal is as animated as keeping, or the collection becomes a form                                                                                                                                   |
+| Breathing       | empty slots, **9s cycle, 1.2% scale**, and it STOPS once filled                                                                                                                                                                               |
+
+Two rules the numbers do not carry:
+
+- **Animation never gates input.** `togglePick()` runs on the click, before a frame is
+  scheduled, so a second Keep is startable at frame 1 of the first one's flight.
+- **Ambient motion is suspended** while the composer has focus and for 800ms after the last
+  keystroke (`[data-calm]`). Only one thing breathes at a time, and never while typing.
+
+Every one of these is Web Animations API, because each needs measured geometry — and every
+one is **skipped outright** under `prefers-reduced-motion`, which the component reads
+directly. The state change still happens; it is just instant.
 
 ---
 

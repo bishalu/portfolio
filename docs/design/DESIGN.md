@@ -16,13 +16,13 @@
 **The site is an instrument reading a signal.**
 
 This is not a theme laid over the content; it comes out of the content. Bishal's published
-research is electrical signalling between neurons — innexin gap junctions in *C. elegans*
+research is electrical signalling between neurons — innexin gap junctions in _C. elegans_
 (PLoS Genetics 2019), engineered synapses restoring a damaged circuit (Cell Systems 2021).
 So the site's loader is a traveling action potential, the research section is drawn as a
 **spike train**, the entire motion vocabulary is namespaced `sig-*`, and the brand gradient
 is called `--grad-signal`.
 
-The metaphor is *earned*. That is what makes it defensible, and it is the single most
+The metaphor is _earned_. That is what makes it defensible, and it is the single most
 distinctive thing about this site. Every design decision below serves it.
 
 **The corollary that does the most work:** capabilities are presented as **stations on a
@@ -51,6 +51,22 @@ toggle, and no `prefers-color-scheme` query anywhere in `src/`.
 **Adjudicates:** no second surface family, no light mode, no "card on white". Depth comes
 from these three surfaces plus hairlines — not from stacked shadows.
 
+**The one sanctioned exception: `/naam`.** It is the only page that is not the instrument —
+it is a family asking for help — and it runs on a light ground: `--naam-sky #EDEFF2` canvas,
+`--naam-rice #FAFAF8` raised, `--naam-ink #1A1D2E` text. **The accents do not change.**
+Crimson and marigold carry over untouched; only the ground flips. Three conditions make it an
+exception rather than drift, and all three are load-bearing:
+
+1. **Declared on `#naam-app` only, never on `:root`.** No other route can inherit a light
+   token and the site keeps `color-scheme: dark`. `src/pages/naam.astro` is the only file
+   that may declare one.
+2. **Contrast is recomputed, not inherited.** On rice, `--marigold` is ~2:1 and is therefore
+   a fill and a border and never type; `--crimson` is 4.2:1 and is a focus ring and a border,
+   with `--crimson-deep` (5.7:1) carrying any accent text; `--glacier` is 2.7:1 and is the
+   live dot, not the word beside it.
+3. **A second light page needs this clause amended, not copied.** If light stops being one
+   page it stops being an exception.
+
 ### P2 — Emphasis by glow, never by fill
 
 Weight is signalled with `--glow-crimson` / `--glow-marigold` / `--glow-glacier` /
@@ -76,7 +92,7 @@ is the entire reason those two tokens exist. Primary text is bone, never pure wh
 
 **Why this matters beyond taste:** a near-black canvas with one bright accent is one of the
 most common machine-generated design defaults in circulation. What makes Alpenglow a
-*choice* is that it has three accents with distinct semantic jobs plus a bone paper. Diluting
+_choice_ is that it has three accents with distinct semantic jobs plus a bone paper. Diluting
 it into "dark theme + accent colour" throws away the differentiation.
 
 **Adjudicates:** a new colour needs a job no existing accent has. There are no decorative
@@ -89,17 +105,17 @@ spike, the loading-screen trace, the spike-train rail, the pipeline connectors, 
 terminating into the contact form's submit button, the oscilloscope stroke.
 
 **Adjudicates:** gradient backgrounds and gradient cards are violations. Gradient-clipped
-*text* is the single sanctioned exception — see §3.
+_text_ is the single sanctioned exception — see §3.
 
 ### P5 — Mono is the voice of data
 
 Three faces, three jobs:
 
-| Role | Face | Used for |
-|---|---|---|
-| `--font-display` | Bricolage Grotesque Variable | headings — the site makes a claim |
-| `--font-body` | Atkinson Hyperlegible | prose — the site is read |
-| `--font-mono` | DM Mono | labels, numbers, status — the site is *measured* |
+| Role             | Face                         | Used for                                         |
+| ---------------- | ---------------------------- | ------------------------------------------------ |
+| `--font-display` | Bricolage Grotesque Variable | headings — the site makes a claim                |
+| `--font-body`    | Atkinson Hyperlegible        | prose — the site is read                         |
+| `--font-mono`    | DM Mono                      | labels, numbers, status — the site is _measured_ |
 
 `.label-mono` (uppercase, 500, 0.75rem, `--tracking-label: 0.08em`) carries every eyebrow,
 stat, tag and status line — 55 usages. It is the main reason structurally different sections
@@ -133,8 +149,8 @@ Two continuous loops per viewport, plus the live-dot breath:
 1. `Atmosphere.astro` aurora drift (110s / 140s, disabled below 768px)
 2. The hero oscilloscope `requestAnimationFrame` loop (IntersectionObserver- and
    `visibilitychange`-paused)
-3. `.live-dot` / `sig-live-breathe` — declared in `motion.css` as *"the only infinite ambient
-   animation allowed outside the hero oscilloscope"*
+3. `.live-dot` / `sig-live-breathe` — declared in `motion.css` as _"the only infinite ambient
+   animation allowed outside the hero oscilloscope"_
 
 **Adjudicates:** a new looping element must **displace** one of these, not become a fourth.
 A swap is allowed when the semantic is identical (see `sig-eq` in MOTION.md); an addition is
@@ -142,8 +158,8 @@ not.
 
 ### P8 — No spinners, no skeletons
 
-The site states this in its own UI (`LiveSignals.astro`: *"this page: no spinners, no
-skeletons — just the signal"*). Loading is always `.pulse-line` — a gradient spike travelling
+The site states this in its own UI (`LiveSignals.astro`: _"this page: no spinners, no
+skeletons — just the signal"_). Loading is always `.pulse-line` — a gradient spike travelling
 along a 2px rule — with a mono caption. It is a brand asset and it survives into every new
 demo.
 
@@ -153,7 +169,7 @@ no third-party spinner components.
 ### P9 — Proof over claim
 
 Every assertion on this site is live, cited, or runnable. `/notes/choon` publishes a
-*failing* result (high-pass, 15.3% recall@1), states its methodology, and marks its NDA
+_failing_ result (high-pass, 15.3% recall@1), states its methodology, and marks its NDA
 boundary. Demos badge themselves honestly (§4). This candour is a large part of why the site
 reads as credible to senior engineers, and a redesign must not sand it off.
 
@@ -164,14 +180,14 @@ the evidence gate in the content schema.
 
 Enforced by `.claude/skills/verify-site`:
 
-| Gate | Threshold |
-|---|---|
-| axe violations | **0** |
-| Lighthouse accessibility | **100** |
-| Lighthouse best-practices | **100** |
-| CLS | **0** |
-| TBT | **≤ 200ms** |
-| Mobile performance | **≥ 85** local (≈90+ on CDN) |
+| Gate                      | Threshold                    |
+| ------------------------- | ---------------------------- |
+| axe violations            | **0**                        |
+| Lighthouse accessibility  | **100**                      |
+| Lighthouse best-practices | **100**                      |
+| CLS                       | **0**                        |
+| TBT                       | **≤ 200ms**                  |
+| Mobile performance        | **≥ 85** local (≈90+ on CDN) |
 
 One global `prefers-reduced-motion` block in `motion.css`; the file explicitly forbids
 per-component blocks. Content is never hidden from no-JS clients
@@ -181,7 +197,7 @@ from hover — never collapse the two.
 ### P11 — The person is the subject
 
 The site opens with a name at `clamp(3.2rem, 11.5vw, 8.5rem)` and speaks in the first person
-("I co-own and build Vibeset"). Vibeset is *his company*, presented as evidence of range —
+("I co-own and build Vibeset"). Vibeset is _his company_, presented as evidence of range —
 not as the site's subject.
 
 **Adjudicates:** pricing-table grammar, "most chosen" badges, chat-widget framing and other
@@ -196,24 +212,24 @@ The hard constraint is that the site must never feel crowded or read as a produc
 Density is measured, not judged. Baseline at the time of writing: **1,065 visible words,
 25 buttons, 21 links, 6 inputs.**
 
-| Constraint | Limit |
-|---|---|
-| Sections | 5 max, plus ≤2 ambient strips (≤20 words, 0 buttons, 0 inputs) |
-| Visible words, whole page | ≤900 (content inside collapsed `<details>` doesn't count) |
-| Visible words per section | ≤220 |
-| Interactive widgets on `/` | **3**, plus the contact form |
-| Chrome buttons (nav, CTAs, form) | ≤8 |
-| Demo controls | ≤10 per widget, counted separately |
-| Filled `--crimson-deep` CTAs above the fold | exactly 1 |
-| CTAs per station | 1 filled + 1 quiet text link |
-| Stats per station | ≤3 |
-| Consecutive sections using a 3-card row | never 2 in a row |
-| Ambient infinite animations | 2 per viewport (P7) |
-| Section rhythm | `--space-3xl` |
+| Constraint                                  | Limit                                                          |
+| ------------------------------------------- | -------------------------------------------------------------- |
+| Sections                                    | 5 max, plus ≤2 ambient strips (≤20 words, 0 buttons, 0 inputs) |
+| Visible words, whole page                   | ≤900 (content inside collapsed `<details>` doesn't count)      |
+| Visible words per section                   | ≤220                                                           |
+| Interactive widgets on `/`                  | **3**, plus the contact form                                   |
+| Chrome buttons (nav, CTAs, form)            | ≤8                                                             |
+| Demo controls                               | ≤10 per widget, counted separately                             |
+| Filled `--crimson-deep` CTAs above the fold | exactly 1                                                      |
+| CTAs per station                            | 1 filled + 1 quiet text link                                   |
+| Stats per station                           | ≤3                                                             |
+| Consecutive sections using a 3-card row     | never 2 in a row                                               |
+| Ambient infinite animations                 | 2 per viewport (P7)                                            |
+| Section rhythm                              | `--space-3xl`                                                  |
 
 **Why buttons are counted in two piles.** The original audit capped the page at 16 buttons
 flat, measured when 25 of them were pricing tiers, card CTAs and duplicate links — chrome
-that asked the visitor to go somewhere. Controls that *drive an instrument* are the content,
+that asked the visitor to go somewhere. Controls that _drive an instrument_ are the content,
 not the packaging: a visitor operating the sync workbench is doing the thing the page exists
 to show. So chrome is capped hard and demo controls are budgeted per widget. If a demo's
 controls ever start reading as chrome, that's a sign the demo isn't demonstrating anything.
@@ -224,7 +240,7 @@ to make room for more content. Shrink the content instead.
 
 **Where immersion lives.** The home page is an **index**; the product pages are where depth
 belongs. This is what lets the site carry six demonstrations while the landing page gets
-*less* dense, not more. A capability that needs room gets a product page or a case note — not
+_less_ dense, not more. A capability that needs room gets a product page or a case note — not
 another home-page section.
 
 ---
@@ -233,7 +249,7 @@ another home-page section.
 
 - **Display and marketing headlines → sentence case.** "One catalog, three products."
 - **UI labels, eyebrows, metadata, buttons → UPPERCASE DM Mono**, `--tracking-label: 0.08em`.
-- **Numbers are first-class and always mono.** A stat's *value* is not a label — it is the
+- **Numbers are first-class and always mono.** A stat's _value_ is not a label — it is the
   proof. On product pages, values are set at display size with
   `font-variant-numeric: tabular-nums`. `76.9%` should look measured, not mentioned.
 - **Two mono sizes, and stop.**
@@ -241,6 +257,7 @@ another home-page section.
   - `.label-mono--sm` — 0.65rem / 0.1em — captions, chips, dense annotation
 
   Improvising a third size is how a labeling system dies.
+
 - **No emoji. Functional glyphs only:** `↳` (leaves the site or opens the app), `▶` (play),
   `✓` (confirmed). Anything else is decoration.
 - **One gradient-clipped word per page, at display size only.** `.text-gradient-organic`
@@ -254,11 +271,11 @@ another home-page section.
 Demos declare their nature in one of exactly three words. This is a design element, not a
 disclaimer — it is why the numbers on this site are believed.
 
-| Badge | Means | Example |
-|---|---|---|
-| **LIVE** | A real call, right now, with measured latency | VibeFinder hitting the production search API |
-| **LOCAL** | Real algorithm, real data, running in your browser | The Cue sync workbench recomputing beat alignment |
-| **REPLAY** | Recorded real output, played back | Fixtures captured from the production API |
+| Badge      | Means                                              | Example                                           |
+| ---------- | -------------------------------------------------- | ------------------------------------------------- |
+| **LIVE**   | A real call, right now, with measured latency      | VibeFinder hitting the production search API      |
+| **LOCAL**  | Real algorithm, real data, running in your browser | The Cue sync workbench recomputing beat alignment |
+| **REPLAY** | Recorded real output, played back                  | Fixtures captured from the production API         |
 
 Rules:
 
@@ -279,8 +296,8 @@ does not adopt them.
 Each product in the `products` collection carries:
 
 ```yaml
-accent: '#4CA8A2'                              # Alpenglow-family — load-bearing
-quote: { hue: '#1570EF', name: 'Head Nods' }   # the product's real Vibeset hue
+accent: '#4CA8A2' # Alpenglow-family — load-bearing
+quote: { hue: '#1570EF', name: 'Head Nods' } # the product's real Vibeset hue
 ```
 
 `--accent` does everything contrast rules govern: borders, focus, CTA fills, text.
@@ -289,7 +306,7 @@ top rule on the media zone, a gradient stop in the artwork tile, and the glow be
 screenshot. Non-text means WCAG contrast never applies, so an out-of-family hue is safe.
 
 **What must never be quoted:** the products' action and focus colours. Cue's lime
-`rgb(170,254,42)` is *Vibeset's* signal; crimson is *Bishal's*. Adopting lime as a focus ring
+`rgb(170,254,42)` is _Vibeset's_ signal; crimson is _Bishal's_. Adopting lime as a focus ring
 would make the portfolio read as a Vibeset subsite. Same for Choon's neon cyan `#00f3ff`,
 which would put a second light source next to crimson on the same canvas.
 

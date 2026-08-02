@@ -47,8 +47,8 @@ import { naamPreferredDevanagari, naamPreferredForm, type NaamRow } from '@/type
  * or broken the local names simply stand with an honest line under them
  * (§4 rule 4 — failure is honest, never blank).
  *
- * THE MOTION IS THE SIGNATURE, and its numbers are in MOTION.md's /naam
- * section rather than in taste: cards are DEALT (90–120ms stagger, 400–450ms
+ * THE MOTION IS THE SIGNATURE, and its numbers live in MOTION.md §5's /naam
+ * set rather than in taste: cards are DEALT (90–120ms stagger, 400–450ms
  * each, emphasized-decelerate, seeded ±3° rotation) and Keep is a FLIP arc
  * into the tray (380–480ms, scale finishing at 80% of the path, opacity never
  * below 0.9, 60–120ms of total stillness on landing, then a 160ms settle

@@ -183,6 +183,65 @@ async function widgets(browser) {
   }
   await page.screenshot({ path: `${OUT}/widget-choon.png`, clip: await page.locator('.ch').boundingBox() })
 
+  // ── /naam: the whole page is the widget ──────────────────────────────────
+  // It has a never-blank guarantee — /api/naam-chat always answers 200, with
+  // `degraded` rather than an error, and the client falls back to the local
+  // matcher — so "names arrived" is the assertion, and the badge says which
+  // half produced them. Note this navigates away from '/', so it must stay last.
+  await page.goto(base + '/naam', { waitUntil: 'networkidle' })
+  await page.waitForTimeout(2500) // the dataset lands on mount; the composer is disabled until it does
+
+  // The app owns the viewport. If the document scrolls, the shell broke.
+  const naamScrolls = await page.evaluate(() => document.documentElement.scrollHeight > window.innerHeight + 1)
+  if (naamScrolls) {
+    console.log('  FAIL: /naam scrolls the document — the app shell is not holding the viewport')
+    problems += 1
+  }
+
+  await page.fill('.nm-composer input, .nm-composer textarea', 'something calm, two syllables')
+  await page.keyboard.press('Enter')
+  await page.waitForTimeout(11000) // Bedrock cold start, past the client's 12s ceiling
+
+  const cards = await page.$$eval('.nm-card', (e) => e.length)
+  const naamBadge = ((await page.textContent('.nm-badge').catch(() => '')) || '').trim()
+  console.log(`naam — cards: ${cards}, badge: ${naamBadge || 'none'}`)
+  if (cards === 0) {
+    console.log('  FAIL: no names rendered — the local matcher should have answered even with the model down')
+    problems += 1
+  }
+  if (!/^(live|local)$/.test(naamBadge)) {
+    console.log(`  FAIL: badge reads "${naamBadge}" — DESIGN.md §4 allows live and local here, nothing else`)
+    problems += 1
+  }
+
+  // Keep one, and confirm it reaches the tray. The pick is state, not animation.
+  const keep = page.locator('.nm-card button', { hasText: /keep/i }).first()
+  if (await keep.count()) {
+    await keep.click()
+    await page.waitForTimeout(900)
+    const filled = await page.$$eval('.nm-slot[data-filled]', (e) => e.length)
+    console.log(`naam — slots filled after one keep: ${filled}`)
+    if (filled !== 1) {
+      console.log('  FAIL: keeping a name did not fill exactly one slot')
+      problems += 1
+    }
+  } else {
+    console.log('  FAIL: no Keep control rendered')
+    problems += 1
+  }
+
+  // The panes clip, so run.mjs's own overflow sweep skips inside them.
+  const paneOverflow = await page.evaluate(() => {
+    const el = document.querySelector('.nm-stream')
+    return el ? el.scrollWidth > el.clientWidth : false
+  })
+  if (paneOverflow) {
+    console.log('  FAIL: .nm-stream overflows horizontally')
+    problems += 1
+  }
+
+  await page.screenshot({ path: `${OUT}/widget-naam.png` })
+
   await ctx.close()
   return problems
 }
@@ -229,12 +288,18 @@ async function responsive(browser) {
             let clipped = false
             for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
               const s = getComputedStyle(a)
-              if (s.overflow !== 'visible' || s.position === 'fixed') { clipped = true; break }
+              if (s.overflow !== 'visible' || s.position === 'fixed') {
+                clipped = true
+                break
+              }
             }
             if (clipped) continue
             if (r.right > vw + 1 || r.left < -1) {
-              const sel = el.tagName.toLowerCase() + (el.className && typeof el.className === 'string'
-                ? '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.') : '')
+              const sel =
+                el.tagName.toLowerCase() +
+                (el.className && typeof el.className === 'string'
+                  ? '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.')
+                  : '')
               offenders.push(`${sel} [${Math.round(r.left)}→${Math.round(r.right)}]`)
             }
           }
@@ -246,8 +311,9 @@ async function responsive(browser) {
           // Inline links inside a paragraph are exempt (WCAG 2.5.8 exception).
           if (el.tagName === 'A' && el.closest('p, li, figcaption')) continue
           if (r.height < 24 || r.width < 24) {
-            const sel = el.tagName.toLowerCase() + (el.className && typeof el.className === 'string'
-              ? '.' + el.className.trim().split(/\s+/)[0] : '')
+            const sel =
+              el.tagName.toLowerCase() +
+              (el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/)[0] : '')
             small.push(`${sel} ${Math.round(r.width)}x${Math.round(r.height)}`)
           }
         }
