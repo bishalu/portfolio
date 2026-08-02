@@ -47,6 +47,11 @@
      onto this token in the same change that flips the ground, because that is
      the change where a 2% alpha difference stops being invisible. */
   --wash: rgba(250, 247, 241, 0.1);
+  /* The subordinate series in a chart — the "before" bar, the reference line.
+     It has to stay legible without competing with the series that carries the
+     argument, which makes it a value that must be re-chosen per ground rather
+     than inverted arithmetically. */
+  --chart-muted: #3a3f5c;
   --glow-crimson: 0 0 28px rgba(214, 69, 83, 0.35);
   --glow-marigold: 0 0 28px rgba(239, 163, 59, 0.3);
   --glow-glacier: 0 0 24px rgba(76, 168, 162, 0.35);
