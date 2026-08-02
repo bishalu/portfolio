@@ -20,9 +20,13 @@
   --color-crimson: var(--crimson);
   --color-crimson-text: var(--crimson-text);
   --color-marigold: var(--marigold);
+  --color-marigold-text: var(--marigold-text);
   --color-glacier: var(--glacier);
+  --color-glacier-text: var(--glacier-text);
   --color-ink-soft: var(--ink-soft);
   --color-paper-soft: var(--paper-soft);
+  --color-stage: var(--stage);
+  --color-on-fill: var(--on-fill);
 
   --font-display: var(--font-display);
   --font-body: var(--font-body);
@@ -31,7 +35,9 @@
   --radius-pill: 999px;
 }
 
-/* ─── Base — one night canvas (Atmosphere.astro paints beneath) ─────────── */
+/* ─── Base — one bone ground (Atmosphere.astro paints beneath) ───────────
+   Setting the ground on <html> is also what removes the flash: the browser's
+   own default white no longer has a dark canvas to collide with. */
 html {
   background-color: var(--void);
   color: var(--paper);
@@ -115,8 +121,10 @@ a:hover {
   color: var(--on-fill);
 }
 
-/* Legacy: full-bleed "ink bands" — now transparent; the night is everywhere.
-   Kept so section markup and .on-ink descendants don't need touching. */
+/* Legacy: full-bleed "ink bands". There is one ground and it is everywhere, so
+   this is a no-op that restates the default text colour. Kept because 76 call
+   sites reference it and removing it is a rename, not a design decision — it
+   belongs with the --void/--paper rename, not here. */
 .on-ink {
   background-color: transparent;
   color: var(--paper);
@@ -124,9 +132,11 @@ a:hover {
 
 /* The one sanctioned gradient-on-text treatment (docs/design/DESIGN.md §3):
    at most one word per page, and only at display sizes (≥2rem), where AA
-   needs 3:1 — background-clip drops the contrast guarantee at body size. */
+   needs 3:1 — background-clip drops the contrast guarantee at body size.
+   Uses the text ramp, not the stroke ramp: --grad-signal's warm stop is a mark
+   colour at 3.36:1, which is too close to the line to defend on clipped text. */
 .text-gradient-organic {
-  background: var(--grad-signal);
+  background: var(--grad-signal-text);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
