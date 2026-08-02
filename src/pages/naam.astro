@@ -1402,13 +1402,58 @@ if (!seedRow) {
     }
   }
 
-  /* The conversation gets a floor. Without one the tray is `flex: 0 0 auto` and
-     simply takes what it needs, and a tall hand starves the stream to a couple
-     of lines — the layout silently deciding the visitor would rather see cards
-     than read what the agent said. */
+  /* ── The stacked height budget, and why it is written as a cap ─────────
+     The conversation needs a floor, or the tray — which is `flex: 0 0 auto` —
+     simply takes what it wants and starves the stream to two lines. But a floor
+     ALONE is how I pushed the composer off the bottom of a phone: measured at
+     390×780, stream 176 + tray 503 + composer 70 came to 793 in a 739px shell,
+     the send button's bottom landed at 834, and because the document is
+     `overflow: clip` there was nowhere for it to go. It was not clipped or
+     scrolled to — it was unreachable, so a visitor on a phone could ask once
+     and never again.
+
+     So the floor is modest and the HAND carries the cap. The tray may shrink,
+     the hand may not exceed a share of the viewport, and the composer is
+     therefore reachable by construction rather than by arithmetic that happens
+     to work on the one handset I measured. svh, not vh: on iOS Safari `vh` is
+     the tall viewport with the toolbars retracted, which is exactly the 90px
+     lie that puts a control under the browser chrome. */
   @media (max-width: 1099px) {
     .nm-streamwrap {
-      min-height: 11rem;
+      flex: 1 1 auto;
+      min-height: 5.5rem;
+    }
+
+    /* A SHARE of the shell, not a fixed cap. Independent floors and ceilings
+       can each look reasonable and still sum past the viewport — that is
+       exactly how 360×640 kept the send button 77px below the fold after the
+       390×780 numbers had been fixed. A percentage cannot: whatever the tray
+       takes, the stream and the composer keep the rest. */
+    .nm-tray {
+      flex: 0 1 auto;
+      min-height: 0;
+      max-height: 58%;
+    }
+
+    .nm-hand {
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+
+    /* Sideways between cards, and up and down inside one when the phone is too
+       short to show a whole card at once. Clipping instead would hide Keep,
+       which is the only thing on the card that does anything. */
+    .nm-hand > .nm-deal {
+      max-height: 100%;
+      overflow: auto;
+    }
+
+    /* The lamp is the page's light source, not its subject, and on a phone it
+       was spending 79px of a budget the send button needed. It still reads —
+       the flicker is what matters and that survives the scale. */
+    .nm-diyo svg {
+      width: 44px;
+      height: 56px;
     }
   }
 
