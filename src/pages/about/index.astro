@@ -2,196 +2,188 @@
 export const prerender = true
 
 import DefaultLayout from '@layouts/DefaultLayout.astro'
-import PageHero from '@components/PageHero.astro'
+import PageHeader from '@components/PageHeader.astro'
 ---
 
-<DefaultLayout title="About - Bishal Upadhyaya">
-  <PageHero
-    title="About Me"
-    subtitle="I build vibes within AI systems. Here's the story."
-    size="medium"
-    accent="teal"
+<DefaultLayout
+  title="About — Bishal Upadhyaya"
+  description="Applied AI engineer. Neuroscience and medical imaging first, then model efficiency, then products people use. Independent — consulting, pilots and research collaborations."
+>
+  <PageHeader
+    eyebrow="About"
+    title="Research on one end, systems people use on the other."
+    subtitle="I started by recording electrical signals in living neural circuits. The habits carried over."
   />
 
-  <section class="about-content">
-    <div class="container">
-      <div class="content-wrapper animate-in fade-in slide-in-from-bottom-4 delay-200 duration-700">
-        <figure class="portrait" data-reveal="settle">
-          <img
-            src="/about-portrait.webp"
-            alt="Bishal Upadhyaya"
-            width="880"
-            height="586"
-            loading="eager"
-            fetchpriority="high"
-          />
-        </figure>
+  <section class="ab">
+    <div class="ab-inner">
+      <figure class="ab-portrait" data-reveal="settle">
+        <img
+          src="/about-portrait.webp"
+          alt="Bishal Upadhyaya"
+          width="880"
+          height="586"
+          loading="eager"
+          fetchpriority="high"
+        />
+      </figure>
 
-        <div class="intro">
-          <p class="lead">
-            I'm Bishal Upadhyaya. I started in neuroscience, recording electrical signals in living neural
-            circuits. Now I build AI systems that ship. Research on one end, products people use on the other.
-          </p>
-        </div>
+      <p class="ab-lead" data-reveal>
+        I work independently with founders and research teams: a conversation or a small proof first, then a
+        focused pilot, then whatever the work turns out to need. What I am good at is getting to the real shape
+        of a hard problem quickly, building something convincing enough to argue with, and then making that
+        thing survive contact with production.
+      </p>
 
-        <div class="section">
-          <h2>What I do</h2>
-          <p>
-            Data pipelines, models, infrastructure, and the product on top. The bar is that it feels effortless
-            to the person using it, not just impressive in a benchmark table.
-          </p>
-          <ul>
-            <li>
-              <strong>Agents and LLM systems that survive production.</strong> Tool-calling with structured
-              outputs, multi-model routing, evals in the loop, honest failure reporting. The demos on my home page
-              run on these.
-            </li>
-            <li>
-              <strong>Retrieval and model efficiency.</strong> Agentic RAG, hybrid and semantic search over
-              vector stores, and models distilled without giving up recall. The
-              <a href="/notes/choon" class="inline-link">fingerprinting model</a> is 27.7M parameters doing work
-              most teams throw 300M at.
-            </li>
-            <li>
-              <strong>Infrastructure a CTO can sign off on.</strong> Terraform-managed AWS and GCP,
-              least-privilege credentials, SOC2-minded logging, cost governance with receipts.
-            </li>
-          </ul>
-        </div>
+      <section class="ab-block" data-reveal>
+        <h2>What I build</h2>
+        <ul class="ab-list">
+          <li>
+            <strong>Systems that understand signals.</strong> Audio, video, speech, and the messy human data that
+            behaves like none of them. Representation learning, temporal alignment, retrieval that has to be both
+            cheap and right, and evaluation honest enough that the numbers survive a second look.
+          </li>
+          <li>
+            <strong>Agents and LLM systems that survive production.</strong> Tool calling with structured outputs,
+            multi-model routing, evals in the loop, honest failure reporting. Every demo on this site runs on this,
+            and says so out loud when the upstream is down.
+          </li>
+          <li>
+            <strong>Models small enough to run where they have to.</strong> Distillation and structured pruning
+            without giving up recall. The <a href="/notes/choon">fingerprinting model</a> does its work at a size
+            most teams reach for a much larger network to match.
+          </li>
+        </ul>
+      </section>
 
-        <div class="section">
-          <h2>Current focus</h2>
-          <p>
-            I co-own and build <a href="/#vibeset" class="inline-link">Vibeset</a>. Three products: Curation for
-            setlists, Cue for music synced to picture, Choon for fingerprinting and provenance.
-          </p>
-          <p>
-            Music is just where these systems ship today. The same spine went into early Alzheimer's detection at
-            UCSF, and model-efficiency research at Thermo Fisher with NVIDIA and HPE. The domain changes. The rigour
-            doesn't.
-          </p>
-        </div>
+      <section class="ab-block" data-reveal>
+        <h2>How the work has moved</h2>
+        <p>
+          It began in a lab, on <em>C. elegans</em>: which innexin proteins build the electrical synapses behind
+          an avoidance behaviour, and later whether an engineered synapse could route information around a neuron
+          that had been destroyed. Then medical imaging — comparing PET biomarkers for predicting Alzheimer's,
+          with attention to which of them a person without access to the expensive scan could actually get. Then
+          model efficiency, with collaborators at NVIDIA and Thermo Fisher: how to find the smaller network
+          hiding inside the large one.
+        </p>
+        <p>
+          That last paper is not a citation on this site. It is
+          <a href="/#work">running inside a product</a>, identifying audio at catalog scale on a single CPU core.
+          Music is where these systems ship today. The problems underneath them are not musical.
+        </p>
+      </section>
 
-        <div class="cta">
-          <a href="/#contact" class="contact-button">Get in touch →</a>
-        </div>
-      </div>
+      <section class="ab-block" data-reveal>
+        <h2>Where it is going</h2>
+        <p>
+          The thread I keep pulling on is measurement of the difficult kind: attention, behaviour, well-being,
+          the texture of someone's actual experience. Those are the things most worth getting right and the
+          easiest to fake progress on. I would rather build instruments for them slowly and honestly than
+          quickly and not.
+        </p>
+      </section>
+
+      <p class="ab-cta" data-reveal>
+        <a class="btn-pill" href="/#contact">Send me something</a>
+      </p>
     </div>
   </section>
 </DefaultLayout>
 
 <style lang="scss">
-  .about-content {
-    padding: var(--space-xl) 0 var(--space-3xl);
+  .ab {
+    padding: var(--space-2xl) 0 var(--space-3xl);
   }
 
-  .content-wrapper {
+  /* Same container as the page header and every home-page band, so the column
+     starts on the same left edge rather than floating in a centred well of its
+     own. The measure is set on the children instead. */
+  .ab-inner {
     margin: 0 auto;
-    max-width: 700px;
+    padding: 0 var(--space-l);
+    max-width: 1200px;
   }
 
-  .portrait {
+  .ab-inner > * {
+    max-width: 68ch;
+  }
+
+  .ab-portrait {
     margin: 0 0 var(--space-xl);
+    max-width: 520px;
 
     img {
       display: block;
-      border: 1px solid var(--hairline-on-paper);
-      border-radius: 16px;
+      box-shadow: var(--lift-1);
+      border: 1px solid var(--hairline-on-ink);
+      border-radius: 14px;
       width: 100%;
       height: auto;
     }
   }
 
-  .intro {
-    margin-bottom: var(--space-xl);
+  .ab-lead {
+    margin: 0 0 var(--space-2xl);
+    color: var(--paper);
+    font-size: 1.2rem;
+    line-height: 1.65;
   }
 
-  .lead {
-    color: var(--foreground-color);
-    font-weight: 500;
-    font-size: 1.35rem;
-    line-height: 1.5;
-  }
-
-  .section {
-    margin-bottom: var(--space-xl);
+  .ab-block {
+    margin-bottom: var(--space-2xl);
 
     h2 {
-      margin-bottom: var(--space-m);
-      color: var(--foreground-color);
+      margin: 0 0 var(--space-m);
+      color: var(--paper);
       font-weight: 600;
-      font-size: 1.5rem;
-      font-family: var(--font-heading);
+      font-size: 1.35rem;
+      letter-spacing: -0.01em;
     }
 
     p {
-      margin-bottom: var(--space-m);
-      color: var(--color-warm-gray);
-      font-size: 1.1rem;
-      line-height: 1.7;
-    }
+      margin: 0 0 var(--space-m);
+      color: var(--paper-soft);
+      font-size: 1.05rem;
+      line-height: 1.8;
 
-    ul {
-      padding: 0;
-      list-style: none;
-
-      li {
-        position: relative;
-        margin-bottom: var(--space-s);
-        padding-left: var(--space-m);
-        color: var(--color-warm-gray);
-        font-size: 1.05rem;
-        line-height: 1.7;
-
-        &::before {
-          position: absolute;
-          left: 0;
-          content: '→';
-          color: var(--color-living-teal);
-        }
-
-        strong {
-          color: var(--foreground-color);
-        }
+      &:last-child {
+        margin-bottom: 0;
       }
     }
   }
 
-  .inline-link {
-    color: var(--crimson-text);
-    text-decoration: underline;
-    text-underline-offset: 3px;
+  .ab-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
 
-    &:hover {
-      color: var(--crimson-text);
+    li {
+      border-top: 1px solid var(--hairline-on-ink);
+      padding: var(--space-m) 0;
+      color: var(--paper-soft);
+      font-size: 1.05rem;
+      line-height: 1.8;
+
+      &:last-child {
+        border-bottom: 1px solid var(--hairline-on-ink);
+      }
+
+      strong {
+        display: block;
+        margin-bottom: 0.15rem;
+        color: var(--paper);
+        font-weight: 600;
+      }
     }
   }
 
-  .cta {
-    margin-top: var(--space-xl);
+  .ab-cta {
+    margin: 0;
   }
 
-  .contact-button {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    transition:
-      transform 0.22s var(--ease-out),
-      box-shadow 0.28s ease;
-    border-radius: 999px;
-    background: var(--crimson-deep);
-    padding: 0.75rem 1.5rem;
-    color: var(--on-fill);
-    font-weight: 500;
-    font-size: 0.85rem;
-    letter-spacing: var(--tracking-label);
-    font-family: var(--font-mono);
-    text-transform: uppercase;
-    text-decoration: none;
-
-    &:hover {
-      transform: translateY(-1px);
-      box-shadow: var(--glow-crimson);
+  @media (max-width: 479px) {
+    .ab-inner {
+      padding-inline: var(--space-m);
     }
   }
 </style>

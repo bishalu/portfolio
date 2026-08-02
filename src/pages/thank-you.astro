@@ -2,7 +2,7 @@
 export const prerender = true
 
 import DefaultLayout from '@layouts/DefaultLayout.astro'
-import PageHero from '@components/PageHero.astro'
+import PageHeader from '@components/PageHeader.astro'
 
 /**
  * Where the contact form lands (CloseSection posts here via Netlify Forms).
@@ -15,7 +15,7 @@ import PageHero from '@components/PageHero.astro'
   title="Message sent — Bishal Upadhyaya"
   description="Your message reached Bishal's inbox."
 >
-  <PageHero title="Message sent" subtitle="It's in my inbox. I read everything myself." />
+  <PageHeader eyebrow="Contact" title="Message sent." subtitle="It's in my inbox. I read everything myself." />
 
   <section class="ty">
     <div class="ty-inner">

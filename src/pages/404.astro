@@ -2,23 +2,54 @@
 export const prerender = true
 
 import DefaultLayout from '@layouts/DefaultLayout.astro'
-import { Heading, Link } from 'accessible-astro-components'
-import { Icon } from 'astro-icon/components'
+import PageHeader from '@components/PageHeader.astro'
 ---
 
-<DefaultLayout title="404">
-  <section class="my-12">
-    <div class="container">
-      <Heading level="h1">404</Heading>
-    </div>
-  </section>
-  <section class="my-12">
-    <div class="space-content container">
-      <p class="text-2xl">This page does not exist. Don't worry though, we got you.</p>
-      <Link href="/" isButton type="primary" animateOnHover animationType="nudge">
-        Let's get you home, Astronaut
-        <Icon aria-hidden="true" name="lucide:rocket" size="1.5rem" />
-      </Link>
+<DefaultLayout title="Not found — Bishal Upadhyaya" description="That page isn't here.">
+  <PageHeader eyebrow="404" title="That page isn't here." subtitle="It may have moved, or it may never have existed." />
+
+  <section class="nf">
+    <div class="nf-inner">
+      <p class="nf-links">
+        <a href="/#work">Selected work</a>
+        <a href="/#research">Research</a>
+        <a href="/about">About</a>
+        <a href="/#contact">Get in touch</a>
+      </p>
     </div>
   </section>
 </DefaultLayout>
+
+<style lang="scss">
+  .nf {
+    padding: var(--space-2xl) 0 var(--space-4xl);
+  }
+
+  .nf-inner {
+    margin: 0 auto;
+    padding: 0 var(--space-l);
+    max-width: 1200px;
+  }
+
+  .nf-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-s) var(--space-l);
+    margin: 0;
+
+    a {
+      color: var(--paper);
+      font-size: 1.05rem;
+
+      &:hover {
+        color: var(--marigold-text);
+      }
+    }
+  }
+
+  @media (max-width: 479px) {
+    .nf-inner {
+      padding-inline: var(--space-m);
+    }
+  }
+</style>
