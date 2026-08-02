@@ -364,7 +364,6 @@ export default function NaamApp({ seed }: NaamAppProps) {
     // visitor cannot tell whether this page is reading a real document or
     // inventing names, which is the one thing it must never be ambiguous about.
     { id: 'source', kind: 'agent', text: C.app.source, quiet: true },
-    { id: 'family', kind: 'family' },
     { id: 'invitation', kind: 'agent', text: C.app.invitation },
     { id: 'starters', kind: 'starters' },
   ])
@@ -1135,27 +1134,78 @@ export default function NaamApp({ seed }: NaamAppProps) {
    * ±3° means.
    */
   const notes = useMemo<readonly WallNote[]>(() => {
-    const own: WallNote[] = family.map((row) => ({
-      key: row.id,
-      deva: naamPreferredDevanagari(row, preferB),
-      latin: naamPreferredForm(row, preferB),
-      tilt: seededTilt(row.id),
-    }))
-    const sent: WallNote[] = wall.flatMap((entry) =>
-      entry.picks.map((pick) => {
+    /**
+     * ONE LEAF PER NAME, and the repetition becomes the tally.
+     *
+     * This used to emit a leaf per (sender × pick), so a name two relatives
+     * both loved sat on the shelf twice and read as two different names —
+     * throwing away the single most useful thing the wall knows. Grouped by
+     * id, the same data answers the question a family actually has: which
+     * names are gathering support.
+     */
+    const byName = new Map<string, WallNote>()
+    const add = (key: string, note: Omit<WallNote, 'count'>) => {
+      const found = byName.get(key)
+      if (found) {
+        found.count += 1
+        // Two supporters and a single signature would credit one of them for
+        // both, so the attribution drops the moment it stops being true.
+        found.who = undefined
+        found.mine = found.mine || note.mine
+        return
+      }
+      byName.set(key, { ...note, count: 1 })
+    }
+
+    for (const row of family) {
+      add(row.id, {
+        key: row.id,
+        deva: naamPreferredDevanagari(row, preferB),
+        latin: naamPreferredForm(row, preferB),
+      })
+    }
+    for (const entry of wall) {
+      for (const pick of entry.picks) {
         const row = rows?.find((r) => r.id === pick.id)
-        const key = `${entry.id}-${pick.id}`
-        return {
-          key,
+        add(pick.id, {
+          key: pick.id,
           deva: row ? naamPreferredDevanagari(row, preferB) : '',
           latin: row ? naamPreferredForm(row, preferB) : pick.spelling,
           who: entry.relation ? C.wall.entry(entry.from, entry.relation) : entry.from,
-          tilt: seededTilt(key),
-        }
-      }),
+        })
+      }
+    }
+    /**
+     * THE VISITOR'S OWN CHOICES GO ON THE SAME SHELF, immediately, before
+     * anything is sent. That is the whole point of moving the wall here: you
+     * are not filling in a form beside other people's names, you are adding to
+     * the same shelf they are on and watching it change as you choose. A name
+     * the family already keeps simply gains a bead rather than appearing
+     * twice — which is exactly what it means for you to agree with them.
+     */
+    for (const pick of picks) {
+      const row = rows?.find((r) => r.id === pick.id)
+      add(pick.id, {
+        key: pick.id,
+        deva: row ? naamPreferredDevanagari(row, preferB) : '',
+        latin: row ? naamPreferredForm(row, preferB) : pick.spelling,
+        mine: true,
+      })
+    }
+
+    /**
+     * Most-supported first, and YOURS first among equals. The shelf sorts
+     * itself as the visitor chooses, so agreeing with a name the family already
+     * keeps visibly carries it up the list — and a name only you have chosen
+     * still rises above the ones sitting at the same count. That second clause
+     * is not a nicety: without it, keeping two names appended them below the
+     * fold of a scrolling shelf and the thing the visitor had just done left no
+     * mark on the surface it was supposed to be adding to.
+     */
+    return [...byName.values()].sort(
+      (a, b) => b.count - a.count || (b.mine ? 1 : 0) - (a.mine ? 1 : 0) || a.latin.localeCompare(b.latin),
     )
-    return [...own, ...sent]
-  }, [family, preferB, rows, wall])
+  }, [family, picks, preferB, rows, wall])
 
   /**
    * The cut between what you have passed and what you are on: the last thing
@@ -1186,7 +1236,7 @@ export default function NaamApp({ seed }: NaamAppProps) {
         return <p className="nm-said nm-said--you">{turn.text}</p>
 
       case 'family':
-        return <NaamWall notes={notes} />
+        return null
 
       case 'starters':
         if (starters.length === 0) return null
@@ -1568,6 +1618,17 @@ export default function NaamApp({ seed }: NaamAppProps) {
             comparison the page exists to support and which the old layout put
             a scroll apart. */}
         {hand && <div className="nm-hand">{dealCards(hand.matches)}</div>}
+
+        {/* THE SHELF, and it is on this side for a reason. In the conversation
+            it was a thing that had already happened, scrolled past within two
+            turns and never seen again. Here it is the surface the visitor is
+            adding to: their kept names land on the same shelf the family's sit
+            on, a name they agree with gains a bead instead of appearing twice,
+            and the order re-sorts under them as they choose. The right column
+            stops being an output and starts being the thing that changes. */}
+        <div className="nm-shelfwrap">
+          <NaamWall notes={notes} />
+        </div>
 
         {/* The lamp sits WITH the slots, not in the rail corner where it
             started. Two reasons, and the first is the important one: it is the

@@ -330,19 +330,22 @@ if (!seedRow) {
        precisely why it survived a review that was looking at the lamp. */
     --nm-ember: color-mix(in srgb, var(--crimson) 55%, var(--marigold) 45%);
 
-    /* THE WALL'S PAPER, and it is declared on .nm rather than on #naam-app on
-       purpose: a note is a piece of paper, and paper does not change colour
-       because the room it is in is dark. These three are the only colours on
-       this page that do not resolve differently between the two grounds.
-       Post-it yellow is #f6e27a — never #ffff00, which is a highlighter — and
-       the ink is #2b2a26, never black. Contrast, measured on the note itself:
-         #2b2a26 on #f6e27a   11.0:1   the Devanagari and the Latin
-         the 76% mix          5.6:1    the signature, which is small text
-       Both clear AA at the sizes used, which is why the signature can be a mono
-       micro-label without becoming a decorative smudge. */
-    --nm-note: #f6e27a;
-    --nm-note-ink: #2b2a26;
-    --nm-note-ink-soft: color-mix(in srgb, var(--nm-note-ink) 76%, var(--nm-note));
+    /* THE LEAF, and it is declared on .nm rather than on #naam-app on purpose:
+       a palm leaf is a physical thing and it does not change colour because the
+       room it is in is dark. These three are the only colours on this page that
+       do not resolve differently between the two grounds.
+
+       Palm ochre, not post-it yellow. #e3d3a8 is aged palm; the ink is #33291c,
+       an iron-gall brown, never black; the margin rule is the red ochre that
+       actually runs down a pothi page. Contrast, measured on the leaf itself:
+         #33291c on #e3d3a8   9.4:1   the Devanagari and the Latin
+         at 60% opacity       4.9:1   the least-supported name, still AA
+       So even a name nobody has chosen yet stays properly readable — which
+       matters more here than anywhere, because ink weight is how this shelf
+       shows support and the lightest leaf is the one asking to be noticed. */
+    --nm-leaf: #e3d3a8;
+    --nm-leaf-ink: #33291c;
+    --nm-leaf-rule: #a8442e;
 
     /* Mukta is FIRST in every stack on this page and that is safe: its
        @font-face carries a unicode-range, so it can only ever supply
@@ -1061,13 +1064,12 @@ if (!seedRow) {
     background: var(--nm-keep-fill);
   }
 
-  /* The wall: the shape of the paper it summarises, down to the uneven radius
-     and a tilt of its own. */
+  /* The shelf: the shape of the leaf it summarises — a narrow strip, not a
+     square of paper. */
   .nm-bead[data-bead='note'] {
-    rotate: -7deg;
-    border-color: rgb(38 32 22 / 22%);
-    border-radius: 1px 3px 2px 4px;
-    background: var(--nm-note);
+    border-color: color-mix(in srgb, var(--nm-leaf-ink) 30%, transparent);
+    border-radius: 1px;
+    background: var(--nm-leaf);
   }
 
   /* Nothing came back. A facet that did not fill. */
@@ -1212,153 +1214,199 @@ if (!seedRow) {
      "nothing grows".
 
      PURE CSS, ZERO DEPENDENCIES, and every number below is doing a job. */
-  .nm-wall {
+  /* ── THE SHELF ─────────────────────────────────────────────────────────
+     Not post-it notes. A post-it is an office object, and it was the one thing
+     on this page borrowed from nobody's world in particular — the names on it
+     come out of a Sanskrit and Pali source that was copied for centuries in
+     POTHI form: long narrow leaves, a double red rule down the margin, a
+     binding hole where the cord passes through. That is the actual shape a list
+     of these names has had for a thousand years, so it is what the shelf is
+     made of. It is also not the tourist shorthand — no prayer flags, no
+     mandala, no om — which is the rule this whole page is built on.
+
+     WHY IT MOVED TO THIS COLUMN. In the conversation it was something that had
+     already happened: two turns later it had scrolled away and was never seen
+     again. Here it is the surface being ADDED TO. A kept name lands on the same
+     shelf the family's names sit on, agreeing with one they already keep gives
+     that leaf another bead instead of writing the name twice, and the order
+     re-sorts underneath the visitor as they choose. The right-hand column stops
+     being an output and becomes the thing that changes.
+
+     WHY BEADS AND NOT SIZE OR A NUMBER — see the long note in NaamWall.tsx. */
+  /* THE SHELF IS BOUNDED, because it is the one region on this page that grows
+     without limit — every approved suggestion adds a leaf, forever. Unbounded
+     it took 210px of a 669px column on the day it was built and squeezed the
+     hand until the cards were clipped at both ends. It gets a share and
+     scrolls; the hand keeps the rest. */
+  .nm-shelfwrap {
     display: flex;
-    /* flex-start, never the default stretch: a stretched note is exactly as
-       tall as the tallest thing in its row, which lines every bottom edge up
-       and undoes the tilt's whole job. */
-    flex-wrap: wrap;
-    align-items: flex-start;
+    flex: 0 1 auto;
+    flex-direction: column;
+    gap: 0.3rem;
+    min-height: 0;
+  }
+
+  .nm-shelf {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
     margin: 0;
-    /* Room for the tilt and the lift to happen in without clipping. */
-    padding: 0.4rem 0.5rem 0.6rem 0;
+    padding: 0;
+    max-height: clamp(5.5rem, 21vh, 11rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
     list-style: none;
   }
 
-  /* THE PIN OWNS ROTATION AND NOTHING ELSE. `transform` is one property and two
-     things want it — the permanent per-note tilt, and the transient lift on
-     hover — so they are split across two elements. Sharing one would mean the
-     lift has to restate the tilt, and the next thing added here (the plan's
-     layout animation) would clobber both.
-
-     The tilt is ±3°, hashed off the name by NaamApp, so the wall never
-     reshuffles on a re-render: a random angle re-rolls every render and reads
-     as a glitch rather than as a hand. Past about 4° it stops looking pinned
-     and starts looking rotated.
-
-     OVERLAP, with a negative margin and an ascending z-index. A perfectly
-     spaced row is a leaderboard; an overlapping pile is a wall, and this is a
-     wall. The vertical overlap is deliberately smaller than the horizontal one
-     — enough to break the grid, not enough to bury a signature. */
-  .nm-note-pin {
-    position: relative;
-    transform: rotate(var(--tilt, 0deg));
-    z-index: var(--z, 0);
-    transition: transform 180ms cubic-bezier(0.05, 0.7, 0.1, 1);
-    margin: 0 -0.5rem -0.25rem 0;
-  }
-
-  /* Un-tilt to 0° and lift two pixels: "picked up" is a far stronger physical
-     cue than any change of shadow, and it brings the note out from under the
-     ones overlapping it. */
-  .nm-note-pin:hover {
-    transform: rotate(0deg);
-    z-index: 30;
-  }
-
-  /* TWO SHADOWS, NEVER ONE. A single blurred shadow is the Material-card tell.
-     Paper has a hard contact shadow where it touches plus a wide faint lift,
-     and the pair is what the eye reads as a physical object rather than as an
-     elevation token.
-
-     The radius is four different sub-pixel values because a 999px pill or a
-     uniform 8px is UI chrome — this is a cut edge.
-
-     The background is three layers in one property and costs no elements: the
-     glue band across the top 18%, a very faint fibre so the paper has tooth,
-     and the yellow. A shared feTurbulence would be truer grain, but at this
-     size it is one raster pass per note for something under a millimetre
-     across, and the two shadows plus the curl already carry the paper. The
-     fibre runs at 112° and repeats every 6px on purpose — nearer the horizontal
-     and tighter it stopped reading as tooth and started reading as ruled paper,
-     which is a different object.
-
-     SQUARE-ISH, via a min-height a signed note already exceeds. A note whose
-     height is whatever two lines of text need is 90×44, and ten of those
-     overlapping read as one yellow strip rather than as ten pieces of paper —
-     the tilt cannot break a shape that wide. At 3.6rem the block is close
-     enough to square for a 3° rotation to be legible on it. */
-  .nm-note {
+  /* ONE LEAF. The palm ochre, the two red rules and the binding hole are the
+     whole of the reference and none of them is decoration: the rules are why
+     the name has a left margin to sit against, and the hole is why the leaf has
+     a left edge that is not the text. */
+  .nm-leaf {
     display: flex;
     position: relative;
-    flex-direction: column;
-    gap: 0.05rem;
+    align-items: baseline;
+    gap: 0.5rem;
     transition:
-      transform 180ms cubic-bezier(0.05, 0.7, 0.1, 1),
-      box-shadow 180ms ease;
-    box-shadow:
-      0 1px 1px rgb(38 32 22 / 14%),
-      0 8px 14px -6px rgb(38 32 22 / 16%);
-    border-radius: 1px 3px 2px 4px;
-    background-image:
-      linear-gradient(to bottom, rgb(38 32 22 / 6%) 0 18%, transparent 18%),
-      repeating-linear-gradient(112deg, rgb(38 32 22 / 2.5%) 0 1px, transparent 1px 6px);
-    background-color: var(--nm-note);
-    padding: 0.5rem 0.65rem 0.45rem;
-    min-width: 5.2rem;
-    max-width: 13rem;
-    min-height: 3.6rem;
-    color: var(--nm-note-ink);
+      background var(--dur-base) ease,
+      box-shadow var(--dur-base) ease;
+    box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--nm-leaf-ink) 8%, transparent);
+    /* The leaf, and its grain: palm is fibrous along its length. */
+    background:
+      repeating-linear-gradient(
+        to right,
+        transparent 0 3px,
+        color-mix(in srgb, var(--nm-leaf-ink) 3%, transparent) 3px 4px
+      ),
+      var(--nm-leaf);
+    padding: 0.36rem 0.6rem 0.36rem 1.35rem;
+    color: var(--nm-leaf-ink);
   }
 
-  .nm-note-pin:hover .nm-note {
-    transform: translateY(-2px);
-    box-shadow:
-      0 2px 2px rgb(38 32 22 / 12%),
-      0 14px 22px -8px rgb(38 32 22 / 22%);
+  .nm-leaf:first-child {
+    border-radius: 3px 3px 0 0;
   }
 
-  /* The curl: paper does not lie flat, and the darkening under its bottom edge
-     is what says the corners are off the wall. Positioned just below the note
-     so it is not painted over by the note's own background. */
-  .nm-note::after {
+  .nm-leaf:last-child {
+    box-shadow: none;
+    border-radius: 0 0 3px 3px;
+  }
+
+  /* The double red margin rule, and the binding hole between them. */
+  .nm-leaf::before {
     position: absolute;
-    right: 9%;
-    bottom: -2px;
-    left: 9%;
-    box-shadow: 0 4px 6px -3px rgb(38 32 22 / 42%);
+    top: 0;
+    bottom: 0;
+    left: 0.5rem;
+    border-right: 1px solid var(--nm-leaf-rule);
+    border-left: 1px solid var(--nm-leaf-rule);
+    width: 4px;
+    content: '';
+  }
+
+  .nm-leaf::after {
+    position: absolute;
+    top: 50%;
+    left: 0.62rem;
+    transform: translateY(-50%);
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--nm-leaf-ink) 26%, transparent);
+    width: 3px;
     height: 3px;
     content: '';
   }
 
-  .nm-note-deva {
-    font-size: 1.05rem;
-    line-height: 1.6;
+  .nm-leaf-name {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: baseline;
+    gap: 0.45rem;
+    min-width: 0;
+  }
+
+  /* SUPPORT IS INK. A name written over and over is a darker line on the page,
+     which is the one strength cue this material can carry honestly. It never
+     works alone: the beads count it and the .sr-only line says it in words. */
+  .nm-leaf-deva {
+    opacity: calc(0.66 + var(--support, 1) * 0.068);
+    font-size: 0.95rem;
+    line-height: 1.5;
     font-family: var(--font-deva), var(--font-body);
   }
 
-  .nm-note-latin {
-    color: var(--nm-note-ink-soft);
-    font-size: 0.78rem;
-    line-height: 1.35;
-    font-family: var(--font-display);
+  .nm-leaf-latin {
+    flex: 0 1 auto;
+    opacity: calc(0.6 + var(--support, 1) * 0.08);
+    overflow: hidden;
+    font-weight: calc(400 + var(--support, 1) * 40);
+    font-size: 0.82rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  /* THE SIGNATURE, and it is part of the note rather than a caption under it:
-     bottom right, smaller, the way somebody actually signs a thing they pinned
-     up. Only approved suggestions carry one — the family's own six do not need
-     attributing — so its presence is what visibly separates "ours, to start"
-     from "someone else already chose this", with nothing labelling either. */
-  .nm-note-who {
-    align-self: flex-end;
-    /* auto, not a fixed gap: it presses the signature onto the bottom edge of
-       the note whatever the name above it needed, which is where a signature
-       goes. */
-    margin-top: auto;
-    padding-top: 0.25rem;
-    max-width: 100%;
+  .nm-leaf-tally {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .nm-leaf-bead {
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--nm-leaf-ink) 62%, transparent);
+    width: 5px;
+    height: 5px;
+  }
+
+  .nm-leaf-many {
+    color: color-mix(in srgb, var(--nm-leaf-ink) 72%, transparent);
+  }
+
+  .nm-leaf-who {
+    flex: 0 1 auto;
+    opacity: 0.62;
+    max-width: 8rem;
     overflow: hidden;
-    color: var(--nm-note-ink-soft);
     font-size: 0.58rem;
     font-family: var(--font-mono);
     letter-spacing: var(--tracking-label);
-    text-align: right;
     text-overflow: ellipsis;
     text-transform: uppercase;
     white-space: nowrap;
   }
 
-  /* ── Starter chips ────────────────────────────────────────────────────── */
+  /* YOURS. A marigold edge down the binding margin — the same colour the lamp
+     throws and the same colour a kept card carries, so "this one is mine" is
+     one idea in one colour everywhere it appears. It arrives with a single
+     settle, because a leaf being laid on a stack is the moment worth marking. */
+  .nm-leaf[data-mine] {
+    animation: nm-leaf-settle 420ms cubic-bezier(0.05, 0.7, 0.1, 1);
+    background:
+      repeating-linear-gradient(
+        to right,
+        transparent 0 3px,
+        color-mix(in srgb, var(--nm-leaf-ink) 3%, transparent) 3px 4px
+      ),
+      color-mix(in srgb, var(--nm-keep) 12%, var(--nm-leaf));
+  }
+
+  .nm-leaf[data-mine]::before {
+    border-right-color: var(--nm-keep);
+    border-left-color: var(--nm-keep);
+  }
+
+  @keyframes nm-leaf-settle {
+    from {
+      transform: translateY(-6px);
+      opacity: 0;
+    }
+
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
+
   .nm-chips {
     display: flex;
     flex-wrap: wrap;
@@ -1526,6 +1574,14 @@ if (!seedRow) {
     .nm-streamwrap {
       flex: 1 1 auto;
       min-height: 5.5rem;
+    }
+
+    /* The shelf is the newest thing competing for a column that was already
+       tight, so on a phone it takes the smallest workable share — two leaves
+       and a scroll. Here it is a record you glance at; the surface you work on
+       is the hand and the three slots under it. */
+    .nm-shelf {
+      max-height: 4.4rem;
     }
 
     /* A SHARE of the shell, not a fixed cap. Independent floors and ceilings
@@ -2500,11 +2556,10 @@ if (!seedRow) {
       animation: none;
     }
 
-    /* The note keeps its tilt — a tilt is a static angle, not motion — and
-       loses only the straightening, which is the part that moves. */
-    .nm-note-pin,
-    .nm-note {
-      transition: none;
+    /* A leaf still arrives and still marks itself as yours; it stops sliding
+       in to do it. */
+    .nm-leaf[data-mine] {
+      animation: none;
     }
   }
 

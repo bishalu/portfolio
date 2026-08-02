@@ -155,7 +155,15 @@ export const NAAM_COPY = {
      */
     source: `${n(NAAM_COUNTS.total)} names, out of the Vedas and the Sutras. Only the ones starting B, S or V — those are ours.`,
     invitation: 'Sit with us a while. Say what kind of name you have in mind, or start with one of these.',
-    familyLead: 'Names the family keeps coming back to',
+    /**
+     * It said "Names the family keeps coming back to", which was true when the
+     * shelf held six seeds and nothing else. It now holds the family's, every
+     * approved suggestion, and the visitor's own picks the moment they make
+     * them — so a heading naming only the family would be quietly wrong about
+     * whose names are on it, and would tell a visitor their leaf belongs to
+     * someone else. "People" is all three of them, and it is still warm.
+     */
+    familyLead: 'Names people keep coming back to',
     /**
      * Four chips, four shapes a real person types: a wish, a wish about how it
      * will travel, a letter, a question about one name. Every one of them
@@ -455,6 +463,13 @@ export const NAAM_COPY = {
     loading: 'loading the wall…',
     failure: 'The wall did not load. Reload the page and it will come back.',
     entry: (name: string, relation: string) => `${name} · ${relation}`,
+    /**
+     * The tally, in words. The beads on a leaf are aria-hidden decoration and
+     * the ink weight is colour, so this is the only place the count actually
+     * exists for a screen reader — and it must never be the bare number, which
+     * would be read as "Bhaskara 3" with nothing to say what three is.
+     */
+    support: (count: number) => (count === 1 ? 'chosen by one person' : `chosen by ${count} people`),
   },
 
   approve: {
