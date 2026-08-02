@@ -63,7 +63,9 @@ const pages = [
   }
 
   .footer-index {
-    display: block;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     margin-bottom: var(--space-s);
     border-bottom: 1px solid var(--border-color-subtle);
     padding-bottom: var(--space-s);
@@ -85,6 +87,14 @@ const pages = [
 
   .footer p {
     margin: 0;
+  }
+
+  /* WCAG 2.5.8: a standalone link needs a 24px target. These are navigation,
+     not links inside a sentence, so the exception doesn't apply. */
+  .footer-index a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
   }
 
   .footer a {

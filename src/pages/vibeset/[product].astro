@@ -366,6 +366,10 @@ const m = media[slug] ?? { type: 'gradient' }
   }
 
   .vbp-back {
+    display: inline-flex;
+    align-items: center;
+    /* WCAG 2.5.8 — a standalone breadcrumb link, not prose. */
+    min-height: 24px;
     color: var(--ink-soft);
 
     &:hover {

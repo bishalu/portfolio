@@ -71,6 +71,10 @@ const { class: className } = Astro.props
 
   .responsive-toggle {
     display: none;
+    /* WCAG 2.5.8: the menu button is the primary control on a phone and was
+       21px tall. */
+    align-items: center;
+    min-height: 24px;
     border: none;
     background: transparent;
     padding: 0;

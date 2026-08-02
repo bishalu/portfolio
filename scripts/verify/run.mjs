@@ -1,7 +1,7 @@
 /**
  * Site verification runner — see .claude/skills/verify-site/SKILL.md
  *
- * Usage:  node scripts/verify/run.mjs <shots|a11y|console|widgets|all> [baseUrl]
+ * Usage:  node scripts/verify/run.mjs <shots|a11y|console|widgets|responsive|all> [baseUrl]
  * Default baseUrl: http://localhost:8888 (netlify dev) — pass another if using
  * `netlify serve` (8899) or a deploy preview URL.
  *
@@ -24,6 +24,7 @@ const ROUTES = [
   '/vibeset/cue',
   '/vibeset/choon',
   '/notes/choon',
+  '/naam',
   '/accessibility-statement',
   '/thank-you',
 ]
@@ -71,14 +72,20 @@ async function consoleCheck(browser) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } })
   const page = await ctx.newPage()
   const problems = []
-  page.on('console', (m) => ['error', 'warning'].includes(m.type()) && problems.push(`[${m.type()}] ${m.text().slice(0, 200)}`))
+  page.on(
+    'console',
+    (m) => ['error', 'warning'].includes(m.type()) && problems.push(`[${m.type()}] ${m.text().slice(0, 200)}`),
+  )
   page.on('pageerror', (e) => problems.push(`[pageerror] ${String(e).slice(0, 300)}`))
   for (const path of ROUTES) {
     await page.goto(base + path, { waitUntil: 'networkidle' })
     await settle(page)
     console.log('visited', path)
   }
-  const vf = await page.goto(base + '/').then(() => page.$$eval('.vf', (e) => e.length)).catch(() => 0)
+  const vf = await page
+    .goto(base + '/')
+    .then(() => page.$$eval('.vf', (e) => e.length))
+    .catch(() => 0)
   problems.forEach((p) => console.log(p))
   console.log(`console problems: ${problems.length}`)
   await ctx.close()
@@ -180,12 +187,96 @@ async function widgets(browser) {
   return problems
 }
 
+/**
+ * Responsive audit — the automatic part of "does it work on smaller screens".
+ *
+ * Screenshots only help if someone looks at them. These are assertions:
+ *
+ *  - horizontal overflow: the page must never scroll sideways. This is the
+ *    single most common responsive break and it is trivially detectable.
+ *  - offenders: when it does overflow, name the elements sticking out, so the
+ *    failure points at a selector instead of a screenshot.
+ *  - tap targets: interactive elements must clear the 24px floor the tokens
+ *    already declare (--target-size-min), per WCAG 2.2 AA 2.5.8.
+ *
+ * Widths straddle the site's own SCSS breakpoints (320/480/768/1024/1280) and
+ * the nav breakpoint at 1000, because that is where layout actually changes.
+ */
+const RESP_WIDTHS = [320, 390, 414, 768, 1000, 1024, 1280, 1440]
+
+async function responsive(browser) {
+  let problems = 0
+  for (const w of RESP_WIDTHS) {
+    const ctx = await browser.newContext({ viewport: { width: w, height: 900 } })
+    const page = await ctx.newPage()
+    for (const path of ROUTES) {
+      await page.goto(base + path, { waitUntil: 'networkidle' })
+      await settle(page)
+
+      const report = await page.evaluate((vw) => {
+        const doc = document.documentElement
+        const overflow = Math.max(doc.scrollWidth, document.body.scrollWidth) - vw
+        const offenders = []
+        if (overflow > 1) {
+          for (const el of document.querySelectorAll('body *')) {
+            const r = el.getBoundingClientRect()
+            if (r.width === 0 || r.height === 0) continue
+            // Ignore things that scroll on purpose, and anything an ancestor
+            // clips — a decorative blob inside overflow:hidden sticks out of
+            // the viewport box but contributes nothing to scrollWidth.
+            const ox = getComputedStyle(el).overflowX
+            if (ox === 'auto' || ox === 'scroll') continue
+            let clipped = false
+            for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
+              const s = getComputedStyle(a)
+              if (s.overflow !== 'visible' || s.position === 'fixed') { clipped = true; break }
+            }
+            if (clipped) continue
+            if (r.right > vw + 1 || r.left < -1) {
+              const sel = el.tagName.toLowerCase() + (el.className && typeof el.className === 'string'
+                ? '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.') : '')
+              offenders.push(`${sel} [${Math.round(r.left)}→${Math.round(r.right)}]`)
+            }
+          }
+        }
+        const small = []
+        for (const el of document.querySelectorAll('a, button, input, select, textarea, [role="slider"]')) {
+          const r = el.getBoundingClientRect()
+          if (r.width === 0 || r.height === 0) continue
+          // Inline links inside a paragraph are exempt (WCAG 2.5.8 exception).
+          if (el.tagName === 'A' && el.closest('p, li, figcaption')) continue
+          if (r.height < 24 || r.width < 24) {
+            const sel = el.tagName.toLowerCase() + (el.className && typeof el.className === 'string'
+              ? '.' + el.className.trim().split(/\s+/)[0] : '')
+            small.push(`${sel} ${Math.round(r.width)}x${Math.round(r.height)}`)
+          }
+        }
+        return { overflow, offenders: [...new Set(offenders)].slice(0, 5), small: [...new Set(small)].slice(0, 5) }
+      }, w)
+
+      if (report.overflow > 1) {
+        console.log(`  FAIL ${w}px ${path} — scrolls sideways by ${report.overflow}px`)
+        report.offenders.forEach((o) => console.log(`        ${o}`))
+        problems += 1
+      }
+      if (report.small.length) {
+        console.log(`  FAIL ${w}px ${path} — tap targets under 24px: ${report.small.join(', ')}`)
+        problems += 1
+      }
+    }
+    console.log(`responsive ${w}px — checked ${ROUTES.length} routes`)
+    await ctx.close()
+  }
+  return problems
+}
+
 const browser = await chromium.launch()
 let failures = 0
 if (cmd === 'shots' || cmd === 'all') await shots(browser)
 if (cmd === 'console' || cmd === 'all') failures += await consoleCheck(browser)
 if (cmd === 'a11y' || cmd === 'all') failures += await a11y(browser)
 if (cmd === 'widgets' || cmd === 'all') failures += await widgets(browser)
+if (cmd === 'responsive' || cmd === 'all') failures += await responsive(browser)
 await browser.close()
 console.log(failures ? `\nFAILURES: ${failures}` : '\nAll checks passed.')
 process.exit(failures ? 1 : 0)
