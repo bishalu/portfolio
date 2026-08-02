@@ -17,9 +17,11 @@
  *   1. `client.send()` is wrapped in an AbortController at 8s. chat.ts has no
  *      timeout at all, so a hung Bedrock call blocks until the Lambda limit.
  *   2. Every failure returns HTTP 200 with `degraded: true`. chat.ts returns a
- *      500 with an apology in it. The client's LOCAL branch is a signal, not
- *      an exception — DESIGN.md §4 rule 4 — and the matcher already answered
- *      before this route was called.
+ *      500 with an apology in it. `reason` is a signal the page reads to pick
+ *      which honest line to show — DESIGN.md §4 rule 4 — not an exception.
+ *      Nothing has been rendered when this route is called: the agent leads
+ *      now, so a failure here is a failure the visitor sees, and `reason` is
+ *      the whole of what they are told.
  *   3. Nothing the model returns is trusted: ids outside the pool are dropped,
  *      picks are capped, the reply must be a string, and it is truncated.
  *      chat.ts pipes its reply into innerHTML on the other end (Hero.astro:491
@@ -46,22 +48,32 @@ const TIMEOUT_MS = 8000
 /**
  * The whole request's budget, model call included. The dataset fetch has its
  * own 6s timeout in front of the model call, so on a cold instance 6 + 8 = 14s
- * of server work sat behind a client that gives up at 12s (CHAT_TIMEOUT_MS,
- * now in src/lib/naam/ask.ts) — harmless, because the page had already
- * answered LOCAL, but
- * it meant the numbers did not describe the system. One deadline taken at entry
- * fixes that: a warm instance still gets the full 8s, a cold one gets what is
- * left, and nothing outlives the client that is waiting for it.
+ * of server work sat behind a client that gives up at 12s (CHAT_TIMEOUT_MS, in
+ * src/lib/naam/ask.ts) and the numbers did not describe the system. One
+ * deadline taken at entry fixes that: a warm instance still gets the full 8s, a
+ * cold one gets what is left, and nothing outlives the client waiting for it.
+ * That mattered less when the page had already answered LOCAL and this call was
+ * an upgrade; the agent leads now, so an overrun here is a visitor watching a
+ * lamp gutter, and the deadline is the only thing standing between them and it.
  */
 const BUDGET_MS = 11_000
 /** Per warm instance — best effort, not a wall (netlify/functions/vibeset-demo.ts). */
 const RATE_LIMIT_PER_MIN = 12
 /**
  * The process-wide wall. This route is an unauthenticated call to a paid model
- * — 900 max tokens a time — and a per-ip limit is no defence against a
- * distributed flood, which is the shape a spend attack actually has.
+ * and a per-ip limit is no defence against a distributed flood, which is the
+ * shape a spend attack actually has.
  */
 const CEILING_PER_MIN = 60
+/**
+ * Reasoning tokens and answer tokens come out of one budget on gpt-oss, so
+ * this is not "how long may the reply be" — the reply is capped at 700 chars
+ * by the prompt and at MAX_REPLY_CHARS here. It is headroom for the thinking
+ * that precedes it. At 900 with `reasoning_effort: 'low'` the ceiling is never
+ * approached; the number is what keeps a hard ask from dying mid-thought
+ * rather than what it usually costs.
+ */
+const MAX_TOKENS = 2200
 /** The prompt caps replies at 700; this is the outer wall in case that changes. */
 const MAX_REPLY_CHARS = 1200
 const POOL_MAX = 60
@@ -136,7 +148,23 @@ export const POST: APIRoute = async (context) => {
       modelId,
       system: [{ text: buildSystemPrompt() }],
       messages: [{ role: 'user', content: [{ text: buildUserTurn(ask, poolRows) }] }],
-      inferenceConfig: { maxTokens: 900, temperature: 0.6 },
+      inferenceConfig: { maxTokens: MAX_TOKENS, temperature: 0.6 },
+      /**
+       * gpt-oss is a reasoning model and its thinking is billed against the
+       * SAME maxTokens as the answer. At `low` it spends a few dozen tokens
+       * deciding; left at the default it enumerates the entire pool one row at
+       * a time — measured, verbatim: "bhadra meaning deity? Not calm. bhaga
+       * light... Not calm." — and on the asks that deserve the most care it ran
+       * out of budget mid-thought and returned `stopReason: 'max_tokens'` with
+       * a reasoningContent block and NO toolUse at all. That is the whole of
+       * the intermittent `degraded: 'empty'`: not a parse failure, a model that
+       * never got to the answer.
+       *
+       * Reading the pool row by row is also not the work. The pool is at most
+       * 60 rows of one-line glosses and the job is to choose three and say why
+       * — `low` is the honest setting for it, not a cost saving.
+       */
+      additionalModelRequestFields: { reasoning_effort: 'low' },
       toolConfig: {
         tools: [{ toolSpec: { name: NAAM_TOOL_NAME, inputSchema: TOOL_SCHEMA } }],
         // One tool is declared, so `any` is a forced call to it — and it is the

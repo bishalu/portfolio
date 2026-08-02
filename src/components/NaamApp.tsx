@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import type { CSSProperties, FormEvent } from 'react'
 import NaamCard from './NaamCard'
-import { askNaam, failureNote, mergeNamed, withReasons, RESULT_MAX } from '@/lib/naam/ask'
+import NaamDiyo, { type DiyoState } from './NaamDiyo'
+import NaamWall, { type WallNote } from './NaamWall'
+import { askNaam, failureNote, mergeNamed, readAsk, withReasons, RESULT_MAX } from '@/lib/naam/ask'
 import { NAAM_COPY, NAAM_RELATIONS } from '@/lib/naam/copy'
-import { normalizePrefs, parseFreeText, rankRelaxed, type NaamMatch } from '@/lib/naam/match'
+import { rankRelaxed, type NaamMatch } from '@/lib/naam/match'
 import { NAAM_SEED_ROWS } from '@/lib/naam/seeds'
 import {
   getDefaultPreferB,
@@ -39,13 +41,56 @@ import { naamPreferredDevanagari, naamPreferredForm, type NaamRow } from '@/type
  * user message, which is the single clearest ChatGPT tell. That is also
  * exactly what the accessible markup produces anyway.
  *
- * THE MODEL NEVER NAMES A NAME. Every ask is ranked locally first and rendered
- * immediately with the LOCAL badge (§4: real algorithm, real data, in your
- * browser); src/lib/naam/ask.ts then asks /api/naam-chat to reorder that pool
- * and every id it returns is resolved against the local dataset. So a
- * hallucinated name is structurally impossible, and when Bedrock is off, slow
- * or broken the local names simply stand with an honest line under them
- * (§4 rule 4 — failure is honest, never blank).
+ * THE AGENT LEADS. An ask goes straight to the thinking state, and the next
+ * thing on screen is the model's reply. There is no provisional local render
+ * for it to correct: this page used to rank the document in the browser, deal
+ * that immediately under the LOCAL badge and swap it for the model's answer a
+ * second later, and the effect was that the model — which was working, and
+ * answering — read as absent, because the matcher's list arrived first and the
+ * reply looked like an edit to it. The reply is the event now.
+ *
+ * THE MODEL STILL NEVER NAMES A NAME. readAsk() in src/lib/naam/ask.ts reads
+ * the sentence and builds the pool of ids /api/naam-chat may choose from, and
+ * every id that comes back is resolved against the local dataset before it
+ * renders. A hallucinated name stays structurally impossible; the grounding
+ * was always the pool and never the local render.
+ *
+ * FAILURE IS HONEST, AND IT IS NOT A SILENT SUBSTITUTION (§4 rule 4 — failure
+ * is honest, never blank). When the model does not answer, the page says so in
+ * one line and offers two things: the same ask again, and — only if the
+ * visitor presses it — the matcher's own list, dealt under the LOCAL badge.
+ * Nothing happens behind their back, so LOCAL now marks a list somebody asked
+ * for rather than one that was substituted without being mentioned.
+ *
+ * THE STREAM IS STRUNG, NOT LOGGED. A log grows downward with every past turn
+ * still fully expanded, so the longer the page is used the more of it is
+ * history shouting at the same volume as the thing you are doing — which is
+ * exactly why this screen felt overwhelming three turns in. So the stream has a
+ * thread running down it and every turn is a bead on that thread, and a bead
+ * you have passed is WORN: it shrinks, desaturates, and compresses to one line.
+ * Only the exchange you are on is open. Passing is defined by asking — the cut
+ * is the last `you` turn, so the opening invitation stays whole until the
+ * visitor says something, and each question closes the one before it rather
+ * than closing itself mid-answer.
+ *
+ * The beads are TYPED. A single repeated dot is what makes a timeline read as a
+ * log; the agent speaking, you asking, a hand being dealt, the wall, and the
+ * send are five different small silhouettes, all drawn in CSS on one <span>
+ * (see .nm-bead in naam.astro). The thread's segment above each new bead draws
+ * itself over 500ms — the line REACHING is the progress signal, which a node
+ * simply appearing is not.
+ *
+ * A collapsed turn is a real <button> with a real accessible name, never a
+ * clickable <div>: it is the page's only re-opening control and axe is the gate
+ * that decides. It carries `bead.reopen` in .sr-only text because its visible
+ * label says what the turn was and not what pressing it does. Re-opening keeps
+ * the turn in view (`justOpened`), because expanding a block above the scroll
+ * position would otherwise shove everything the visitor was reading downward —
+ * `overflow-anchor: none` is set on the stream, so nothing compensates for it.
+ *
+ * NOTHING NAMES THE MALA, here or in copy.ts. It is a counting object with worn
+ * beads and a thread, a Nepali or Buddhist visitor recognises it immediately,
+ * and everyone else sees a progress thread. A glossary would spend the effect.
  *
  * THE MOTION IS THE SIGNATURE, and its numbers live in MOTION.md §5's /naam
  * set rather than in taste: cards are DEALT (90–120ms stagger, 400–450ms
@@ -90,7 +135,13 @@ import { naamPreferredDevanagari, naamPreferredForm, type NaamRow } from '@/type
 
 const C = NAAM_COPY
 
-/** The two badge words this page is allowed (§4). Never a third. */
+/**
+ * The two badge words this page is allowed (§4). Never a third.
+ *
+ * LIVE is the ordinary one now. LOCAL is reachable only through the escape
+ * button under a failure line, so it labels a deck the visitor asked the
+ * matcher for rather than one that quietly replaced the model's.
+ */
 const BADGE = {
   live: C.badge.live.toLowerCase(),
   local: C.badge.local.toLowerCase(),
@@ -120,6 +171,26 @@ type Turn =
   | { id: string; kind: 'starters' }
   | { id: string; kind: 'thinking'; caption: string }
   | { id: string; kind: 'names'; matches: readonly NaamMatch[]; badge: Badge; note: string }
+  /**
+   * The ask produced no names, and the turn says why and what to do. TWO
+   * things produce it, which is why it is not called `failed`:
+   *
+   *   the model did not answer   `note` is the honest line, `retry` is true
+   *   it answered and named none `note` is empty — the reply directly above
+   *                              already said so in the model's own words, and
+   *                              Try again would be offering to redo something
+   *                              that worked. Only the escape shows.
+   *
+   * The second case is common rather than exotic: ask for a quality the
+   * document does not have and the model correctly says so and picks nothing.
+   * The old local-first render hid that behind eight matcher rows; without
+   * this turn it would be a dead end.
+   *
+   * It carries the ask verbatim because both buttons need it — Try again
+   * re-runs that exact sentence and the escape hands it to the matcher — so
+   * the visitor never retypes anything.
+   */
+  | { id: string; kind: 'stuck'; ask: string; note: string; retry: boolean }
   | { id: string; kind: 'form' }
   | { id: string; kind: 'sent'; text: string }
 
@@ -136,6 +207,25 @@ interface WallEntry {
   relation: string
   picks: { id: string; spelling: string }[]
 }
+
+/**
+ * Dust in the lamplight. Fixed positions and irregular periods, declared once
+ * at module scope so they are identical on the server and on every re-render —
+ * /naam is prerendered and React 19 compares the hydrated tree literally, so a
+ * Math.random() here would be a hydration mismatch, and a re-roll on every
+ * render would make the specks jump. Eight is enough to read as air; more reads
+ * as weather.
+ */
+const MOTES = [
+  { left: 24, bottom: 8, dur: 19, delay: 0 },
+  { left: 38, bottom: 2, dur: 24, delay: 3.5 },
+  { left: 47, bottom: 12, dur: 17, delay: 7 },
+  { left: 56, bottom: 4, dur: 27, delay: 1.5 },
+  { left: 63, bottom: 10, dur: 21, delay: 9 },
+  { left: 71, bottom: 1, dur: 23, delay: 5 },
+  { left: 33, bottom: 6, dur: 29, delay: 12 },
+  { left: 52, bottom: 14, dur: 20, delay: 15 },
+] as const
 
 let turnSeq = 0
 function nextId(): string {
@@ -156,6 +246,68 @@ function seededTilt(id: string): number {
   let hash = 7
   for (let i = 0; i < id.length; i += 1) hash = (hash * 31 + id.charCodeAt(i)) % 9973
   return Math.round(((hash % 61) - 30) / 10)
+}
+
+/**
+ * Which bead a turn is strung as. FIVE SILHOUETTES, NOT ONE DOT: the repeated
+ * bullet is the single thing that makes a vertical sequence read as a log, and
+ * a mala is not one shape repeated either — it has a counting bead, a marker
+ * bead and a guru bead, and you find your place on it by feel. Drawn in CSS off
+ * this attribute (.nm-bead[data-bead] in naam.astro), so a bead costs one empty
+ * <span> and no SVG.
+ *
+ *   said   the agent spoke — a plain round bead, the ordinary one
+ *   asked  you asked — a ring, open, because a question is
+ *   dealt  names came — a facet, turned 45°, the one that catches light
+ *   note   the wall — square-ish, the shape of the paper it summarises
+ *   guru   the send — the large bead a mala is counted from and finished at
+ */
+function beadOf(turn: Turn): string {
+  switch (turn.kind) {
+    case 'you':
+      return 'asked'
+    case 'names':
+      return 'dealt'
+    case 'family':
+      return 'note'
+    case 'form':
+    case 'sent':
+      return 'guru'
+    case 'stuck':
+      return 'stuck'
+    default:
+      return 'said'
+  }
+}
+
+/**
+ * The one line a passed turn leaves behind. A turn that SPOKE is summarised by
+ * its own words — clamped to one line in CSS rather than truncated here, so
+ * nothing is lost when it is opened again — and everything else takes a label
+ * from copy.ts. This function writes no prose.
+ */
+function summaryOf(turn: Turn): string {
+  switch (turn.kind) {
+    case 'agent':
+    case 'you':
+      return turn.text
+    case 'sent':
+      return C.app.bead.sent
+    case 'family':
+      return C.app.familyLead
+    case 'starters':
+      return C.app.bead.starters
+    case 'names':
+      return turn.matches.length > 0 ? C.app.bead.names(turn.matches.length) : C.results.emptyAsk
+    case 'stuck':
+      return turn.note || C.app.bead.stuck
+    case 'form':
+      return C.app.bead.form
+    // `thinking` is never collapsed — it is transient and always the last turn
+    // — but the switch has to be total, and its caption is the honest summary.
+    default:
+      return turn.caption
+  }
 }
 
 /**
@@ -212,13 +364,35 @@ export default function NaamApp({ seed }: NaamAppProps) {
   const [starters, setStarters] = useState<readonly string[]>(C.app.starters)
   const [ask, setAsk] = useState('')
   const [asking, setAsking] = useState(false)
-  const [source, setSource] = useState<Badge>('local')
+  /**
+   * The lamp reacts rather than reporting: it leans while the model is out and
+   * flares once when a name seats. `flare` is transient and NaamDiyo clears it
+   * through onFlareEnd, so a second Keep mid-flare restarts the animation
+   * instead of being swallowed.
+   */
+  const [flare, setFlare] = useState(0)
+  const diyo: DiyoState = flare > 0 ? 'flare' : asking ? 'thinking' : 'idle'
+  const endFlare = useCallback(() => setFlare(0), [])
+  /**
+   * The rail badge is a CLAIM, not a status light: before anything has been
+   * asked there is nothing to claim, so it starts empty and the only word it
+   * can ever take is LIVE. It used to initialise to LOCAL — the page therefore
+   * announced that the matcher had answered before anybody had asked it a
+   * question.
+   */
+  const [source, setSource] = useState<'live' | ''>('')
   const [announce, setAnnounce] = useState('')
   const [pinned, setPinned] = useState(true)
   const [calm, setCalm] = useState(false)
   const [formShown, setFormShown] = useState(false)
   const [sending, setSending] = useState(false)
   const [sendNote, setSendNote] = useState('')
+  /**
+   * Passed turns the visitor has pressed back open. It is never cleared: a bead
+   * they chose to re-open stays open, because closing it again on the next ask
+   * would be the page overruling a decision it had just been asked to make.
+   */
+  const [reopened, setReopened] = useState<ReadonlySet<string>>(() => new Set())
 
   const mountRef = useRef<AbortController | null>(null)
   const shellRef = useRef<HTMLDivElement | null>(null)
@@ -230,6 +404,8 @@ export default function NaamApp({ seed }: NaamAppProps) {
   const slotRefs = useRef<(HTMLElement | null)[]>([])
   const calmTimer = useRef(0)
   const timers = useRef<Set<number>>(new Set())
+  /** The turn the visitor just re-opened, so the layout effect can hold it. */
+  const justOpened = useRef<string | null>(null)
 
   const picks = useSyncExternalStore(subscribe, getPicks, getEmptyPicks)
   const preferB = useSyncExternalStore(subscribe, getPreferB, getDefaultPreferB)
@@ -314,11 +490,23 @@ export default function NaamApp({ seed }: NaamAppProps) {
 
   /* — the stream sticks to the bottom, but only if you are already there —— */
 
+  /**
+   * Has the visitor said anything yet? Sticking to the bottom is correct once
+   * there is a conversation to follow and WRONG before there is one. The
+   * opening turns — the invitation, the wall, the chips — are taller than the
+   * stream, so a page that scrolled on mount opened halfway down its own
+   * greeting: measured at 1280×800, "नमस्ते. Sneha and Bishal are" was sliced
+   * across the middle by the header and the first thing fully on screen was
+   * the starter chips. The invitation is the one thing a visitor must read, so
+   * the stream stays at the top until they have actually asked something.
+   */
+  const asked = useMemo(() => turns.some((turn) => turn.kind === 'you'), [turns])
+
   useLayoutEffect(() => {
     const el = streamRef.current
-    if (!el || !pinned) return
+    if (!el || !pinned || !asked) return
     el.scrollTo({ top: el.scrollHeight, behavior: reducedMotion() ? 'auto' : 'smooth' })
-  }, [turns, pinned])
+  }, [turns, pinned, asked])
 
   const onStreamScroll = useCallback(() => {
     const el = streamRef.current
@@ -332,6 +520,34 @@ export default function NaamApp({ seed }: NaamAppProps) {
     el?.scrollTo({ top: el.scrollHeight, behavior: reducedMotion() ? 'auto' : 'smooth' })
   }, [])
 
+  /* — a passed bead, pressed back open ————————————————————————————————— */
+
+  const reopen = useCallback((id: string) => {
+    justOpened.current = id
+    setReopened((prev) => new Set(prev).add(id))
+  }, [])
+
+  /**
+   * Hold the turn that was just re-opened. A collapsed turn is one line and an
+   * open one can be a whole hand of cards, so expanding one above the scroll
+   * position pushes everything below it down by a few hundred pixels — and the
+   * stream sets `overflow-anchor: none` (it has to, or the anchor fights the
+   * scroll-to-bottom on every insertion), so nothing compensates for that. The
+   * visitor pressed the bead to read it; this is what keeps it where they can.
+   *
+   * `block: 'nearest'` does nothing when the turn is already fully visible,
+   * which is the common case, so this is not a jump on every press. It is
+   * deliberately separate from the pin effect above: that one fires on `turns`
+   * and would scroll to the BOTTOM, which is the opposite of what is wanted.
+   */
+  useLayoutEffect(() => {
+    const id = justOpened.current
+    if (!id) return
+    justOpened.current = null
+    const el = streamRef.current?.querySelector(`[data-turn="${CSS.escape(id)}"]`)
+    el?.scrollIntoView({ block: 'nearest', behavior: 'auto' })
+  }, [reopened])
+
   /* — the composer suspends ambient motion while it is being used ————— */
 
   const bumpCalm = useCallback(() => {
@@ -344,93 +560,124 @@ export default function NaamApp({ seed }: NaamAppProps) {
 
   /* — one ask ————————————————————————————————————————————————————————— */
 
-  const runAsk = useCallback(
-    async (text: string, typed: boolean) => {
+  /**
+   * The model half of an ask, and the only thing on this page that deals cards
+   * unasked. Thinking state, then the reply. Nothing renders in between,
+   * because anything that did would be the page answering its own question.
+   *
+   * `replaceId` is the stuck turn being retried. It is dropped in the same
+   * update that puts the thinking state in, so Try again reuses the place in
+   * the stream the failure was occupying instead of stacking a second attempt
+   * underneath a line that is no longer true.
+   */
+  const runModel = useCallback(
+    async (value: string, replaceId?: string) => {
       const dataset = rows
-      const value = text.trim()
       const mount = mountRef.current
       if (!dataset || !mount || asking || value.length === 0) return
+
+      const { prefs, poolIds } = readAsk(value, dataset)
+      const thinkingId = nextId()
+      setAsking(true)
+      setTurns((prev) => [
+        ...(replaceId ? prev.filter((turn) => turn.id !== replaceId) : prev),
+        { id: thinkingId, kind: 'thinking', caption: C.app.asking },
+      ])
+      setAnnounce(C.app.asking)
+
+      const result = await askNaam({ ask: value, poolIds, rows: dataset, signal: mount.signal })
+      // askNaam never throws — an abort resolves to `unreachable` — so the
+      // caller is the one that must not touch state on a dead mount.
+      if (mount.signal.aborted) return
+      setAsking(false)
+
+      if (result.kind !== 'live') {
+        const note = result.kind === 'degraded' ? failureNote(result.reason) : C.failure.modelDown
+        setTurns((prev) => [
+          ...prev.filter((turn) => turn.id !== thinkingId),
+          { id: nextId(), kind: 'stuck', ask: value, note, retry: true },
+        ])
+        setAnnounce(note)
+        return
+      }
+
+      setSource('live')
+      // The model can answer and name nothing we could resolve — asked for a
+      // quality the document does not have, it says so and picks nothing, and
+      // that is the right answer rather than a failure. The reply stands on
+      // its own; the page is not obliged to produce cards for every turn.
+      const matches = result.rows.length > 0 ? withReasons(result.rows, prefs) : []
+      setTurns((prev) => {
+        const dealt: Turn[] = [{ id: nextId(), kind: 'agent', text: result.reply }]
+        if (matches.length === 0) {
+          // No Try again here: the model DID answer. What it left behind is a
+          // turn with no names in it, so the only thing worth offering is the
+          // document — and only to someone who asks for it.
+          dealt.push({ id: nextId(), kind: 'stuck', ask: value, note: '', retry: false })
+        } else {
+          // Said once, over the first hand. It is a standing instruction about
+          // how the tray works, and under every subsequent deal — each of which
+          // the model has already framed in its own words — it would be chrome.
+          if (!prev.some((turn) => turn.kind === 'names')) {
+            dealt.push({ id: nextId(), kind: 'agent', text: C.app.dealt })
+          }
+          dealt.push({ id: nextId(), kind: 'names', matches, badge: 'live', note: C.badge.liveCaption })
+        }
+        return [...prev.filter((turn) => turn.id !== thinkingId), ...dealt]
+      })
+      setAnnounce(result.reply)
+    },
+    [asking, rows],
+  )
+
+  /** What the visitor said, then the model's turn. */
+  const runAsk = useCallback(
+    (text: string, typed: boolean) => {
+      const value = text.trim()
+      if (!rows || asking || value.length === 0) return
 
       // Chips are a way in, not a script. Once the visitor has said something
       // of their own the starters have done their job and leave.
       if (typed) setStarters([])
       else setStarters((prev) => prev.filter((chip) => chip !== text))
 
-      const parsed = parseFreeText(value, dataset)
-      const prefs = normalizePrefs(parsed.prefs)
-      const named = parsed.compare.length > 0 ? parsed.compare : parsed.lookups
-      const { matches: ranked, relaxed } = rankRelaxed(dataset, prefs, RESULT_MAX)
-      const local = mergeNamed(named, ranked, prefs)
-
-      const namesId = nextId()
-      const thinkingId = nextId()
-      setAsking(true)
-      setSource('local')
-      setTurns((prev) => [
-        ...prev,
-        { id: nextId(), kind: 'you', text: value },
-        { id: nextId(), kind: 'agent', text: C.app.dealt },
-        {
-          id: namesId,
-          kind: 'names',
-          matches: local,
-          badge: 'local',
-          note: relaxed ? C.results.relaxed : C.badge.localCaption,
-        },
-        { id: thinkingId, kind: 'thinking', caption: C.app.asking },
-      ])
-      setAnnounce(local.length === 0 ? C.results.emptyAsk : C.badge.localCaption)
-
-      const result = await askNaam({ ask: value, rows: dataset, signal: mount.signal })
-      // askNaam never throws — an abort resolves to `unreachable` — so the
-      // caller is the one that must not touch state on a dead mount.
-      if (mount.signal.aborted) return
-
-      let badge: Badge = 'local'
-      // Annotated, or NAAM_COPY's `as const` narrows it to the one line it was
-      // initialised with and the other three branches stop compiling.
-      let note: string = C.failure.modelDown
-      let reply = ''
-      let matches: readonly NaamMatch[] | null = null
-
-      if (result.kind === 'live') {
-        badge = 'live'
-        note = relaxed ? `${C.badge.liveCaption} ${C.results.relaxed}` : C.badge.liveCaption
-        reply = result.reply
-        // `rows` can be empty on a live answer — the model replied but named
-        // nothing we could resolve. The local matches stay on screen.
-        if (result.rows.length > 0) matches = withReasons(result.rows, prefs)
-      } else if (result.kind === 'degraded') {
-        note = failureNote(result.reason)
-      }
-
-      setSource(badge)
-      setTurns((prev) => {
-        const out: Turn[] = []
-        for (const turn of prev) {
-          if (turn.id === thinkingId) continue
-          if (turn.id === namesId && turn.kind === 'names') {
-            // The model's framing reads before the cards it is framing, so it
-            // is inserted at the names turn rather than appended at the end.
-            if (reply) out.push({ id: nextId(), kind: 'agent', text: reply })
-            out.push({ ...turn, badge, note, matches: matches ?? turn.matches })
-            continue
-          }
-          out.push(turn)
-        }
-        return out
-      })
-      setAnnounce(reply || note)
-      setAsking(false)
+      setTurns((prev) => [...prev, { id: nextId(), kind: 'you', text: value }])
+      void runModel(value)
     },
-    [asking, rows],
+    [asking, rows, runModel],
+  )
+
+  /**
+   * The document's own list — and only because it was asked for. This is the
+   * quiet button on a `stuck` turn, the matcher runs here and nowhere else on
+   * the ask path, and the deck it produces is badged LOCAL. It replaces the
+   * stuck turn in place: that turn said there were no names and offered this,
+   * so the names belong in its spot rather than underneath an offer they have
+   * just answered.
+   */
+  const showDocument = useCallback(
+    (failedId: string, value: string) => {
+      const dataset = rows
+      if (!dataset) return
+      const { prefs, named } = readAsk(value, dataset)
+      const { matches: ranked, relaxed } = rankRelaxed(dataset, prefs, RESULT_MAX)
+      const matches = mergeNamed(named, ranked, prefs)
+      const note = relaxed ? `${C.badge.localCaption} ${C.results.relaxed}` : C.badge.localCaption
+      setTurns((prev) =>
+        prev.map((turn) =>
+          turn.id === failedId ? { id: failedId, kind: 'names', matches, badge: 'local', note } : turn,
+        ),
+      )
+      setAnnounce(matches.length === 0 ? C.results.emptyAsk : note)
+    },
+    [rows],
   )
 
   const submitAsk = useCallback(() => {
     const value = ask.trim()
     if (value.length === 0) return
     setAsk('')
-    void runAsk(value, true)
+    runAsk(value, true)
   }, [ask, runAsk])
 
   /* — Keep, and take back, which is animated exactly as hard ——————————— */
@@ -494,6 +741,11 @@ export default function NaamApp({ seed }: NaamAppProps) {
       // is decoration over state that has already changed, which is what makes
       // a second Keep startable at frame 1 of the first one's flight.
       togglePick(row)
+
+      // The lamp answers the touch. Bumped on every keep and unkeep, before any
+      // frame is scheduled, so it fires even when the flight itself is skipped
+      // under reduced motion — the flare is CSS and that media query stills it.
+      setFlare((n) => n + 1)
 
       // A second click on a kept card takes it back, from wherever it sits.
       if (already) {
@@ -680,73 +932,127 @@ export default function NaamApp({ seed }: NaamAppProps) {
   const family = useMemo(() => [seed, ...NAAM_SEED_ROWS], [seed])
   const slots = useMemo(() => Array.from({ length: PICK_MAX }, (_, i) => picks[i] ?? null), [picks])
 
-  const renderTurn = (turn: Turn) => {
+  /**
+   * THE HAND — the most recent names the agent dealt, and the reason the tray
+   * is a tray rather than a footer.
+   *
+   * These cards used to render inside their turn in the stream, and that is
+   * what made the model read as absent even after it started leading. Measured
+   * at 1280×800 the moment an answer arrived: the stream is 439px tall, a hand
+   * of cards is ~370 of it, and the model's own sentence — the whole point of
+   * having an agent — sat at top:-180, entirely above the fold. At 390 it was
+   * 581px above it. No scroll position could have shown both, because reply
+   * (82) + line (54) + cards (370) does not fit in 439 at any offset.
+   *
+   * So the hand moved out of the conversation and onto the tray, where the
+   * three slots already are. That is also the truer object: a mala is a thread
+   * you pass beads along, and a thali is a plate things are laid on and chosen
+   * from. Words belong on the thread; names being weighed belong on the plate.
+   * The conversation column now only ever holds language, so nothing the agent
+   * says can be pushed off the screen by cards again.
+   *
+   * A REOPENED past hand still renders its cards inline in the stream — it is
+   * a record of what was dealt then, not what is on the tray now, and the two
+   * must not be confused. Only the current hand is on the plate.
+   */
+  const hand = useMemo(() => {
+    for (let i = turns.length - 1; i >= 0; i--) {
+      const turn = turns[i]
+      if (turn.kind === 'names' && turn.matches.length > 0) return turn
+    }
+    return null
+  }, [turns])
+
+  /** One deal, rendered the same whether it is on the tray or reopened inline. */
+  const dealCards = (matches: readonly NaamMatch[]) => (
+    <div className="nm-deal">
+      {matches.map((match, i) => (
+        <div
+          className="nm-dealt"
+          key={match.row.id}
+          style={{ '--i': i, '--tilt': `${seededTilt(match.row.id)}deg` } as CSSProperties}
+        >
+          <NaamCard
+            row={match.row}
+            preferB={preferB}
+            reasons={match.reasons}
+            picked={pickedIds.has(match.row.id)}
+            trayFull={picks.length >= PICK_MAX && !pickedIds.has(match.row.id)}
+            onSwap={toggleSwap}
+            onPick={() => keep(match.row)}
+          />
+        </div>
+      ))}
+    </div>
+  )
+
+  /**
+   * The wall's notes: the family's own six first, then every approved
+   * suggestion. The approved ones carry a signature because that is the warm
+   * part — you are choosing next to people who already chose — and the ones
+   * that resolve to a real row get their Devanagari from the dataset rather
+   * than from the stored spelling, so the script on the wall is always the
+   * document's even when the spelling somebody typed is not.
+   *
+   * The tilt is hashed here rather than inside NaamWall because seededTilt is
+   * already this file's function, is already what gives a dealt card its angle,
+   * and hashing in two places is how two surfaces end up disagreeing about what
+   * ±3° means.
+   */
+  const notes = useMemo<readonly WallNote[]>(() => {
+    const own: WallNote[] = family.map((row) => ({
+      key: row.id,
+      deva: naamPreferredDevanagari(row, preferB),
+      latin: naamPreferredForm(row, preferB),
+      tilt: seededTilt(row.id),
+    }))
+    const sent: WallNote[] = wall.flatMap((entry) =>
+      entry.picks.map((pick) => {
+        const row = rows?.find((r) => r.id === pick.id)
+        const key = `${entry.id}-${pick.id}`
+        return {
+          key,
+          deva: row ? naamPreferredDevanagari(row, preferB) : '',
+          latin: row ? naamPreferredForm(row, preferB) : pick.spelling,
+          who: entry.relation ? C.wall.entry(entry.from, entry.relation) : entry.from,
+          tilt: seededTilt(key),
+        }
+      }),
+    )
+    return [...own, ...sent]
+  }, [family, preferB, rows, wall])
+
+  /**
+   * The cut between what you have passed and what you are on: the last thing
+   * YOU said. Everything above it is worn down to a bead and a line; everything
+   * from it down stays open. Asking is what makes a turn past — not time, and
+   * not the arrival of the next turn — so the four turns of the opening
+   * invitation stay whole until the visitor actually says something, and an
+   * answer never collapses halfway through being read.
+   */
+  let passed = -1
+  for (let i = turns.length - 1; i >= 0; i -= 1) {
+    if (turns[i].kind === 'you') {
+      passed = i
+      break
+    }
+  }
+
+  const turnBody = (turn: Turn) => {
     switch (turn.kind) {
       case 'agent':
-        return (
-          <li className="nm-turn" key={turn.id}>
-            <span className="sr-only">{C.app.speakerAgent}</span>
-            <p className={turn.lead ? 'nm-said nm-said--lead' : 'nm-said'}>{turn.text}</p>
-          </li>
-        )
+        return <p className={turn.lead ? 'nm-said nm-said--lead' : 'nm-said'}>{turn.text}</p>
 
       case 'you':
-        return (
-          <li className="nm-turn nm-turn--you" key={turn.id}>
-            <span className="sr-only">{C.app.speakerYou}</span>
-            <p className="nm-said nm-said--you">{turn.text}</p>
-          </li>
-        )
+        return <p className="nm-said nm-said--you">{turn.text}</p>
 
       case 'family':
-        return (
-          <li className="nm-turn" key={turn.id}>
-            <span className="sr-only">{C.app.speakerAgent}</span>
-            <p className="label-mono label-mono--sm nm-quiet-label">{C.app.familyLead}</p>
-            {/* eslint-disable-next-line jsx-a11y/no-redundant-roles -- `list-style: none`
-                strips list semantics in Safari/VoiceOver, so the role is restorative
-                rather than redundant. Every list on this page is unstyled. */}
-            <ul className="nm-family" role="list">
-              {family.map((row) => (
-                <li className="nm-family-item" key={row.id}>
-                  <span className="nm-family-deva" lang="sa-Deva">
-                    {naamPreferredDevanagari(row, preferB)}
-                  </span>
-                  <span className="nm-family-latin">{naamPreferredForm(row, preferB)}</span>
-                </li>
-              ))}
-              {/* Then what other people have sent, once approved. They carry a
-                  name because that is the warm part — you are choosing next to
-                  people who already chose — and the ones that resolve to a real
-                  row get their Devanagari from the dataset rather than from the
-                  stored spelling. */}
-              {wall.flatMap((entry) =>
-                entry.picks.map((pick) => {
-                  const row = rows?.find((r) => r.id === pick.id)
-                  return (
-                    <li className="nm-family-item" key={`${entry.id}-${pick.id}`}>
-                      {row && (
-                        <span className="nm-family-deva" lang="sa-Deva">
-                          {naamPreferredDevanagari(row, preferB)}
-                        </span>
-                      )}
-                      <span className="nm-family-latin">{row ? naamPreferredForm(row, preferB) : pick.spelling}</span>
-                      <span className="nm-family-who">
-                        {entry.relation ? `${entry.from} · ${entry.relation}` : entry.from}
-                      </span>
-                    </li>
-                  )
-                }),
-              )}
-            </ul>
-          </li>
-        )
+        return <NaamWall notes={notes} />
 
       case 'starters':
         if (starters.length === 0) return null
         return (
-          <li className="nm-turn" key={turn.id}>
-            <span className="sr-only">{C.app.speakerAgent}</span>
+          <>
             <div className="nm-chips">
               {starters.map((chip) => (
                 <button
@@ -754,7 +1060,7 @@ export default function NaamApp({ seed }: NaamAppProps) {
                   className="nm-chip"
                   key={chip}
                   disabled={notReady || asking}
-                  onClick={() => void runAsk(chip, false)}
+                  onClick={() => runAsk(chip, false)}
                 >
                   {chip}
                 </button>
@@ -763,48 +1069,37 @@ export default function NaamApp({ seed }: NaamAppProps) {
                 {C.app.dismissStarters}
               </button>
             </div>
-          </li>
+          </>
         )
 
       case 'thinking':
         return (
-          <li className="nm-turn" key={turn.id}>
-            <span className="sr-only">{C.app.speakerAgent}</span>
-            {/* P8: a travelling spike on a 2px rule and a mono caption. Never a
-                spinner. Decorative — the announcement rides the live region. */}
-            <div className="nm-thinking" aria-hidden="true">
-              <div className="pulse-line"></div>
-              <p className="pulse-caption nm-caption">{turn.caption}</p>
-            </div>
-          </li>
+          /* THE LAMP IS THE LOADING STATE. NaamDiyo is already leaning and
+             burning hotter for the whole of this turn (§4c), and a travelling
+             spike on a 2px rule beside it would be a second thing saying the
+             same word — so the .pulse-line is gone from here and the caption
+             stays, breathing on its own. It survives where nothing else is
+             animating: the composer's "reading the document…" and the send
+             form's "sending…", neither of which the flame is reporting on.
+             Decorative; the announcement rides the live region. */
+          <div className="nm-thinking" aria-hidden="true">
+            <p className="pulse-caption nm-caption">{turn.caption}</p>
+          </div>
         )
 
       case 'names':
         return (
-          <li className="nm-turn" key={turn.id}>
-            <span className="sr-only">{C.app.speakerAgent}</span>
+          <>
             {turn.matches.length === 0 ? (
               <p className="nm-said">{C.results.emptyAsk}</p>
             ) : (
-              <div className="nm-deal">
-                {turn.matches.map((match, i) => (
-                  <div
-                    className="nm-dealt"
-                    key={match.row.id}
-                    style={{ '--i': i, '--tilt': `${seededTilt(match.row.id)}deg` } as CSSProperties}
-                  >
-                    <NaamCard
-                      row={match.row}
-                      preferB={preferB}
-                      reasons={match.reasons}
-                      picked={pickedIds.has(match.row.id)}
-                      trayFull={picks.length >= PICK_MAX && !pickedIds.has(match.row.id)}
-                      onSwap={toggleSwap}
-                      onPick={() => keep(match.row)}
-                    />
-                  </div>
-                ))}
-              </div>
+              /* The CURRENT hand is on the tray, so here it is only its
+                 provenance line — which belongs with the conversation anyway,
+                 because "a real call, just now" is something the page is
+                 telling you, not a property of a card. A reopened OLDER hand
+                 still draws its cards, since that turn is a record of what was
+                 dealt then rather than what is on the plate now. */
+              hand?.id !== turn.id && dealCards(turn.matches)
             )}
             <p className="nm-turn-note">
               <span className="nm-badge label-mono label-mono--sm" data-source={turn.badge}>
@@ -812,74 +1107,185 @@ export default function NaamApp({ seed }: NaamAppProps) {
               </span>
               <span className="nm-turn-note-text">{turn.note}</span>
             </p>
-          </li>
+          </>
+        )
+
+      /**
+       * Nothing came back with names in it, said plainly and with somewhere to
+       * go. The difference between the two controls is the whole point: Try
+       * again is the primary one, and the matcher is an OPT-IN behind the
+       * quiet one — a fallback the visitor was never offered would be the page
+       * deciding on their behalf that a different system's answer would do.
+       *
+       * The note is omitted when the model answered and simply named nothing:
+       * its own reply is immediately above, and repeating the point in the
+       * page's error voice would contradict a turn that went fine.
+       *
+       * Both reuse the starter-chip classes rather than growing a pair of
+       * one-off buttons: .nm-chip is already the page's small affirmative pill
+       * and .nm-chip-hide its quiet text control, which is exactly the weight
+       * these two want. The label-mono classes are deliberately NOT on the
+       * escape — they uppercase in CSS, and a shouted mono sentence is a
+       * system message where this page's most human line has to sit.
+       */
+      case 'stuck':
+        return (
+          <>
+            {turn.note && <p className="nm-said nm-said--note">{turn.note}</p>}
+            {/* The two data attributes are the failure drill's handles
+                (scripts/verify/run.mjs). It cannot key off the classes —
+                .nm-chip and .nm-chip-hide are the starter row's too — and
+                keying off the words would tie the gate to copy.ts, which is
+                rewritten far more often than this markup. */}
+            <div className="nm-chips">
+              {turn.retry && (
+                <button
+                  type="button"
+                  className="nm-chip"
+                  data-nm-retry=""
+                  disabled={notReady || asking}
+                  onClick={() => void runModel(turn.ask, turn.id)}
+                >
+                  {C.failure.retry}
+                </button>
+              )}
+              <button
+                type="button"
+                className="nm-chip-hide"
+                data-nm-escape=""
+                disabled={notReady}
+                onClick={() => showDocument(turn.id, turn.ask)}
+              >
+                {C.failure.escape} <span aria-hidden="true">{C.failure.escapeGlyph}</span>
+              </button>
+            </div>
+          </>
         )
 
       case 'form':
         return (
-          <li className="nm-turn" key={turn.id}>
-            <span className="sr-only">{C.app.speakerAgent}</span>
-            <form className="nm-send" onSubmit={(event) => void sendPicks(event)}>
-              <p className="label-mono label-mono--sm nm-quiet-label">{C.app.send.picksLabel}</p>
-              <p className="nm-send-picks">{picks.map((pick) => pick.spelling).join(' · ') || C.form.picks.empty}</p>
+          <form className="nm-send" onSubmit={(event) => void sendPicks(event)}>
+            <p className="label-mono label-mono--sm nm-quiet-label">{C.app.send.picksLabel}</p>
+            <p className="nm-send-picks">{picks.map((pick) => pick.spelling).join(' · ') || C.form.picks.empty}</p>
 
-              <div className="nm-send-row">
-                <span className="nm-field">
-                  <label className="label-mono label-mono--sm" htmlFor="nma-from">
-                    {C.form.name.label}
-                  </label>
-                  <input id="nma-from" name="from" type="text" required maxLength={C.limits.name} autoComplete="name" />
-                </span>
-                <span className="nm-field">
-                  <label className="label-mono label-mono--sm" htmlFor="nma-relation">
-                    {C.form.relation.label}
-                  </label>
-                  <select id="nma-relation" name="relation" required defaultValue="">
-                    <option value="">{C.form.relation.placeholder}</option>
-                    {NAAM_RELATIONS.map((relation) => (
-                      <option value={relation} key={relation}>
-                        {relation}
-                      </option>
-                    ))}
-                  </select>
-                </span>
-              </div>
-
+            <div className="nm-send-row">
               <span className="nm-field">
-                <label className="label-mono label-mono--sm" htmlFor="nma-reason">
-                  {C.app.send.why}
+                <label className="label-mono label-mono--sm" htmlFor="nma-from">
+                  {C.form.name.label}
                 </label>
-                <textarea id="nma-reason" name="reason" rows={2} maxLength={C.limits.reason}></textarea>
+                <input id="nma-from" name="from" type="text" required maxLength={C.limits.name} autoComplete="name" />
               </span>
+              <span className="nm-field">
+                <label className="label-mono label-mono--sm" htmlFor="nma-relation">
+                  {C.form.relation.label}
+                </label>
+                <select id="nma-relation" name="relation" required defaultValue="">
+                  <option value="">{C.form.relation.placeholder}</option>
+                  {NAAM_RELATIONS.map((relation) => (
+                    <option value={relation} key={relation}>
+                      {relation}
+                    </option>
+                  ))}
+                </select>
+              </span>
+            </div>
 
-              <button type="submit" className="nm-send-go" disabled={sending || picks.length === 0}>
-                {C.app.send.submit}
-              </button>
+            <span className="nm-field">
+              <label className="label-mono label-mono--sm" htmlFor="nma-reason">
+                {C.app.send.why}
+              </label>
+              <textarea id="nma-reason" name="reason" rows={2} maxLength={C.limits.reason}></textarea>
+            </span>
 
-              {sending && (
-                <div className="nm-thinking" aria-hidden="true">
-                  <div className="pulse-line"></div>
-                  <p className="pulse-caption nm-caption">{C.form.sending}</p>
-                </div>
-              )}
-              {sendNote && <p className="nm-said nm-said--note">{sendNote}</p>}
-            </form>
-          </li>
+            <button type="submit" className="nm-send-go" disabled={sending || picks.length === 0}>
+              {C.app.send.submit}
+            </button>
+
+            {sending && (
+              <div className="nm-thinking" aria-hidden="true">
+                <div className="pulse-line"></div>
+                <p className="pulse-caption nm-caption">{C.form.sending}</p>
+              </div>
+            )}
+            {sendNote && <p className="nm-said nm-said--note">{sendNote}</p>}
+          </form>
         )
 
       case 'sent':
         return (
-          <li className="nm-turn" key={turn.id}>
-            <span className="sr-only">{C.app.speakerAgent}</span>
+          <>
             <p className="nm-said nm-said--lead">{C.form.confirmation.heading}</p>
             <p className="nm-said">{turn.text}</p>
-          </li>
+          </>
         )
     }
   }
 
+  /**
+   * ONE <li> PER TURN, and it is built here rather than nine times inside the
+   * switch: the bead, the thread and the speaker label are the same three
+   * things on every turn, and the moment they are copied into each case they
+   * start drifting. The switch above is now only what a turn IS.
+   *
+   * A passed turn renders as a button and NOT as the body. Rendering both and
+   * hiding one with CSS would leave every card in every past hand focusable,
+   * announced and clickable, which is the log we are escaping with a
+   * `display: none` painted over it.
+   *
+   * The FORM never collapses even when passed. It is the only turn holding
+   * input the visitor has half-filled, and closing it out from under them to
+   * make the thread tidier would lose typing.
+   */
+  const renderTurn = (turn: Turn, index: number) => {
+    const body = turnBody(turn)
+    if (body === null) return null
+    const past = index < passed && turn.kind !== 'form' && !reopened.has(turn.id)
+    return (
+      <li className="nm-turn" key={turn.id} data-turn={turn.id} data-past={past ? 'true' : undefined}>
+        <span className="sr-only">{turn.kind === 'you' ? C.app.speakerYou : C.app.speakerAgent}</span>
+        {/* The thread and the bead. Decorative in the strict sense — the turn
+            below says everything this says, and a screen reader announcing
+            "bead" on every entry would be nine words of furniture per turn. */}
+        <span className="nm-turn-rail" aria-hidden="true">
+          <span className="nm-bead" data-bead={beadOf(turn)}></span>
+        </span>
+        {past ? (
+          <button type="button" className="nm-turn-shut" onClick={() => reopen(turn.id)}>
+            <span className="nm-turn-shut-line">{summaryOf(turn)}</span>
+            <span className="sr-only">{C.app.bead.reopen}</span>
+          </button>
+        ) : (
+          <div className="nm-turn-body">{body}</div>
+        )}
+      </li>
+    )
+  }
+
   return (
     <div className="nm-shell" ref={shellRef} data-calm={calm ? 'true' : undefined}>
+      {/* The room the lamp lights, and the dust in it. Both are behind
+          everything (z-index 0, pointer-events none) and both are decoration
+          in the strict sense — aria-hidden, no content, nothing to read. They
+          exist because the page was inert between clicks, which is the whole
+          reason it read as a document. */}
+      <div className="nm-room" aria-hidden="true" />
+      <div className="nm-motes" aria-hidden="true">
+        {MOTES.map((m, i) => (
+          <span
+            key={i}
+            className="nm-mote"
+            style={
+              {
+                left: `${m.left}%`,
+                bottom: `${m.bottom}%`,
+                animationDuration: `${m.dur}s`,
+                animationDelay: `${m.delay}s`,
+              } as CSSProperties
+            }
+          />
+        ))}
+      </div>
+
       {/* .nm-topbar, not .nm-rail: NaamCard's sound rail already owns that
           class name and this page renders both. */}
       <div className="nm-topbar">
@@ -890,9 +1296,24 @@ export default function NaamApp({ seed }: NaamAppProps) {
           <span className="sr-only">{C.card.swapAria}</span>
         </button>
 
-        <span className="nm-badge nm-badge--rail label-mono label-mono--sm" data-source={source}>
-          {BADGE[source]}
+        {/* Empty until the model has answered, and then it says live and
+            nothing else. The element itself stays in the DOM either way — the
+            verification drill reads .nm-badge--rail's text — but it drops the
+            .nm-badge class when there is nothing to say, so an empty pill is
+            not left sitting in the rail claiming a shape. */}
+        <span
+          className={source ? 'nm-badge nm-badge--rail label-mono label-mono--sm' : 'nm-badge--rail'}
+          data-source={source || undefined}
+        >
+          {source ? BADGE[source] : ''}
         </span>
+
+        {/* The one link the header nav does not carry. The rest of the site
+            index used to sit on the tray row competing with the slots; this is
+            what actually needed rescuing when it went. */}
+        <a className="nm-rail-a11y label-mono label-mono--sm" href="/accessibility-statement">
+          {C.app.a11yLink}
+        </a>
       </div>
 
       <div className="nm-streamwrap">
@@ -913,10 +1334,18 @@ export default function NaamApp({ seed }: NaamAppProps) {
           onScroll={onStreamScroll}
         >
           {turns.map(renderTurn)}
+          {/* Strung like every other turn — it is the last bead on the thread
+              when it happens, and a line sitting off the thread would read as
+              chrome rather than as something the page said. */}
           {dataFailed && (
             <li className="nm-turn" key="data-failed">
               <span className="sr-only">{C.app.speakerAgent}</span>
-              <p className="nm-said">{C.failure.dataDown}</p>
+              <span className="nm-turn-rail" aria-hidden="true">
+                <span className="nm-bead" data-bead="stuck"></span>
+              </span>
+              <div className="nm-turn-body">
+                <p className="nm-said">{C.failure.dataDown}</p>
+              </div>
             </li>
           )}
         </ol>
@@ -935,18 +1364,31 @@ export default function NaamApp({ seed }: NaamAppProps) {
           rectangles cannot do. There is no "1/3 KEPT" counter: the shape
           already says it. */}
       <section className="nm-tray" aria-label={C.app.tray.label}>
+        {/* The plate. At ≥1100px this is the right-hand column and the hand
+            lies across the top of it; below that it is a band above the slots
+            and the cards scroll sideways through it. Either way the names you
+            are weighing sit next to the three you have kept, which is the
+            comparison the page exists to support and which the old layout put
+            a scroll apart. */}
+        {hand && <div className="nm-hand">{dealCards(hand.matches)}</div>}
+
+        {/* The lamp sits WITH the slots, not in the rail corner where it
+            started. Two reasons, and the first is the important one: it is the
+            page's light source, and the ground's radial pool is centred at 50%
+            — a lamp at 3% lighting a room from the middle is a lie you can see.
+            The second is that at rail size it rendered ~15px, clipped by the
+            site header, with a ±1.4° sway that is sub-pixel at that scale:
+            technically animating and visually inert, which is the exact failure
+            it exists to prevent. Here it is unclipped and it lights the three
+            beads it sits above.
+
+            The site index that used to live on this row is gone. It was chrome
+            at the same visual weight as the thing the page is actually asking
+            for; the header nav carries four of those five and the fifth is now
+            one quiet link in the rail. */}
         <div className="nm-tray-head">
+          <NaamDiyo state={diyo} onFlareEnd={endFlare} />
           <p className="label-mono label-mono--sm nm-quiet-label">{C.app.tray.label}</p>
-          {/* The site footer is display:none on this page, so its index rides
-              here — /naam must keep an inbound path to every route it had, the
-              accessibility statement above all. */}
-          <nav className="nm-index label-mono label-mono--sm" aria-label={C.app.indexLabel}>
-            <a href="/">bishal.ai</a>
-            <a href="/about">About</a>
-            <a href="/research">Research</a>
-            <a href="/notes/choon">Case note</a>
-            <a href="/accessibility-statement">Accessibility</a>
-          </nav>
         </div>
 
         {/* eslint-disable-next-line jsx-a11y/no-redundant-roles -- restorative, see above */}

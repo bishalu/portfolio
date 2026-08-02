@@ -6,29 +6,59 @@
  * exactly where a voice comes apart. Import from here; do not write prose in a
  * component.
  *
- * THE VOICE, so it survives edits:
- *   · Warm, specific, unfussy. Active voice. Sentence case in prose; UI labels
- *     go through .label-mono, which uppercases them in CSS — so they are
- *     written here in the case a screen reader should say them.
+ * THE VOICE, so it survives edits. The page is an invitation to help name a
+ * son, and it should read like one — the warmth of a wedding invitation
+ * without any of the costume:
+ *   · SIMPLE WORDS, SHORT SENTENCES. A cousin in Ohio who does not read
+ *     Devanagari and an aunt in Kathmandu should both get it on the first
+ *     pass. If a line needs reading twice, it is the line that is wrong.
+ *   · WARM, NEVER CEREMONIAL. No "request the honour", no flourishes, no
+ *     exclamation marks, no emoji, no "journey", no "magical", no "discover
+ *     the perfect name". The warmth is carried by spacing and scale in
+ *     naam.astro, so the words themselves can stay plain.
+ *   · NEPALI THE WAY A FAMILY ACTUALLY DROPS IT IN: a word, not a sentence,
+ *     and gloss it in English right next to it. Three across a surface is
+ *     warm; five is costume. The app gets नमस्ते, Kina? and dhanyabad; the
+ *     no-JS fallback gets nwaran and Kina?. Never transliterated Hindi.
+ *   · THE AUDIENCE IS THE DIASPORA — someone who left, or whose parents did,
+ *     and who wants the name to work in two places at once. The copy may
+ *     acknowledge that ("easy to say abroad"); it never explains it.
  *   · A label labels, an example demonstrates, a helper explains. Nothing does
  *     two of those jobs at once, and nothing repeats a line that already
- *     appears somewhere else on the page.
- *   · Nepali the way an urban Nepali family drops it into English: a word, not
- *     a sentence. "Kina?", "nwaran", "bolaune naam", "dhanyabad". Never
- *     transliterated Hindi, never a glossary.
+ *     appears somewhere else on the same surface.
  *   · Errors say what happened and what to do next. No apologies, no blame.
- *   · Never ceremonial, never touristy. No "journey", no "magical", no
- *     "discover the perfect name", no exclamation marks, no emoji.
  *   · Numbers come from src/generated/naam-facts.ts and are never retyped —
- *     the standing rule in src/content.config.ts.
+ *     the standing rule in src/content.config.ts. The caps in `limits` are
+ *     this file's own, so they are declared once in CAPS below and read from
+ *     there by the messages that mention them.
  *
- * The honesty vocabulary is three words and this page uses two of them: LOCAL
- * when the matcher answered, LIVE when the model did (DESIGN.md §4). There is
- * no REPLAY here — a canned reply was never produced by the real system, so
- * every degradation falls back to the matcher, which is real.
+ * The honesty vocabulary is three words and this page uses two of them: LIVE
+ * when the model answered, LOCAL when the matcher did (DESIGN.md §4). There is
+ * no REPLAY here — a canned reply was never produced by the real system. LIVE
+ * is the ordinary case now, because the agent leads and nothing is rendered
+ * before it answers; LOCAL appears only when a visitor presses `failure.escape`
+ * and asks for the document's own list, so the word means what it says instead
+ * of labelling a fallback nobody chose.
  */
 import { NAAM_COUNTS } from '@/generated/naam-facts'
 import { NAAM_SOURCE_LABEL, type NaamSource } from '@/types/naam'
+
+/**
+ * The caps, declared before the deck so the messages that quote a number can
+ * read it instead of retyping it. Exposed as `NAAM_COPY.limits`; tray.ts and
+ * /api/naam-submit both import that, so nothing can disagree about them.
+ */
+const CAPS = {
+  name: 40,
+  reason: 240,
+  /**
+   * Three, and the cap is the point. The tray is three slots that visibly
+   * fill, so the limit is what makes a choice cost something — and three
+   * considered names are better to receive than thirty.
+   */
+  picks: 3,
+  names: 120,
+} as const
 
 /* ────────────────────────────────────────────────────────────────────────────
    The relation list. Warmest thing on the page, and genuinely worth knowing.
@@ -57,7 +87,7 @@ export const NAAM_COPY = {
   meta: {
     title: 'Naam — help us name our son',
     description:
-      'Sneha and Bishal are naming their son. Say what you are after, keep three names from what the document offers, and send them back.',
+      'Sneha and Bishal are expecting a son. Say what you have in mind, keep three names from the document, and send them to us.',
     /** The nav and footer entry. */
     navLabel: 'Naam',
   },
@@ -66,18 +96,19 @@ export const NAAM_COPY = {
    * THE NO-JS FALLBACK'S WORDS, and nothing else now (src/pages/naam.astro).
    * With JavaScript on there is no hero — the greeting in `app` is the opening
    * line and the app owns the viewport. These four strings are the ordinary
-   * document a visitor without JavaScript gets instead, so they are still live
-   * and must not be retired with the rest of the editorial frame.
+   * document a visitor without JavaScript gets instead, so they carry the same
+   * invitation in the same register, and they must not be retired with the
+   * rest of the editorial frame.
    */
   hero: {
     headline: 'Help us name our son.',
-    /** One sentence. The form below is the ask, so the standfirst is not. */
-    standfirst: `Sneha and I have ${n(NAAM_COUNTS.total)} candidates and no decision.`,
-    /** Quiet, one line, not the headline. */
-    letters: 'B is Bishal, S is Sneha. V is here because Nepali says व as ब.',
-    /** Stated once, as the reason two names exist. */
+    /** The invitation, in one breath, with the one number that matters. */
+    standfirst: `Sneha and Bishal are expecting a son. There are ${n(NAAM_COUNTS.total)} names to choose from, and we would rather not choose alone.`,
+    /** Quiet, one line, not the headline. The family joke, told once. */
+    letters: 'B is Bishal, S is Sneha. V is here because at home we say व as ब — so Vachas is Bachas.',
+    /** Stated once, as the reason two names exist. Three short sentences. */
     nwaran:
-      'On the eleventh day the priest gives a rashi name from the stars; the bolaune naam, the one everyone actually calls him, is ours to pick — and that is the one this page is about.',
+      'On the eleventh day, at the nwaran, a priest reads the stars and gives him one name. The name we will actually call him at home is ours to choose. That is the one we are asking about.',
   },
 
   /**
@@ -88,9 +119,9 @@ export const NAAM_COPY = {
    * conversation. They live here for the same reason as everything else in
    * this file: the app, the no-JS fallback and the form must not drift apart.
    *
-   * The Devanagari in `starters` is deliberate: it is the string that proves
-   * Mukta is first in the chip's font stack. If that chip ever renders ▯▯▯▯,
-   * the stack is wrong somewhere and this is where it shows first.
+   * `greeting` and `invitation` are two turns of one invitation: who is asking
+   * and why, then what to do. The greeting is the biggest type on the page
+   * (nm-said--lead), so it is kept under thirty words.
    */
   app: {
     /**
@@ -107,34 +138,85 @@ export const NAAM_COPY = {
      */
     speakerAgent: 'Naam',
     speakerYou: 'You',
-    greeting: 'नमस्ते. Sneha and I are naming our son, and we would like your help.',
-    invitation: 'Tell me how he should sound. Or start with one of these.',
-    familyLead: 'The family likes these already',
+    greeting:
+      'नमस्ते. Sneha and Bishal are expecting a son. He needs a name before he arrives, and we would rather not choose it alone.',
+    invitation: 'Sit with us a while. Say what kind of name you have in mind, or start with one of these.',
+    familyLead: 'Names the family keeps coming back to',
+    /**
+     * Four chips, four shapes a real person types: a wish, a wish about how it
+     * will travel, a letter, a question about one name. Every one of them
+     * resolves in parseFreeText — "calm"/"love" are theme words, "short" and
+     * "easy to say"/"abroad" set the shape filters, "V names" sets the letter,
+     * and Snehaja is a row, so the lookup path is demonstrated rather than
+     * described. A chip that parses to nothing is a chip that teaches nothing.
+     *
+     * The ब in the third one is deliberate twice over: it is the family joke
+     * (व is said ब at home, which is why the V names are on the list at all),
+     * and it is the string that proves Mukta is first in the chip's font
+     * stack. If that chip ever renders ▯, the stack is wrong somewhere and
+     * this is where it shows first.
+     */
     starters: [
-      'something calm, about love rather than war',
-      'two beats, easy to call',
-      'names about light',
-      'what does भास्कर mean',
+      'something calm, about love not war',
+      'short, and easy to say abroad',
+      'the V names we say with a ब',
+      'what does Snehaja mean',
     ],
     dismissStarters: 'Hide these',
     /** Over a fresh deal of cards. */
-    dealt: 'Keep the ones you would want on the wall.',
-    /** .pulse-line captions, lowercase: they are captions, not labels. */
+    dealt: 'Keep the ones that sound like him.',
+    /**
+     * WHAT A TURN YOU HAVE PASSED SAYS. The stream compresses everything before
+     * the question you are currently on down to one line, so these are the
+     * labels for the turns whose own text is not the summary — a turn that
+     * SPOKE (the agent, or you) is summarised by its own first line and needs
+     * nothing here.
+     *
+     * `reopen` is .sr-only on every one of those collapsed controls, because a
+     * button named only "Ways to start" says what it is and not what pressing
+     * it does. It is the whole accessible name for a keyboard user and it has
+     * to carry the verb.
+     *
+     * Nothing here names the object the stream is drawn as. The page is a mala
+     * — a thread with beads on it, worn where you have already passed — and a
+     * visitor who owns one recognises it in a second while everyone else sees a
+     * well-made progress thread. Explaining it would spend the whole effect.
+     */
+    bead: {
+      reopen: 'Open this again',
+      starters: 'Ways to start',
+      names: (count: number) => `${count} ${count === 1 ? 'name' : 'names'}, dealt`,
+      /** The ask came back with nothing to keep, either way it happened. */
+      stuck: 'Nothing came back for that',
+      form: 'Who to thank for these',
+      sent: 'Sent',
+    },
+    /**
+     * .pulse-line captions, lowercase: they are captions, not labels. They
+     * name the two real steps, and they stay literal — the badge says LIVE
+     * because a model was asked, and this is the caption that says so while it
+     * happens (DESIGN.md §4, P9). A warmer word here would be a nicer lie.
+     */
     reading: 'reading the document…',
     asking: 'asking the model…',
     jump: 'Jump to the latest',
-    composerLabel: 'Say what you are after',
-    composerPlaceholder: 'a feeling, a sound, a syllable…',
+    composerLabel: 'Tell us what you have in mind',
+    composerPlaceholder: 'even one word is enough…',
     composerSend: 'Send',
-    /** The site footer is hidden on this page, so its index comes with us. */
-    indexLabel: 'The rest of the site',
+    /**
+     * The site footer is display:none here, and the full index used to ride on
+     * the tray row at the same visual weight as the three slots. The header nav
+     * carries every route except this one, so this is the only one that needed
+     * rescuing.
+     */
+    a11yLink: 'Accessibility',
     tray: {
       label: 'Your three',
       /** Devanagari numerals. Free, and unmistakably Nepali. */
       ordinals: ['१', '२', '३'],
-      empty: (slot: number) => `Slot ${slot}, empty`,
+      empty: (slot: number) => `Slot ${slot} of three, empty`,
       /** The whole slot is the control; there is no grey ✕. */
-      taken: (slot: number, name: string) => `Slot ${slot}, ${name}. Take it back.`,
+      taken: (slot: number, name: string) => `Slot ${slot} of three, ${name}. Take it back.`,
     },
     /**
      * The last turn: the send fields arrive in the stream when three are kept.
@@ -147,14 +229,15 @@ export const NAAM_COPY = {
     send: {
       lead: 'That is your three. Who should we thank for them?',
       picksLabel: 'Sending',
-      why: 'Why these? — one line is plenty',
-      submit: 'Send these to us',
+      /** The app's code-switch, glossed by the English right beside it. */
+      why: 'Kina? — why these three?',
+      submit: 'Send them to us',
     },
   },
 
-  /** The invitation on the home page, inside CloseSection. */
+  /** The invitation on the home page, inside CloseSection. Bishal's own voice. */
   invite: {
-    line: 'Sneha and I are naming our son, and the shortlist is public.',
+    line: 'Sneha and I are expecting a son, and we are still choosing his name.',
     cta: 'Help us name him',
   },
 
@@ -163,7 +246,7 @@ export const NAAM_COPY = {
    * this line a no-JS visitor meets a page with no explanation of why the thing
    * they were sent a link to is not on it.
    */
-  noscript: 'The naming app needs JavaScript. Everything below — the names, their meanings and the form — does not.',
+  noscript: 'The naming app needs JavaScript. The names, their meanings and the form below all work without it.',
 
   /**
    * What the app says ABOUT a set of names, as opposed to the names themselves.
@@ -174,9 +257,9 @@ export const NAAM_COPY = {
   results: {
     /** Above the computed match reasons. They are never written by a model. */
     reasonsLabel: 'Matched on',
-    emptyAsk: 'Nothing matched that. Try a meaning rather than a spelling.',
+    emptyAsk: 'Nothing came up for that. Try a meaning — light, water, calm — rather than a spelling.',
     /** Shown when the hard filters intersected to nothing and were given back. */
-    relaxed: 'Nothing answered all of that, so one answer has been given back. These are the closest the document has.',
+    relaxed: 'Nothing answered all of that, so we let one part of it go. These are the closest the document has.',
   },
 
   /** DESIGN.md §4. Two of the three words; there is no REPLAY on this page. */
@@ -188,14 +271,31 @@ export const NAAM_COPY = {
   },
 
   /**
-   * Honest failure. Every one of these degrades to the matcher's own list,
-   * which is real, so the badge stays LOCAL and never becomes an error state.
+   * Honest failure — and honest is not the same as quietly substituted. The
+   * model is what the page asked, so when it does not answer the page says one
+   * plain line and offers two things: the same ask again, and the document's
+   * own list IF the visitor decides they want it. Nothing appears behind their
+   * back, which is what keeps DESIGN.md §4 rule 4 (failure is honest, never
+   * blank) satisfied without the page pretending the matcher was the answer.
+   *
+   * So none of these lines may promise names underneath it any more. Each says
+   * what happened and stops; `retry` and `escape` are what to do next.
    */
   failure: {
-    modelDown: 'The model did not answer, so these are the document’s own best matches.',
-    modelSlow: 'That was taking too long, so these are the document’s own best matches.',
-    modelOff: 'No model on this build. These are the document’s own best matches.',
-    dataDown: 'The full list did not load. Reload and it will try again.',
+    modelDown: 'The model didn’t answer.',
+    modelSlow: 'The model took too long to answer.',
+    modelOff: 'There is no model on this build.',
+    /** The same sentence, asked again. The visitor retypes nothing. */
+    retry: 'Try again',
+    /**
+     * The escape hatch, and it is a button rather than a fallback: the matcher
+     * runs when this is pressed and not before, and what it deals is badged
+     * LOCAL so it is never mistaken for the model's answer.
+     */
+    escape: 'or show me what the document has anyway',
+    /** Decorative and aria-hidden; the line beside it is what gets announced. */
+    escapeGlyph: '→',
+    dataDown: 'The full list did not load. Reload the page and it will try again.',
   },
 
   card: {
@@ -244,18 +344,18 @@ export const NAAM_COPY = {
   },
 
   form: {
-    heading: 'Send us your picks',
-    standfirst: 'It comes to us as an email. Nothing appears on the wall until we read it.',
+    heading: 'Send us a name',
+    standfirst: 'It comes straight to us. Nothing goes on the wall until we have read it.',
     name: {
       label: 'Your name',
-      error: 'We need a name to put next to it.',
-      tooLong: 'Keep it under 40 characters.',
+      error: 'Add your name, so we know who to thank.',
+      tooLong: `Keep it under ${CAPS.name} characters.`,
     },
     relation: {
       label: 'How do we know you?',
-      placeholder: 'Pick one',
+      placeholder: 'Choose one',
       options: NAAM_RELATIONS,
-      error: 'Pick one — any one.',
+      error: 'Choose one — any one is fine.',
     },
     /**
      * Reachable, and only one way: the send turn arrives when the third slot
@@ -264,7 +364,7 @@ export const NAAM_COPY = {
      * three slots — not the old grid's "tap Pick on any name".
      */
     picks: {
-      empty: 'All three slots are empty again. Keep a name and it lands here.',
+      empty: 'All three are empty again. Keep a name and it lands here.',
     },
     /**
      * The always-usable half of the form. With JavaScript off nothing can fill
@@ -272,22 +372,22 @@ export const NAAM_COPY = {
      * form and send no name at all — the one thing the page is for.
      */
     names: {
-      label: 'Or type the names',
-      helper: 'Any spelling, any name. It does not have to be in the document.',
+      label: 'Or just type a name',
+      helper: 'Any spelling. It does not have to be one from the document.',
       placeholder: 'Bishrut, Saurya',
     },
     reason: {
-      /** The one place the code-switch earns its keep. */
+      /** The fallback's code-switch, glossed by the English beside it. */
       label: 'Kina? — one line is plenty',
-      helper: 'Optional. It is the part we will remember.',
+      helper: 'Optional, and it is the part we will remember.',
       counter: (used: number, max: number) => `${used}/${max}`,
-      tooLong: 'A bit long. 240 characters is the limit.',
+      tooLong: `A bit long. ${CAPS.reason} characters is the limit.`,
     },
     submit: 'Send',
     sending: 'sending…',
     confirmation: {
-      heading: 'Got it.',
-      body: 'It is with us. Nothing goes on the wall until we have read it. Dhanyabad.',
+      heading: 'Dhanyabad.',
+      body: 'It is with us now. Nothing goes on the wall until we have read it.',
       again: 'Send another',
       /**
        * The email went and the moderation queue did not take it. Both halves
@@ -295,38 +395,27 @@ export const NAAM_COPY = {
        * for a write that failed — /api/naam-submit returns `stored` precisely
        * so this can be honest.
        */
-      emailOnly: 'It is with us by email. Putting it on the wall may take a second try from our side.',
+      emailOnly: 'It reached us by email. Getting it onto the wall may take one more try from our side.',
     },
     error: {
-      network: 'That did not send. Your picks are still here — try once more.',
-      server: 'Something broke on our side. Try again in a minute, or write to bishal@vibeset.ai.',
+      network: 'That did not send. Your three are still here, so try once more.',
+      server: 'That broke on our side, not yours. Try again in a minute, or write to bishal@vibeset.ai.',
       rateLimited: 'That is a few too many in a row. Give it a minute.',
     },
   },
 
   /** Caps, so the tray, the form and the endpoint agree on them. Read, never retyped. */
-  limits: {
-    name: 40,
-    reason: 240,
-    /**
-     * Three, and the cap is the point. The tray is three slots that visibly
-     * fill, so the limit is what makes a choice cost something — and three
-     * considered names are better to receive than thirty. tray.ts's PICK_MAX
-     * and /api/naam-submit both read this, so they cannot disagree.
-     */
-    picks: 3,
-    names: 120,
-  },
+  limits: CAPS,
 
   wall: {
-    heading: 'What people have sent',
-    standfirst: 'Suggestions we have read and put up.',
+    heading: 'What other people sent',
+    standfirst: 'The ones we have read and put up.',
     /** The six family favorites the wall ships with. */
     seedLabel: 'Ours, to start',
     /** Sits directly under the six seed cards, so it says what is missing. */
-    empty: 'No suggestions yet. Yours would be the first.',
+    empty: 'Nothing here yet. Yours would be the first.',
     loading: 'loading the wall…',
-    failure: 'The wall did not load. Reload and it will come back.',
+    failure: 'The wall did not load. Reload the page and it will come back.',
     entry: (name: string, relation: string) => `${name} · ${relation}`,
   },
 

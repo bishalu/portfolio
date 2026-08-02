@@ -317,6 +317,32 @@ if (!seedRow) {
        bone was also invisible. */
     --nm-keep-fill: color-mix(in srgb, var(--marigold) 18%, transparent);
     --nm-live: var(--glacier);
+    /* THE BASE OF THE FLAME, declared here beside the wall's paper and for the
+       same reason: fire is not a different colour in a different room, so
+       #naam-app does not override it. Mixed rather than picked — the page owns
+       exactly two warm tokens and an ember is where they meet.
+
+       It replaces `var(--nm-accent)`, which NaamDiyo's gradient read and which
+       is declared nowhere on this site; only --nm-accent-text exists. An
+       unresolvable var() in stop-color is invalid at computed-value time, so it
+       fell back to that property's initial value — BLACK — and the flame burned
+       from a black base. At 62px that reads as shadow around the wick, which is
+       precisely why it survived a review that was looking at the lamp. */
+    --nm-ember: color-mix(in srgb, var(--crimson) 55%, var(--marigold) 45%);
+
+    /* THE WALL'S PAPER, and it is declared on .nm rather than on #naam-app on
+       purpose: a note is a piece of paper, and paper does not change colour
+       because the room it is in is dark. These three are the only colours on
+       this page that do not resolve differently between the two grounds.
+       Post-it yellow is #f6e27a — never #ffff00, which is a highlighter — and
+       the ink is #2b2a26, never black. Contrast, measured on the note itself:
+         #2b2a26 on #f6e27a   11.0:1   the Devanagari and the Latin
+         the 76% mix          5.6:1    the signature, which is small text
+       Both clear AA at the sizes used, which is why the signature can be a mono
+       micro-label without becoming a decorative smudge. */
+    --nm-note: #f6e27a;
+    --nm-note-ink: #2b2a26;
+    --nm-note-ink-soft: color-mix(in srgb, var(--nm-note-ink) 76%, var(--nm-note));
 
     /* Mukta is FIRST in every stack on this page and that is safe: its
        @font-face carries a unicode-range, so it can only ever supply
@@ -383,6 +409,252 @@ if (!seedRow) {
     flex: 1 1 0;
     flex-direction: column;
     min-height: 0;
+  }
+
+  /* ── THE THREAD AND THE PLATE ─────────────────────────────────────────
+     Two columns from 1100px, and the split is not a way to use up width — it
+     is the only arrangement in which the agent can lead.
+
+     Stacked, an arriving hand of cards is ~370px of a 439px stream, so the
+     model's sentence was pushed above the fold the instant it was answered
+     (measured: top:-180 at 1280×800, -581 at 390). Reply + line + cards is
+     506px of content and no scroll offset fits that into 439.
+
+     The two columns are also two different KINDS of thing, which is why this
+     reads as a room rather than as a sidebar. The left is a thread — a mala,
+     turns strung in the order they happened, and you pass along it. The right
+     is a plate — a thali, where what is being weighed is laid out and three of
+     it is chosen. Words go on the thread; names go on the plate. The lamp
+     stands at the foot of the plate and lights it, so the two halves sit at
+     different temperatures: the conversation stays cool paper, the offering is
+     warm. That is the whole of the separation — there is no rule between them,
+     because a hairline would say "two panels" where the light already says
+     "one room, lit from over here".
+
+     Below 1100 it stacks back and the hand becomes a band you swipe. */
+  @media (min-width: 1100px) {
+    .nm-shell {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      /* The plate is sized from the CARD, not from the leftovers. Three cards
+         plus the gaps and the tray's padding need ~700px before a gloss stops
+         breaking mid-phrase — at 46vw the cards came out 180px and "to shine,
+         be bright" wrapped to two lines while "from the document" broke across
+         two more. 56vw gives ~218px each at 1280 and the thread still keeps
+         ~560px, which is a comfortable measure for prose and more than the
+         invitation was getting when it had the whole width. */
+      grid-template-columns: minmax(0, 1fr) clamp(31rem, 56vw, 46rem);
+      grid-template-areas:
+        'top top'
+        'stream tray'
+        'composer composer';
+    }
+
+    .nm-topbar {
+      grid-area: top;
+    }
+
+    .nm-streamwrap {
+      grid-area: stream;
+      min-height: 0;
+    }
+
+    .nm-tray {
+      grid-area: tray;
+      justify-content: center;
+      min-height: 0;
+      overflow: clip;
+    }
+
+    .nm-composer {
+      grid-area: composer;
+    }
+
+    /* The lamp moved into the right column, so its light moves with it.
+       Leaving the pool at 50% would light the room from a point the lamp
+       visibly is not — the same lie this page already fixed once vertically. */
+    .nm-room {
+      background:
+        radial-gradient(58% 52% at 78% 84%, color-mix(in srgb, var(--nm-keep) 17%, transparent) 0%, transparent 70%),
+        radial-gradient(105% 64% at 78% 100%, color-mix(in srgb, var(--nm-keep) 8%, transparent) 0%, transparent 62%);
+    }
+  }
+
+  /* ── The lamp, and the room it lights ─────────────────────────────────
+     The page used to be inert between clicks, which is the whole reason it
+     read as a document rather than as something you were inside. One element
+     is now always alive, and it is a light source rather than a decoration —
+     so the ground is LIT instead of painted, which is what games do and what
+     a flat hex fill can never do.
+
+     The flicker must not look like a loop. Two animations run at deliberately
+     incommensurate periods (2.3s and 3.7s); a single sine reads as CSS, two
+     out of phase read as fire. The ground rides the same clock at a fifth of
+     the amplitude, so the paper breathes without anyone noticing why. */
+
+  /* The pool is centred ON the lamp — which sits low, with the tray — and
+     throws its light UPWARD across the conversation. It was at 50% 34% while
+     the lamp was at 3% 6%, and a room lit from somewhere the light source
+     visibly is not is a thing the eye catches even when it cannot say why. */
+  .nm-room {
+    position: absolute;
+    z-index: 0;
+    animation: nm-room-breathe 3.7s ease-in-out infinite;
+    inset: 0;
+    background:
+      radial-gradient(78% 58% at 50% 88%, color-mix(in srgb, var(--nm-keep) 15%, transparent) 0%, transparent 70%),
+      radial-gradient(140% 70% at 50% 100%, color-mix(in srgb, var(--nm-keep) 7%, transparent) 0%, transparent 62%);
+    pointer-events: none;
+  }
+
+  /* Dust in the lamplight — the ambient-particle technique without confetti,
+     and what a real butter lamp actually looks like. Suspended while typing
+     ([data-calm]) because it is the part that can pull the eye; the flame is
+     not, because a lamp that goes out when you start writing is worse than one
+     that flickers beside you. */
+  .nm-motes {
+    position: absolute;
+    opacity: 0.5;
+    z-index: 0;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .nm-mote {
+    position: absolute;
+    animation: nm-mote-drift linear infinite;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--nm-keep) 55%, transparent);
+    width: 2px;
+    height: 2px;
+  }
+
+  .nm[data-calm='true'] .nm-motes {
+    opacity: 0;
+    transition: opacity 600ms ease;
+  }
+
+  @keyframes nm-room-breathe {
+    0%,
+    100% {
+      opacity: 0.86;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes nm-mote-drift {
+    0% {
+      transform: translate3d(0, 0, 0);
+      opacity: 0;
+    }
+    18% {
+      opacity: 0.7;
+    }
+    82% {
+      opacity: 0.5;
+    }
+    100% {
+      transform: translate3d(14px, -190px, 0);
+      opacity: 0;
+    }
+  }
+
+  .nm-diyo {
+    position: relative;
+    flex-shrink: 0;
+    z-index: 1;
+    line-height: 0;
+  }
+
+  /* transform STRING, not individual properties: individual transforms animate
+     CSS variables and are not composited. */
+  .nm-diyo-sway {
+    transform-origin: 22px 30px;
+    animation: nm-flame-sway 3.7s ease-in-out infinite;
+  }
+
+  .nm-diyo-inner {
+    transform-origin: 22px 24px;
+    animation: nm-flame-gutter 2.3s ease-in-out infinite;
+  }
+
+  .nm-diyo-glow {
+    animation: nm-flame-glow 2.3s ease-in-out infinite;
+  }
+
+  /* Three stops, not two, and roughly double the amplitude of the first
+     attempt. Two stops make a pendulum — the eye predicts it instantly and it
+     reads as a CSS animation. A third stop off-centre breaks the symmetry, and
+     because the gutter beneath runs at 2.3s against this 3.7s, the pair never
+     lands in the same relative phase twice inside a sitting. */
+  @keyframes nm-flame-sway {
+    0%,
+    100% {
+      transform: rotate(-3deg) scaleY(0.97);
+    }
+    38% {
+      transform: rotate(2.2deg) scaleY(1.06);
+    }
+    64% {
+      transform: rotate(-0.8deg) scaleY(1.01);
+    }
+  }
+
+  @keyframes nm-flame-gutter {
+    0%,
+    100% {
+      transform: scale(1) translateY(0);
+    }
+    40% {
+      transform: scale(0.9) translateY(1px);
+    }
+    70% {
+      transform: scale(1.06) translateY(-1px);
+    }
+  }
+
+  @keyframes nm-flame-glow {
+    0%,
+    100% {
+      opacity: 0.8;
+    }
+    45% {
+      opacity: 1;
+    }
+  }
+
+  /* Thinking: the flame narrows and leans. This IS the loading state — there
+     is no separate spinner and no pulse-line while the lamp can say it. */
+  .nm-diyo[data-state='thinking'] .nm-diyo-sway {
+    transform-origin: 22px 32px;
+    animation-duration: 1.15s;
+  }
+
+  .nm-diyo[data-state='thinking'] .nm-diyo-inner {
+    animation-duration: 0.7s;
+  }
+
+  /* A name lands: the flame flares once and settles. */
+  .nm-diyo[data-state='flare'] .nm-diyo-glow {
+    animation: nm-flame-flare 180ms ease-out;
+  }
+
+  .nm-diyo[data-state='flare'] .nm-diyo-outer {
+    animation: nm-flame-flare 180ms ease-out;
+  }
+
+  @keyframes nm-flame-flare {
+    0% {
+      transform: scale(1);
+    }
+    45% {
+      transform: scale(1.22);
+    }
+    100% {
+      transform: scale(1);
+    }
   }
 
   /* Flying names. position: fixed, so this layer carries no geometry — it is
@@ -487,16 +759,261 @@ if (!seedRow) {
     list-style: none;
   }
 
+  /* ── The thread, and the beads strung on it ───────────────────────────
+     A log is a column of blocks all shouting at the same volume, and it gets
+     louder the longer you use it — which is exactly why this screen felt
+     overwhelming three turns in. This is a counting object instead: a thread
+     down the left, one bead per turn, and the beads you have passed worn
+     smaller, fainter and compressed to a single line.
+
+     THE GAP BELONGS TO THE TURN BELOW IT, as padding-top rather than as the
+     margin-bottom this used to be, and that is not a style preference. The
+     thread has to bridge the space between two beads, and a pseudo-element can
+     only read its OWN element's custom properties — so with the gap as a bottom
+     margin the connector would have had to know the PREVIOUS turn's spacing,
+     which CSS cannot express. As padding-top, --nm-gap is right there.
+
+     That also makes the compression free: a passed turn simply declares a
+     smaller --nm-gap, so the mala tightens where you have already been and
+     keeps its air around the exchange you are on.
+
+     No timeline library. Every one of them (react-chrono,
+     react-vertical-timeline-component, shadcn's blocks) renders a vertical rule
+     with cards hanging off it, which is precisely the log being escaped. This
+     is a two-column grid, two pseudo-elements and one keyframe. ────────────── */
   .nm-turn {
-    display: flex;
-    flex-direction: column;
-    gap: 0.55rem;
-    margin: 0 auto var(--space-m);
+    --nm-gap: var(--space-m);
+    /* The rail's width and the bead's, in one place: the narrow breakpoint
+       re-declares these three and every offset below follows. */
+    --nm-rail: 22px;
+    --nm-rail-gap: 0.7rem;
+    --nm-bead: 12px;
+    /* Where the bead's top sits, so it lands on the optical centre of the
+       first line of text beside it (1rem at 1.7 line-height is a 27px box). */
+    --nm-bead-top: 7px;
+
+    display: grid;
+    grid-template-columns: var(--nm-rail) minmax(0, 1fr);
+    column-gap: var(--nm-rail-gap);
+    margin: 0 auto;
+    padding-top: var(--nm-gap);
     max-width: 720px;
   }
 
-  .nm-turn:last-child {
-    margin-bottom: 0;
+  /* Nothing is strung above the first bead, and the stream's own top padding
+     is already the air above it. 0px, not 0: it is read inside calc(). */
+  .nm-turn:first-child {
+    --nm-gap: 0px;
+  }
+
+  .nm-turn[data-past] {
+    --nm-gap: var(--space-2xs);
+  }
+
+  /* The .sr-only speaker label is position:absolute, so it is out of flow and
+     never takes a grid cell — the rail and the body auto-place into the two
+     columns without anything having to be placed by hand. */
+  .nm-turn-rail {
+    position: relative;
+  }
+
+  /* The cord: a continuous faint line with diagonal ticks laid over it. Two
+     layers, because either one alone is wrong — the ticks by themselves render
+     as a dashed border, which is worse than a plain rule, and a plain 1px
+     vertical rule IS the timeline-library look. Together the line carries the
+     continuity a strung object needs and the ticks give it a twist, and at
+     13% under 26% neither is individually legible. */
+  .nm-turn-rail::before,
+  .nm-turn-rail::after {
+    position: absolute;
+    left: calc(var(--nm-rail) / 2 - 1px);
+    background-image: repeating-linear-gradient(-64deg, var(--nm-hair-strong) 0 1px, transparent 1px 3px);
+    background-color: var(--nm-hair);
+    width: 2px;
+    content: '';
+  }
+
+  /* THE CONNECTOR, and it draws. The line REACHING the new bead is the progress
+     signal; a node simply appearing is not, and instant appearance is what
+     makes a sequence read as a log. scaleY off a top origin rather than an SVG
+     stroke-dashoffset: on a straight 2px vertical the two are pixel-identical,
+     and this one composites and costs no element. */
+  .nm-turn-rail::before {
+    top: calc(-1 * var(--nm-gap));
+    transform-origin: top;
+    animation: nm-thread 500ms cubic-bezier(0.05, 0.7, 0.1, 1) backwards;
+    height: calc(var(--nm-gap) + var(--nm-bead-top));
+  }
+
+  .nm-turn-rail::after {
+    top: calc(var(--nm-bead-top) + var(--nm-bead));
+    bottom: 0;
+  }
+
+  .nm-turn:first-child .nm-turn-rail::before {
+    display: none;
+  }
+
+  /* The thread ends at the bead you are on. There is nothing strung after it
+     yet, and a cord running past the last bead into empty space is the log's
+     "and it continues" — the opposite of what a counting object says. */
+  .nm-turn:last-child .nm-turn-rail::after {
+    display: none;
+  }
+
+  @keyframes nm-thread {
+    from {
+      transform: scaleY(0);
+    }
+
+    to {
+      transform: scaleY(1);
+    }
+  }
+
+  /* FIVE SILHOUETTES, NEVER ONE REPEATED DOT — the repeated bullet is the
+     single thing that makes a vertical sequence read as a log, and a mala is
+     not one shape repeated either. All of it is one empty <span>: no SVG, no
+     icon font, no per-turn element beyond this one.
+
+     `rotate` and `scale` are used as INDIVIDUAL transform properties rather
+     than as a transform string, and that is the point of them here: the facet
+     beads are permanently turned 45° and the worn state permanently scales, so
+     writing both into one `transform` would mean every worn facet has to
+     restate the rotation. They are static, so the note about individual
+     transforms not compositing does not apply — nothing animates them. */
+  .nm-bead {
+    display: block;
+    position: absolute;
+    top: var(--nm-bead-top);
+    left: calc((var(--nm-rail) - var(--nm-bead)) / 2);
+    transition:
+      opacity var(--dur-base) ease,
+      scale var(--dur-base) ease,
+      filter var(--dur-base) ease;
+    border: 1.5px solid transparent;
+    border-radius: 50%;
+    width: var(--nm-bead);
+    height: var(--nm-bead);
+  }
+
+  /* The agent spoke. The ordinary counting bead, and the one there are most
+     of, so it is the quietest. */
+  .nm-bead[data-bead='said'] {
+    background: color-mix(in srgb, var(--nm-text) 30%, transparent);
+  }
+
+  /* You asked. Open, because a question is. */
+  .nm-bead[data-bead='asked'] {
+    border-color: var(--crimson);
+    background: var(--nm-canvas);
+  }
+
+  /* Names came. The facet — the bead that catches the light. */
+  .nm-bead[data-bead='dealt'] {
+    rotate: 45deg;
+    border-color: var(--nm-keep);
+    border-radius: 3px;
+    background: var(--nm-keep-fill);
+  }
+
+  /* The wall: the shape of the paper it summarises, down to the uneven radius
+     and a tilt of its own. */
+  .nm-bead[data-bead='note'] {
+    rotate: -7deg;
+    border-color: rgb(38 32 22 / 22%);
+    border-radius: 1px 3px 2px 4px;
+    background: var(--nm-note);
+  }
+
+  /* Nothing came back. A facet that did not fill. */
+  .nm-bead[data-bead='stuck'] {
+    rotate: 45deg;
+    border-color: var(--nm-accent-text);
+    border-radius: 3px;
+    background: var(--nm-canvas);
+  }
+
+  /* The send: the large bead a mala is counted from and finished at. The ring
+     is box-shadow rather than a bigger box, so the bead keeps the same
+     geometry as every other one and the worn scale still centres on it. */
+  .nm-bead[data-bead='guru'] {
+    box-shadow:
+      0 0 0 2px var(--nm-canvas),
+      0 0 0 3.5px var(--nm-keep);
+    background: var(--nm-keep);
+  }
+
+  /* WORN. Smaller, fainter, desaturated — the beads you have already passed
+     through your fingers. It is the bead that carries the wear and not the
+     text: washing out a summary line would cost contrast for an effect the
+     bead gives for free. */
+  .nm-turn[data-past] .nm-bead {
+    scale: 0.72;
+    opacity: 0.55;
+    filter: saturate(0.35);
+  }
+
+  .nm-turn[data-past]:hover .nm-bead,
+  .nm-turn[data-past]:focus-within .nm-bead {
+    scale: 0.92;
+    opacity: 1;
+    filter: none;
+  }
+
+  .nm-turn-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    min-width: 0;
+  }
+
+  /* A passed turn, compressed. It is a real <button> with a real accessible
+     name — `bead.reopen` rides along in .sr-only text, because a control
+     labelled only "Ways to start" says what it is and not what pressing it
+     does — and it is a button rather than a clickable div because axe is the
+     gate that decides that (P10). */
+  .nm-turn-shut {
+    display: block;
+    position: relative;
+    transition: color var(--dur-base) ease;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    background: none;
+    padding: 0;
+    min-width: 0;
+    min-height: 24px;
+    color: var(--nm-text-soft);
+    text-align: left;
+
+    &:hover {
+      color: var(--nm-text);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--crimson);
+      outline-offset: 3px;
+    }
+  }
+
+  /* The bead is in the other grid column and is aria-hidden, so it cannot be
+     its own control — this stretches the button's hit area left across the
+     rail so that tapping the bead is tapping the turn, which is the gesture
+     the object suggests. */
+  .nm-turn-shut::before {
+    position: absolute;
+    inset: 0 0 0 calc(-1 * (var(--nm-rail) + var(--nm-rail-gap)));
+    content: '';
+  }
+
+  .nm-turn-shut-line {
+    display: block;
+    overflow: hidden;
+    font-size: 0.88rem;
+    line-height: 1.7;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   /* A turn is a typographic block. No bubble, no avatar, no right-aligned
@@ -519,10 +1036,12 @@ if (!seedRow) {
     letter-spacing: -0.02em;
   }
 
-  /* What the visitor said, set as a quotation rather than as a bubble. */
+  /* What the visitor said. It used to carry a 2px crimson rule down its left
+     edge; the thread now runs down the same side about thirty pixels further
+     out and the bead beside this turn is the crimson ring, so the rule became
+     the second vertical mark in a row saying the same word. One signal: the
+     bead says who spoke, the ink weight says it is not the page talking. */
   .nm-said--you {
-    border-left: 2px solid var(--crimson);
-    padding-left: var(--space-2xs);
     color: var(--nm-text);
   }
 
@@ -535,51 +1054,164 @@ if (!seedRow) {
     color: var(--nm-text-soft);
   }
 
-  /* ── The family, inline, as a turn ────────────────────────────────────
-     Not behind an "Everyone" tab: a tab is a filing decision, and it makes
-     the family something you go and look up. You are choosing next to people
-     who already chose. */
-  .nm-family {
+  /* ── The wall, inline, as a turn ──────────────────────────────────────
+     Not behind an "Everyone" tab: a tab is a filing decision, and it makes the
+     family something you go and look up. You are choosing next to people who
+     already chose, so it is in the conversation.
+
+     WHY IT IS NO LONGER A ROW OF PILLS. A pill row on a page whose every other
+     pill is a control (the starters, the badge, the swap) reads as filters —
+     something you are expected to click — and nothing here is clickable. It is
+     a record of what other people put up, and the object that says that without
+     a word of explanation is a wall of pinned notes. It is also the only place
+     on this screen where other people accumulate, which is half the answer to
+     "nothing grows".
+
+     PURE CSS, ZERO DEPENDENCIES, and every number below is doing a job. */
+  .nm-wall {
     display: flex;
+    /* flex-start, never the default stretch: a stretched note is exactly as
+       tall as the tallest thing in its row, which lines every bottom edge up
+       and undoes the tilt's whole job. */
     flex-wrap: wrap;
-    gap: var(--space-2xs);
+    align-items: flex-start;
     margin: 0;
-    padding: 0;
+    /* Room for the tilt and the lift to happen in without clipping. */
+    padding: 0.4rem 0.5rem 0.6rem 0;
     list-style: none;
   }
 
-  .nm-family-item {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 0.45rem;
-    border: 1px solid var(--nm-hair);
-    border-radius: 999px;
-    padding: 0.25rem 0.7rem;
+  /* THE PIN OWNS ROTATION AND NOTHING ELSE. `transform` is one property and two
+     things want it — the permanent per-note tilt, and the transient lift on
+     hover — so they are split across two elements. Sharing one would mean the
+     lift has to restate the tilt, and the next thing added here (the plan's
+     layout animation) would clobber both.
+
+     The tilt is ±3°, hashed off the name by NaamApp, so the wall never
+     reshuffles on a re-render: a random angle re-rolls every render and reads
+     as a glitch rather than as a hand. Past about 4° it stops looking pinned
+     and starts looking rotated.
+
+     OVERLAP, with a negative margin and an ascending z-index. A perfectly
+     spaced row is a leaderboard; an overlapping pile is a wall, and this is a
+     wall. The vertical overlap is deliberately smaller than the horizontal one
+     — enough to break the grid, not enough to bury a signature. */
+  .nm-note-pin {
+    position: relative;
+    transform: rotate(var(--tilt, 0deg));
+    z-index: var(--z, 0);
+    transition: transform 180ms cubic-bezier(0.05, 0.7, 0.1, 1);
+    margin: 0 -0.5rem -0.25rem 0;
   }
 
-  .nm-family-deva {
-    color: var(--nm-text);
+  /* Un-tilt to 0° and lift two pixels: "picked up" is a far stronger physical
+     cue than any change of shadow, and it brings the note out from under the
+     ones overlapping it. */
+  .nm-note-pin:hover {
+    transform: rotate(0deg);
+    z-index: 30;
+  }
+
+  /* TWO SHADOWS, NEVER ONE. A single blurred shadow is the Material-card tell.
+     Paper has a hard contact shadow where it touches plus a wide faint lift,
+     and the pair is what the eye reads as a physical object rather than as an
+     elevation token.
+
+     The radius is four different sub-pixel values because a 999px pill or a
+     uniform 8px is UI chrome — this is a cut edge.
+
+     The background is three layers in one property and costs no elements: the
+     glue band across the top 18%, a very faint fibre so the paper has tooth,
+     and the yellow. A shared feTurbulence would be truer grain, but at this
+     size it is one raster pass per note for something under a millimetre
+     across, and the two shadows plus the curl already carry the paper. The
+     fibre runs at 112° and repeats every 6px on purpose — nearer the horizontal
+     and tighter it stopped reading as tooth and started reading as ruled paper,
+     which is a different object.
+
+     SQUARE-ISH, via a min-height a signed note already exceeds. A note whose
+     height is whatever two lines of text need is 90×44, and ten of those
+     overlapping read as one yellow strip rather than as ten pieces of paper —
+     the tilt cannot break a shape that wide. At 3.6rem the block is close
+     enough to square for a 3° rotation to be legible on it. */
+  .nm-note {
+    display: flex;
+    position: relative;
+    flex-direction: column;
+    gap: 0.05rem;
+    transition:
+      transform 180ms cubic-bezier(0.05, 0.7, 0.1, 1),
+      box-shadow 180ms ease;
+    box-shadow:
+      0 1px 1px rgb(38 32 22 / 14%),
+      0 8px 14px -6px rgb(38 32 22 / 16%);
+    border-radius: 1px 3px 2px 4px;
+    background-image:
+      linear-gradient(to bottom, rgb(38 32 22 / 6%) 0 18%, transparent 18%),
+      repeating-linear-gradient(112deg, rgb(38 32 22 / 2.5%) 0 1px, transparent 1px 6px);
+    background-color: var(--nm-note);
+    padding: 0.5rem 0.65rem 0.45rem;
+    min-width: 5.2rem;
+    max-width: 13rem;
+    min-height: 3.6rem;
+    color: var(--nm-note-ink);
+  }
+
+  .nm-note-pin:hover .nm-note {
+    transform: translateY(-2px);
+    box-shadow:
+      0 2px 2px rgb(38 32 22 / 12%),
+      0 14px 22px -8px rgb(38 32 22 / 22%);
+  }
+
+  /* The curl: paper does not lie flat, and the darkening under its bottom edge
+     is what says the corners are off the wall. Positioned just below the note
+     so it is not painted over by the note's own background. */
+  .nm-note::after {
+    position: absolute;
+    right: 9%;
+    bottom: -2px;
+    left: 9%;
+    box-shadow: 0 4px 6px -3px rgb(38 32 22 / 42%);
+    height: 3px;
+    content: '';
+  }
+
+  .nm-note-deva {
     font-size: 1.05rem;
-    line-height: 1.7;
+    line-height: 1.6;
     font-family: var(--font-deva), var(--font-body);
   }
 
-  .nm-family-latin {
-    color: var(--nm-text-soft);
-    font-size: 0.85rem;
+  .nm-note-latin {
+    color: var(--nm-note-ink-soft);
+    font-size: 0.78rem;
+    line-height: 1.35;
     font-family: var(--font-display);
   }
 
-  /* Who sent it. Only the approved entries carry one — the six seeds are the
-     family's own and do not need attributing — so this is what visibly
-     separates "ours, to start" from "someone else already chose this". */
-  .nm-family-who {
-    margin-left: 0.4rem;
-    color: var(--nm-text-faint, var(--nm-text-soft));
-    font-size: 0.62rem;
+  /* THE SIGNATURE, and it is part of the note rather than a caption under it:
+     bottom right, smaller, the way somebody actually signs a thing they pinned
+     up. Only approved suggestions carry one — the family's own six do not need
+     attributing — so its presence is what visibly separates "ours, to start"
+     from "someone else already chose this", with nothing labelling either. */
+  .nm-note-who {
+    align-self: flex-end;
+    /* auto, not a fixed gap: it presses the signature onto the bottom edge of
+       the note whatever the name above it needed, which is where a signature
+       goes. */
+    margin-top: auto;
+    padding-top: 0.25rem;
+    max-width: 100%;
+    overflow: hidden;
+    color: var(--nm-note-ink-soft);
+    font-size: 0.58rem;
     font-family: var(--font-mono);
     letter-spacing: var(--tracking-label);
+    text-align: right;
+    text-overflow: ellipsis;
     text-transform: uppercase;
+    white-space: nowrap;
   }
 
   /* ── Starter chips ────────────────────────────────────────────────────── */
@@ -682,6 +1314,80 @@ if (!seedRow) {
 
   .nm-dealt > .nm-card {
     flex: 1 1 auto;
+  }
+
+  /* ── The hand, lying on the plate ─────────────────────────────────────── */
+  .nm-hand {
+    min-width: 0;
+  }
+
+  /* Three cards abreast, and the plate is sized so they land at their natural
+     width rather than being squeezed to fit it. */
+  @media (min-width: 1100px) {
+    .nm-hand > .nm-deal {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  /* Stacked, the hand is a band above the slots and you swipe along it. Three
+     full-height cards in one column would leave the conversation about 200px,
+     which is the problem this move exists to solve, not a smaller version of
+     it. Sideways, one card is legible, the next is visibly there, and the
+     agent's words keep the top of the screen. */
+  @media (max-width: 1099px) {
+    .nm-hand > .nm-deal {
+      display: flex;
+      gap: var(--space-2xs);
+      /* The dealt cards lift and rotate; without the padding the top of that
+         motion is clipped by the scroller's own edge. */
+      padding-block: 2px 0.3rem;
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      scroll-snap-type: x mandatory;
+    }
+
+    .nm-hand .nm-dealt {
+      flex: 0 0 min(72vw, 17rem);
+      scroll-snap-align: start;
+    }
+
+    /* THE CARD ON THE BAND IS THE SHORT CARD, and the reason is arithmetic. At
+       390×780 the chrome takes 175px, the slots and their label 90 and the lamp
+       60 — so a full 370px card leaves the conversation SIXTY PIXELS, which is
+       the bug this whole move exists to fix wearing a different hat. Measured
+       at that size the agent's reply was still off the top of the screen.
+
+       What goes is `.nm-reasons` — "matched on · 2 syllables · easy to say".
+       That is the matcher explaining itself, and on this layout the agent has
+       just explained the same three names in its own sentence, in prose, in the
+       column directly above. Two voices giving the same reasons is redundant on
+       a desktop and unaffordable on a phone. Nothing is hidden that the visitor
+       cannot get: the name, the script, the syllables, the gloss, Keep and the
+       document's own line are all still on the card, and the reasons are still
+       rendered in full on a reopened hand in the stream. */
+    .nm-hand .nm-reasons {
+      display: none;
+    }
+
+    /* Long glosses are the other overflow, and they are the document's words —
+       so this clamps rather than truncates the source: the full line is always
+       one tap away under "from the document". */
+    .nm-hand .nm-gloss {
+      display: -webkit-box;
+      overflow: hidden;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+    }
+  }
+
+  /* The conversation gets a floor. Without one the tray is `flex: 0 0 auto` and
+     simply takes what it needs, and a tall hand starves the stream to a couple
+     of lines — the layout silently deciding the visitor would rather see cards
+     than read what the agent said. */
+  @media (max-width: 1099px) {
+    .nm-streamwrap {
+      min-height: 11rem;
+    }
   }
 
   .nm-turn-note {
@@ -971,21 +1677,46 @@ if (!seedRow) {
      top and bottom edge. Filling slot two closes the middle third and
      changes what one and three look like. There is no "1/3 KEPT" counter:
      the shape says it, and a counter is the gamification cliché. */
+  /* TRANSPARENT, not --nm-canvas. An opaque tray sat on top of .nm-room and
+     cut the lamplight off in a hard horizontal line right where the lamp is —
+     the light stopped at the edge of the thing emitting it. The border-top goes
+     for the same reason: a rule across the pool is a seam in the room. The tray
+     still reads as a distinct surface because the light falls off toward the
+     edges, which is how a lit surface separates from its background anyway. */
   .nm-tray {
     display: flex;
+    position: relative;
     flex: 0 0 auto;
     flex-direction: column;
     gap: 0.5rem;
-    border-top: 1px solid var(--nm-hair);
-    background: var(--nm-canvas);
+    z-index: 1;
+    background: transparent;
     padding: 0.6rem clamp(0.75rem, 2.4vw, 1.4rem);
+  }
+
+  /* The lamp stands above the label, both centred over the three slots, so the
+     light and the thing it lights share an axis. `align-items: baseline` would
+     hang a 79px SVG off a 10px label's baseline — the lamp needs its own row. */
+  /* The one rescued index link. Sits after the badge, deliberately the
+     quietest thing in the rail — it is a legal obligation, not a destination. */
+  .nm-rail-a11y {
+    margin-left: var(--space-s);
+    color: var(--nm-text-soft);
+    font-size: 0.62rem;
+    text-decoration: none;
+  }
+
+  .nm-rail-a11y:hover,
+  .nm-rail-a11y:focus-visible {
+    color: var(--nm-accent-text);
+    text-decoration: underline;
   }
 
   .nm-tray-head {
     display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0.4rem var(--space-s);
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
     margin: 0 auto;
     width: 100%;
     max-width: 720px;
@@ -1469,6 +2200,40 @@ if (!seedRow) {
     .nm-dealt {
       animation: none;
     }
+
+    /* The lamp stays LIT and stops moving — it is not hidden. An unmoving lit
+       lamp is the honest still frame of a burning one, and WCAG 2.3.3 is about
+       motion, not about light. The dust goes entirely: a drifting speck has no
+       still frame worth keeping. */
+    .nm-diyo-sway,
+    .nm-diyo-inner,
+    .nm-diyo-glow,
+    .nm-room {
+      animation: none;
+    }
+
+    .nm-diyo-glow {
+      opacity: 0.9;
+    }
+
+    .nm-motes {
+      display: none;
+    }
+
+    /* The thread is DRAWN, not animated away. The global block already floors
+       the duration, but `backwards` would otherwise hold the connector at
+       scaleY(0) for that instant and a reduced-motion visitor would see the
+       mala with its cord missing between beads. */
+    .nm-turn-rail::before {
+      animation: none;
+    }
+
+    /* The note keeps its tilt — a tilt is a static angle, not motion — and
+       loses only the straightening, which is the part that moves. */
+    .nm-note-pin,
+    .nm-note {
+      transition: none;
+    }
   }
 
   /* ── Narrow ───────────────────────────────────────────────────────────── */
@@ -1483,6 +2248,15 @@ if (!seedRow) {
 
     .nm-index {
       margin-left: 0;
+    }
+
+    /* Every offset on the thread is derived from these three, so the rail
+       narrows by re-declaring them and nothing else moves by hand. */
+    .nm-turn {
+      --nm-rail: 16px;
+      --nm-rail-gap: 0.55rem;
+      --nm-bead: 10px;
+      --nm-bead-top: 8px;
     }
   }
 </style>

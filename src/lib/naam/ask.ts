@@ -3,27 +3,42 @@
  *
  * WHY this is a module and not a function inside the island: the badge on
  * /naam is decided here, and the decision is worth more than the UI that shows
- * it. The browser's matcher picks a pool, this asks /api/naam-chat to reorder
- * and frame it, and every id that comes back is resolved against the local
- * dataset — so the island renders rows it already had, never model text. A
- * hallucinated name is structurally impossible rather than merely unlikely, and
- * when Bedrock is off, slow or broken the caller still has the matcher's own
- * list to show. That is the whole reason the page may wear LIVE at all, and it
- * should not be re-implemented once per surface.
+ * it. This module does two separable jobs and it is worth naming them apart:
+ *
+ *   readAsk()   the MATCHER's job. Read the sentence, normalize the wish, and
+ *               build the pool of ids the model is allowed to choose from.
+ *   askNaam()   the MODEL's job. POST that pool to /api/naam-chat and resolve
+ *               every id that comes back against the local dataset.
+ *
+ * THE AGENT LEADS, AND NOTHING RENDERS BEFORE IT. This module used to promise
+ * the caller "you have already ranked the document locally, so none of these
+ * outcomes is empty" — and the island duly rendered the matcher's own list the
+ * instant it was asked, then swapped it for the model's. The model was doing
+ * real work and the page read as though it were not, because the matcher's
+ * answer arrived first and the model's looked like a correction to it. So the
+ * local ranking is gone from the ask path: readAsk() builds a pool, askNaam()
+ * asks, and the reply is the event.
+ *
+ * GROUNDING IS UNCHANGED, and it never lived in the local render anyway. It
+ * lives in the pool: the model is handed ids, it answers with ids, and the
+ * island renders rows it already had. A hallucinated name stays structurally
+ * impossible rather than merely unlikely, which is the whole reason the page
+ * may wear LIVE at all.
  *
  * THE RETURN IS A VERDICT, NOT THE ENDPOINT'S BODY. /api/naam-chat answers
- * HTTP 200 for every outcome, degraded ones included (§4 rule 4: the LOCAL
- * branch is a signal, not an exception) — so a caller reading `res.ok` learns
- * nothing. NaamAskResult says which of the three things happened:
+ * HTTP 200 for every outcome, degraded ones included — so a caller reading
+ * `res.ok` learns nothing. NaamAskResult says which of the three things
+ * happened:
  *
  *   live         the model answered, and `rows` are OUR rows, resolved by id
  *   degraded     the endpoint said so, and `reason` picks the honest line
  *   unreachable  the fetch never completed — offline, aborted, or timed out
  *
  * `unreachable` is only ever a genuine network or abort failure, because the
- * route never returns a 5xx. All three are answerable: the caller has already
- * ranked the document locally before calling, so none of them is an error
- * state and none of them is empty.
+ * route never returns a 5xx. The two failing branches are not fallbacks now:
+ * the caller says so plainly and offers to run the matcher, and a visitor who
+ * wants the document's own answer asks for it (§4 rule 4 — failure is honest,
+ * never blank; it does not say honest means silently substituted).
  *
  * Teardown: pass the mount's AbortSignal. A per-request controller is chained
  * off it so the CHAT_TIMEOUT_MS deadline can fire without tearing the island
@@ -34,7 +49,7 @@
  * from copy.ts.
  */
 import { NAAM_COPY } from './copy'
-import { normalizePrefs, parseFreeText, pool, scoreName, type NaamMatch, type Prefs } from './match'
+import { normalizePrefs, parseFreeText, pool, rankRelaxed, scoreName, type NaamMatch, type Prefs } from './match'
 import type { NaamRow } from '@/types/naam'
 
 const C = NAAM_COPY
@@ -58,29 +73,75 @@ export type NaamAskResult =
   | { kind: 'degraded'; reason: string }
   | { kind: 'unreachable' }
 
-/**
- * Ask the model about one sentence.
- *
- * Reads the sentence with the same parser the local path uses, hands
- * /api/naam-chat a pool of ids and the raw ask, and resolves whatever ids come
- * back against `rows`. The caller keeps the local answer it already computed
- * and replaces it only on `live`.
- */
-export async function askNaam(args: {
-  ask: string
-  rows: readonly NaamRow[]
-  signal: AbortSignal
-}): Promise<NaamAskResult> {
-  const { ask, rows, signal } = args
-  const text = ask.trim()
-  if (!text || rows.length === 0) return { kind: 'unreachable' }
+/** What the matcher read out of one sentence, before anyone calls a model. */
+export interface NaamRead {
+  /** The wish, normalized. What the model's picks are scored against. */
+  prefs: Prefs
+  /** Names the visitor put on the table themselves — a lookup or a comparison. */
+  named: NaamRow[]
+  /** The ids the model may choose from. Named rows first, then the pool. */
+  poolIds: string[]
+  /**
+   * The wish intersected to nothing and the ladder gave a rung back, so the
+   * candidates answer most of what was asked rather than all of it. Said out
+   * loud by the caller; never quietly swallowed.
+   */
+  relaxed: boolean
+}
 
+/**
+ * Read one sentence and decide what the model is allowed to talk about.
+ *
+ * THE NAMED ROWS GO IN FIRST, and that is not a nicety. "what does Snehaja
+ * mean" parses to a lookup with almost no wish attached, so pool() ranks it by
+ * the standing quality prior and the one name actually asked about can fall
+ * outside the top forty — in which case the model is structurally unable to
+ * answer the question it was asked. The old local-first render papered over
+ * this by merging the lookup back in on the client after the fact.
+ *
+ * THE LADDER IS THE MATCHER'S, NOT A SECOND ONE. `letters`, `syllables` and
+ * `easySay` are hard filters, so a reasonable wish — one syllable, V, easy for
+ * a cousin to say — can intersect to nothing and hand the model an empty pool,
+ * which reads to a visitor as "the model didn't answer" when the truth is that
+ * nobody asked it anything. rankRelaxed() gives the constraints back one at a
+ * time in the order a person would, and reports that it did.
+ */
+export function readAsk(text: string, rows: readonly NaamRow[]): NaamRead {
+  const parsed = parseFreeText(text, rows)
   // parseFreeText already normalizes what it read; the second pass is
   // idempotent and keeps this module's guarantee to pool() its own, rather
   // than borrowed from a function it does not control.
-  const prefs = normalizePrefs(parseFreeText(text, rows).prefs)
-  const poolIds = pool(rows, prefs, POOL_SIZE).map((row) => row.id)
-  if (poolIds.length === 0) return { kind: 'unreachable' }
+  const prefs = normalizePrefs(parsed.prefs)
+  const named = parsed.compare.length > 0 ? parsed.compare : parsed.lookups
+
+  let candidates = pool(rows, prefs, POOL_SIZE)
+  let relaxed = false
+  if (candidates.length === 0) {
+    const fallback = rankRelaxed(rows, prefs, POOL_SIZE)
+    candidates = fallback.matches.map((match) => match.row)
+    relaxed = fallback.relaxed
+  }
+
+  const poolIds = [...new Set([...named, ...candidates].map((row) => row.id))].slice(0, POOL_SIZE)
+  return { prefs, named, poolIds, relaxed }
+}
+
+/**
+ * Ask the model about one sentence.
+ *
+ * Hands /api/naam-chat the pool readAsk() built and the raw ask, and resolves
+ * whatever ids come back against `rows`. Nothing is on screen behind this call
+ * but the thinking state, so the answer is the first thing the visitor reads.
+ */
+export async function askNaam(args: {
+  ask: string
+  poolIds: readonly string[]
+  rows: readonly NaamRow[]
+  signal: AbortSignal
+}): Promise<NaamAskResult> {
+  const { ask, poolIds, rows, signal } = args
+  const text = ask.trim()
+  if (!text || poolIds.length === 0) return { kind: 'unreachable' }
 
   const request = new AbortController()
   const onOuterAbort = () => request.abort()
@@ -92,7 +153,7 @@ export async function askNaam(args: {
     const res = await fetch('/api/naam-chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ask: text, poolIds }),
+      body: JSON.stringify({ ask: text, poolIds: [...poolIds] }),
       signal: request.signal,
     })
     const data: unknown = await res.json()
@@ -110,7 +171,7 @@ export async function askNaam(args: {
     // than trusted. failureNote() maps anything it does not know to modelDown.
     return { kind: 'degraded', reason: typeof body.reason === 'string' ? body.reason : 'error' }
   } catch {
-    /* aborted, offline, or no endpoint at all — the matcher already answered */
+    /* aborted, offline, or no endpoint at all — and the caller says so */
     return { kind: 'unreachable' }
   } finally {
     clearTimeout(timer)

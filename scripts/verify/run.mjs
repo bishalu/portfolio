@@ -193,18 +193,26 @@ async function widgets(browser) {
   await page.screenshot({ path: `${OUT}/widget-choon.png`, clip: await page.locator('.ch').boundingBox() })
 
   // ── /naam: the whole page is the widget ──────────────────────────────────
-  // It has a never-blank guarantee — /api/naam-chat always answers 200, with
-  // `degraded` rather than an error, and the client falls back to the local
-  // matcher — so "names arrived" is the assertion, and the badge says which
-  // half produced them. Note this navigates away from '/', so it must stay last.
+  // THE AGENT LEADS THIS PAGE. Nothing renders behind the model's call — the
+  // local matcher no longer answers first and is reachable only through an
+  // opt-in button under a failure line (NaamApp.tsx) — so the assertion is no
+  // longer "names arrived" unconditionally. It is: one of exactly two honest
+  // outcomes arrived, and neither of them is blank or silently substituted.
+  // Note this navigates away from '/', so it must stay last.
   await page.goto(base + '/naam', { waitUntil: 'networkidle' })
 
-  // EVERY SELECTOR HERE IS SCOPED UNDER .nm-stream. The no-JS fallback renders
+  // EVERY SELECTOR HERE IS SCOPED UNDER #naam-app. The no-JS fallback renders
   // twelve more .nm-card / .nm-pick nodes into the normal DOM and hides them
   // with CSS (src/pages/naam.astro) — an unscoped '.nm-card' therefore counts
   // twelve cards on a page that dealt none, and an unscoped Keep locator
   // resolves to a hidden, disabled fallback button that never accepts a click.
-  const stream = page.locator('.nm-stream')
+  //
+  // It was scoped to .nm-stream until the hand moved onto the tray. Dealt cards
+  // are no longer in the transcript — they lie on the plate beside the three
+  // slots, because a hand of cards inside the stream pushed the model's own
+  // reply off the top of the screen (see NaamApp.tsx, `hand`). #naam-app is the
+  // scope that still excludes the fallback and now spans both.
+  const stream = page.locator('#naam-app')
 
   // The composer ships disabled until names-core.json lands, so wait on the
   // control rather than on a guessed number of milliseconds.
@@ -217,28 +225,69 @@ async function widgets(browser) {
     problems += 1
   }
 
-  await page.fill('#nma-ask', 'something calm, two syllables')
+  // One of the page's own starter chips, and chosen for a reason: it parses to
+  // a wish the document can actually answer, so with Bedrock up the model
+  // reliably picks names and this drill exercises the happy path. An ask for a
+  // quality the document does not have ("something calm") is a fine thing for a
+  // visitor to type and a poor probe — the model correctly answers that it has
+  // nothing, and the gate then only ever sees the empty-handed branch.
+  await page.fill('#nma-ask', 'short, and easy to say abroad')
   await page.click('.nm-composer-go')
 
-  // A turn must arrive. /api/naam-chat always answers 200 — `degraded` rather
-  // than an error — and the client falls back to the local matcher, so "names
-  // arrived" is the assertion and the badge says which half produced them.
-  // ~9s covers a Bedrock cold start; the client's own ceiling is 12s.
-  await stream
-    .locator('.nm-card')
-    .first()
+  // One of two things must arrive: the model's names, or the honest failure
+  // block. /api/naam-chat still always answers 200 — `degraded` rather than an
+  // error — but the client no longer turns that into a quiet local deal, so the
+  // wait is on whichever outcome the environment produces. ~15s covers a
+  // Bedrock cold start; the client's own ceiling is 12s.
+  const dealtCard = stream.locator('.nm-card').first()
+  const escapeBtn = stream.locator('[data-nm-escape]').first()
+  await dealtCard
+    .or(escapeBtn)
     .waitFor({ timeout: 15000 })
     .catch(() => {})
+
+  // No names came back. Two ways that happens and they are told apart by
+  // whether there is a failure line: Bedrock off/slow/broken says so and must
+  // carry Try again, and a model that answered but named nothing must NOT —
+  // there is nothing to redo. Both offer the opt-in escape. §4 rule 4 is
+  // satisfied by never being blank and never slipping the matcher's list in as
+  // though the model had produced it.
+  const noNames = (await escapeBtn.count()) > 0
+  if (noNames) {
+    const retries = await stream.locator('[data-nm-retry]').count()
+    const failureLine = await stream.locator('.nm-said--note').count()
+    console.log(`naam — no names from the model; escape offered, retry=${retries}, failure line=${failureLine}`)
+    if (failureLine > 0 && retries === 0) {
+      console.log('  FAIL: a failure line with no Try again — the visitor is told no and left nowhere to go')
+      problems += 1
+    }
+    if (failureLine === 0 && retries > 0) {
+      console.log('  FAIL: Try again offered on a turn the model answered — there is nothing to try again')
+      problems += 1
+    }
+    // Take the escape. It is the only route to the matcher now, so this is both
+    // the check that it works and how the rest of the drill gets a card to Keep.
+    await escapeBtn.click()
+    await dealtCard.waitFor({ timeout: 5000 }).catch(() => {})
+  }
 
   const cards = await stream.locator('.nm-card').count()
   const naamBadge = ((await page.textContent('.nm-badge--rail').catch(() => '')) || '').trim()
   console.log(`naam — cards dealt: ${cards}, badge: ${naamBadge || 'none'}`)
   if (cards === 0) {
-    console.log('  FAIL: no names dealt — the local matcher should have answered even with the model down')
+    console.log('  FAIL: no names on screen — neither the model nor the opt-in escape produced any')
     problems += 1
   }
-  if (!/^(live|local)$/.test(naamBadge)) {
-    console.log(`  FAIL: badge reads "${naamBadge}" — DESIGN.md §4 allows live and local here, nothing else`)
+  // The rail badge is a claim, not a status light: empty until the model has
+  // answered, and then live. `local` on the rail means the local-first render
+  // is back and the page is showing the matcher's work as if it were the
+  // agent's (DESIGN.md §4).
+  if (naamBadge !== '' && naamBadge !== 'live') {
+    console.log(`  FAIL: rail badge reads "${naamBadge}" — it may only be empty or live`)
+    problems += 1
+  }
+  if (!noNames && naamBadge !== 'live') {
+    console.log('  FAIL: the model answered and the rail never said live')
     problems += 1
   }
 
