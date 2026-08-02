@@ -115,6 +115,12 @@ const letterNote = (letter: NaamLetter) =>
 ---
 
 <DefaultLayout title={C.meta.title} description={C.meta.description}>
+  <!-- noindex: this page exists for people who are sent the link. Search
+       discovery adds nothing to that job, and the page carries a child's
+       candidate names plus a public wall of what visitors typed. `follow` stays
+       on so the links back into the site still count. Remove this line and the
+       /naam clause in astro.config.mjs's sitemap filter to list it again. -->
+  <meta slot="head" name="robots" content="noindex, follow" />
   <link slot="head" rel="preload" href="/fonts/Mukta-Devanagari-400.woff2" as="font" type="font/woff2" crossorigin />
 
   <article class="nm">

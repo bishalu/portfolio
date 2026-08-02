@@ -121,7 +121,10 @@ export default defineConfig({
     // /naam/approve is a moderation screen carrying <meta robots="noindex">.
     // Listing a noindex URL in the sitemap contradicts the page itself and
     // advertises the moderation surface; everything else stays indexed.
-    sitemap({ filter: (page) => !page.includes('/naam/approve') }),
+    // /naam and its approve screen both carry <meta robots="noindex">. Listing
+    // a noindex URL in the sitemap contradicts the page itself, and /naam is
+    // reached by a link sent to family rather than by search.
+    sitemap({ filter: (page) => !page.includes('/naam') }),
     react(),
   ],
   vite: viteConfig,
