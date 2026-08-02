@@ -22,12 +22,11 @@ const choon = bySlug['choon']
 <section class="vs" id="vibeset">
   <div class="vs-inner">
     <header class="vs-head" data-reveal>
-      <p class="label-mono">Vibeset — my company</p>
+      <p class="label-mono">Vibeset</p>
       <h2 class="vs-title">One catalog, three products.</h2>
       <p class="vs-lede">
-        I co-own and build <a href="https://vibeset.ai" rel="noopener">Vibeset</a> — AI music tooling that finds the right
-        track, fits it to picture, and proves what it is. Everything below is real: two of the three panels are wired to
-        production systems.
+        I co-own and build <a href="https://vibeset.ai" rel="noopener">Vibeset</a>. Find the track. Fit it to
+        picture. Prove what it is. All three are running below, if you'd like to try them.
       </p>
     </header>
 
@@ -35,14 +34,13 @@ const choon = bySlug['choon']
     <article class="vs-station" data-reveal="settle">
       <div class="vs-copy">
         <p class="vs-eyebrow label-mono"><span class="vs-eyebrow-stage">{curation.eyebrow}</span> · {curation.name}</p>
-        <h3 class="vs-name">{curation.tagline}</h3>
+        <h3 class="vs-name"><a href="/vibeset/curation">{curation.tagline}</a></h3>
         <p class="vs-desc">{curation.description}</p>
         <p class="vs-stats label-mono">
           {curation.stats.map((s, i) => <span>{i > 0 && <span class="vs-stat-dot"> · </span>}{s.label} {s.value}</span>)}
         </p>
         <p class="vs-ctas">
           <a class="btn-pill" href={curation.liveUrl} rel="noopener">{curation.liveLabel} ↳</a>
-          <a class="vs-cta-quiet" href="/vibeset/curation">More on Curation</a>
         </p>
       </div>
       <div class="vs-demo">
@@ -50,7 +48,7 @@ const choon = bySlug['choon']
           <!-- Bars rather than a dot: what is running here is an audio catalog,
                not a service healthcheck. A swap, not an addition — see MOTION.md §2. -->
           <span class="sig-eq" aria-hidden="true"><span></span><span></span><span></span></span>
-          live — three retrieval paths, one query box. watch which one answers.
+          live
         </p>
         <VibeFinder client:visible />
       </div>
@@ -60,20 +58,19 @@ const choon = bySlug['choon']
     <article class="vs-station" data-reveal="settle">
       <div class="vs-copy">
         <p class="vs-eyebrow label-mono"><span class="vs-eyebrow-stage">{cue.eyebrow}</span> · {cue.name}</p>
-        <h3 class="vs-name">{cue.tagline}</h3>
+        <h3 class="vs-name"><a href="/vibeset/cue">{cue.tagline}</a></h3>
         <p class="vs-desc">{cue.description}</p>
         <p class="vs-stats label-mono">
           {cue.stats.map((s, i) => <span>{i > 0 && <span class="vs-stat-dot"> · </span>}{s.label} {s.value}</span>)}
         </p>
         <p class="vs-ctas">
           <a class="btn-pill" href={cue.liveUrl} rel="noopener">{cue.liveLabel} ↳</a>
-          <a class="vs-cta-quiet" href="/vibeset/cue">More on Cue</a>
         </p>
       </div>
       <div class="vs-demo">
         <p class="vs-demo-label label-mono">
           <span class="sig-eq" aria-hidden="true"><span></span><span></span><span></span></span>
-          local — pick where the clip drops into the track
+          live
         </p>
         <CueSync data={cueSync} client:visible />
       </div>
@@ -83,18 +80,16 @@ const choon = bySlug['choon']
     <article class="vs-station" data-reveal="settle">
       <div class="vs-copy">
         <p class="vs-eyebrow label-mono"><span class="vs-eyebrow-stage">{choon.eyebrow}</span> · {choon.name}</p>
-        <h3 class="vs-name">{choon.tagline}</h3>
+        <h3 class="vs-name"><a href="/vibeset/choon">{choon.tagline}</a></h3>
         <p class="vs-desc">{choon.description}</p>
         <p class="vs-stats label-mono">
           {choon.stats.map((s, i) => <span>{i > 0 && <span class="vs-stat-dot"> · </span>}{s.label} {s.value}</span>)}
         </p>
         <p class="vs-ctas">
           <a class="btn-pill" href={choon.liveUrl} rel="noopener">{choon.liveLabel} ↳</a>
-          <a class="vs-cta-quiet" href="/notes/choon">Read the 66k-track case note</a>
         </p>
       </div>
       <div class="vs-demo">
-        <p class="vs-demo-label label-mono">measured, including where it loses</p>
         <!-- Real eval numbers only. Both figures are published with their full
              protocol at /notes/choon; the weak row is the whole point of
              showing this rather than a staged identification. The workbench
@@ -121,22 +116,19 @@ const choon = bySlug['choon']
                 <dd>15.3%</dd>
               </div>
             </dl>
-            <p class="vs-frozen-note">
-              That last number is the honest one. Every matcher has a condition it fails; the
-              weak rows are what tell you where the second tier has to live.
-            </p>
+            <p class="vs-frozen-note">Every matcher has a condition it fails. This one is ours.</p>
           </div>
         </figure>
 
         <p class="vs-frozen-cta">
-          <a class="vs-cta-quiet" href="/vibeset/choon">Break it yourself ↳</a>
+          <a class="vs-cta-quiet" href="/notes/choon">How this was measured ↳</a>
         </p>
       </div>
     </article>
 
     <!-- ── The pipeline underneath all three ───────────────────────────── -->
     <aside class="vs-pipe" data-reveal>
-      <p class="label-mono vs-pipe-title">The pipeline underneath</p>
+      <p class="label-mono vs-pipe-title">Underneath</p>
       <!-- tabindex: the strip scrolls horizontally on narrow viewports, so it
            needs to be reachable and scrollable by keyboard. -->
       <ol class="vs-pipe-flow" aria-label="The pipeline underneath" tabindex="0">
@@ -197,6 +189,15 @@ const choon = bySlug['choon']
   .vs-eyebrow-stage {
     color: var(--crimson-text);
     font-weight: 500;
+  }
+
+  .vs-name a {
+    color: inherit;
+    text-decoration: none;
+
+    &:hover {
+      color: var(--crimson-text);
+    }
   }
 
   .vs-name {

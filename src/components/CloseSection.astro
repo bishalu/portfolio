@@ -5,7 +5,7 @@
  * terminates here: a final trace runs into the form's submit button.
  */
 import { Icon } from 'astro-icon/components'
-
+import { NAAM_COPY } from '@/lib/naam/copy'
 ---
 
 <section class="cs on-ink" id="contact">
@@ -30,9 +30,8 @@ import { Icon } from 'astro-icon/components'
         <img src="/about-portrait.webp" alt="Bishal Upadhyaya" width="88" height="88" loading="lazy" decoding="async" />
       </span>
       <p class="cs-intro-line">
-        Start with a free call. From there it's usually a monthly retainer — architecture reviews,
-        prototype builds, an extra pair of hands on your team — or a scoped project I own end to
-        end. If I can't help, I'll say so and point you somewhere better.
+        Start with a call. No charge. After that it's usually a monthly retainer, or a project I take end
+        to end. If I'm not the right fit, I'll say so, and point you to someone who is.
       </p>
     </div>
 
@@ -75,9 +74,10 @@ import { Icon } from 'astro-icon/components'
       </div>
 
       <div class="cs-direct" data-reveal>
-        <p class="cs-direct-line">
-          Forms too slow? Ask <a href="#hero" class="cs-balgo-link">Balgo</a> upstairs, or go direct:
-        </p>
+        <!-- One way out, not three. GitHub and LinkedIn already sit in the footer;
+             repeating them here split attention at the moment the page asks for
+             one thing. -->
+        <p class="cs-direct-line">Or skip the form.</p>
         <ul class="cs-links">
           <li>
             <a href="mailto:bishal@vibeset.ai">
@@ -85,19 +85,16 @@ import { Icon } from 'astro-icon/components'
               bishal@vibeset.ai
             </a>
           </li>
-          <li>
-            <a href="https://github.com/bishalu" target="_blank" rel="noopener noreferrer">
-              <Icon aria-hidden="true" name="lucide:github" size={16} />
-              github.com/bishalu
-            </a>
-          </li>
-          <li>
-            <a href="https://www.linkedin.com/in/bishaluc" target="_blank" rel="noopener noreferrer">
-              <Icon aria-hidden="true" name="lucide:linkedin" size={16} />
-              linkedin.com/in/bishaluc
-            </a>
-          </li>
         </ul>
+
+        <!-- One quiet line, not a section. The home page has already spent its
+             density budget (docs/design/DESIGN.md §2), and this is personal
+             rather than professional — so it sits at the foot of the direct
+             column as an aside: a text link, no button. -->
+        <p class="cs-naam">
+          {NAAM_COPY.invite.line}{' '}
+          <a href="/naam">{NAAM_COPY.invite.cta}</a>
+        </p>
       </div>
     </div>
   </div>
@@ -127,8 +124,8 @@ import { Icon } from 'astro-icon/components'
   .cs-title {
     margin: var(--space-xs) 0 0;
     font-size: clamp(2rem, 4.5vw, 3.25rem);
-    letter-spacing: -0.015em;
     line-height: 1.02;
+    letter-spacing: -0.015em;
   }
 
   /* ── How to work together ──────────────────────────────────────────── */
@@ -171,8 +168,8 @@ import { Icon } from 'astro-icon/components'
   .cs-bottom {
     display: grid;
     grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
-    gap: clamp(2rem, 5vw, 5rem);
     align-items: start;
+    gap: clamp(2rem, 5vw, 5rem);
   }
 
   .cs-terminal {
@@ -222,6 +219,7 @@ import { Icon } from 'astro-icon/components'
 
   .cs-send {
     align-self: flex-start;
+    cursor: pointer;
     border: none;
     border-radius: 999px;
     background: var(--crimson-deep);
@@ -229,10 +227,9 @@ import { Icon } from 'astro-icon/components'
     color: var(--paper);
     font-weight: 500;
     font-size: 0.85rem;
-    letter-spacing: var(--tracking-label);
     font-family: var(--font-mono);
+    letter-spacing: var(--tracking-label);
     text-transform: uppercase;
-    cursor: pointer;
 
     &:hover {
       box-shadow: var(--glow-crimson);
@@ -243,6 +240,15 @@ import { Icon } from 'astro-icon/components'
     margin: 0 0 var(--space-m);
     color: var(--paper-soft);
     font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  .cs-naam {
+    margin: var(--space-m) 0 0;
+    border-top: 1px solid var(--border-color-subtle);
+    padding-top: var(--space-s);
+    color: var(--paper-soft);
+    font-size: 0.92rem;
     line-height: 1.6;
   }
 

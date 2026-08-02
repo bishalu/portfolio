@@ -1,14 +1,30 @@
 ---
-import { Link } from 'accessible-astro-components'
-
 /**
- * Logo Component - Bishal Upadhyaya
+ * Logo — always goes home.
+ *
+ * Was href="#hero", a bare fragment, so on every page other than the landing
+ * one it resolved to /that-page#hero, found nothing, and did nothing. Now it
+ * points at the site root; already there, it rides back to the top.
  */
 ---
 
-<a href="#hero" class="logo-link">
+<a href="/" class="logo-link" aria-label="bishal.ai — home">
   <span class="logo-text">bishal<span>.ai</span></span>
 </a>
+
+<script>
+  document.addEventListener('astro:page-load', () => {
+    const logo = document.querySelector<HTMLAnchorElement>('.logo-link')
+    if (!logo) return
+    logo.addEventListener('click', (e) => {
+      if (window.location.pathname !== '/') return
+      e.preventDefault()
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' })
+      history.pushState(null, '', '/')
+    })
+  })
+</script>
 
 <style>
   .logo-link {

@@ -14,10 +14,8 @@ const currentYear = new Date().getFullYear()
 const pages = [
   { href: '/about', label: 'About' },
   { href: '/research', label: 'Research' },
-  { href: '/vibeset/curation', label: 'Curation' },
-  { href: '/vibeset/cue', label: 'Cue' },
-  { href: '/vibeset/choon', label: 'Choon' },
-  { href: '/notes/choon', label: 'Choon case note' },
+  { href: '/notes/choon', label: 'Case note' },
+  { href: '/naam', label: 'Naam' },
   { href: '/accessibility-statement', label: 'Accessibility' },
 ]
 ---
@@ -28,7 +26,12 @@ const pages = [
       {
         pages.map((p, i) => (
           <>
-            {i > 0 && <span class="footer-sep" aria-hidden="true"> · </span>}
+            {i > 0 && (
+              <span class="footer-sep" aria-hidden="true">
+                {' '}
+                ·{' '}
+              </span>
+            )}
             <a href={p.href}>{p.label}</a>
           </>
         ))
@@ -68,8 +71,8 @@ const pages = [
   }
 
   .footer-sep {
-    color: var(--paper-soft);
     opacity: 0.5;
+    color: var(--paper-soft);
   }
 
   .footer-signoff {
