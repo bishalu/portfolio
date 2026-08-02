@@ -210,6 +210,19 @@ export const NAAM_COPY = {
      * rescuing.
      */
     a11yLink: 'Accessibility',
+    /**
+     * The sound switch, and its label names the STATE it is in rather than the
+     * action it performs — it is an aria-pressed toggle, so the pressed state
+     * carries "what happens if I press it" and the word is free to say what is
+     * true right now. "Sound off" while silent, "Sound on" while audible; a
+     * button reading "Turn sound on" while sound is already on is the usual way
+     * this control lies.
+     */
+    sound: {
+      off: 'Sound off',
+      on: 'Sound on',
+      aria: 'Sound',
+    },
     tray: {
       label: 'Your three',
       /** Devanagari numerals. Free, and unmistakably Nepali. */

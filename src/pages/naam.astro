@@ -667,6 +667,28 @@ if (!seedRow) {
     pointer-events: none;
   }
 
+  /* A spark off the lamp when the third name lands — the page's one particle
+     moment, and it is deliberately NOT confetti. Confetti is paper falling at a
+     party; this is a flame throwing embers, which is the only thing on this
+     screen that could throw anything. Warm-only, and small enough that twelve
+     of them read as a lift rather than as a burst. Positioned and animated from
+     NaamApp; this is only what one looks like. */
+  /* 6px with a glow, not 4px with a soft edge. The first version measured 3px
+     wide at 0.47 opacity once the gradient's falloff and the animation's scale
+     were applied — a spark that existed in the DOM, animated correctly, and was
+     invisible on screen. A warm dot on a warm lit ground needs a hot core and
+     something to bloom into, or the lamplight it is rising through simply eats
+     it. */
+  .nm-ember {
+    position: absolute;
+    box-shadow: 0 0 7px 1px color-mix(in srgb, var(--nm-keep) 45%, transparent);
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff6de 0%, var(--nm-keep) 58%, transparent 76%);
+    width: 6px;
+    height: 6px;
+    pointer-events: none;
+  }
+
   /* ── The rail ─────────────────────────────────────────────────────────
      Named .nm-topbar, NOT .nm-rail: NaamCard's sound rail already owns that
      class and this page renders both. */
@@ -1699,6 +1721,62 @@ if (!seedRow) {
      hang a 79px SVG off a 10px label's baseline — the lamp needs its own row. */
   /* The one rescued index link. Sits after the badge, deliberately the
      quietest thing in the rail — it is a legal obligation, not a destination. */
+  /* ── The sound switch ─────────────────────────────────────────────────
+     Quieter than the व/ब toggle beside it, because it changes how the page
+     sounds rather than what it says. The glyph is a struck bowl seen from the
+     side — a dot for the strike and a ring for the ring — which fills when the
+     sound is on. It is not a speaker with waves coming out of it: this page
+     does not have speakers in it, it has a bowl. */
+  .nm-sound {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: color var(--dur-base) ease;
+    cursor: pointer;
+    margin-left: var(--space-s);
+    border: 0;
+    background: transparent;
+    padding: 0.25rem 0;
+    color: var(--nm-text-soft);
+
+    &:hover,
+    &:focus-visible {
+      color: var(--nm-accent-text);
+    }
+  }
+
+  .nm-sound-glyph {
+    display: inline-block;
+    transition:
+      background var(--dur-base) ease,
+      box-shadow var(--dur-base) ease,
+      border-color var(--dur-base) ease;
+    border: 1px solid var(--nm-hair-strong);
+    border-radius: 50%;
+    width: 8px;
+    height: 8px;
+
+    &[data-on] {
+      /* The strike, and the ring going out from it. */
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--nm-keep) 26%, transparent);
+      border-color: var(--nm-keep);
+      background: var(--nm-keep);
+    }
+  }
+
+  /* On a phone the rail has the wordmark, two toggles and a link in 44px. The
+     switch keeps its glyph — which is the state — and drops the word. */
+  @media (max-width: 599px) {
+    .nm-sound-word {
+      position: absolute;
+      clip-path: inset(50%);
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+  }
+
   .nm-rail-a11y {
     margin-left: var(--space-s);
     color: var(--nm-text-soft);

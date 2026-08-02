@@ -6,6 +6,7 @@ import NaamWall, { type WallNote } from './NaamWall'
 import { askNaam, failureNote, mergeNamed, readAsk, withReasons, RESULT_MAX } from '@/lib/naam/ask'
 import { NAAM_COPY, NAAM_RELATIONS } from '@/lib/naam/copy'
 import { rankRelaxed, type NaamMatch } from '@/lib/naam/match'
+import { hydrateSound, playCue, setSound, soundOff, soundOn, subscribeSound } from '@/lib/naam/sound'
 import { NAAM_SEED_ROWS } from '@/lib/naam/seeds'
 import {
   getDefaultPreferB,
@@ -411,6 +412,8 @@ export default function NaamApp({ seed }: NaamAppProps) {
   const preferB = useSyncExternalStore(subscribe, getPreferB, getDefaultPreferB)
   const pickedIds = useMemo(() => new Set(picks.map((p) => p.id)), [picks])
 
+  const audible = useSyncExternalStore(subscribeSound, soundOn, soundOff)
+
   /** A timer that cannot outlive the mount. */
   const later = useCallback((fn: () => void, ms: number) => {
     const id = window.setTimeout(() => {
@@ -429,6 +432,10 @@ export default function NaamApp({ seed }: NaamAppProps) {
     document.addEventListener('astro:before-swap', () => ac.abort(), { signal })
 
     hydrate()
+    // Reads the stored preference only. Nothing can make a sound until the
+    // toggle is pressed, which is also the gesture the autoplay policy wants —
+    // so a returning visitor with sound on still hears nothing until they act.
+    hydrateSound()
 
     // Fetched here rather than behind onIdle(): the composer cannot compute a
     // pool without the dataset, and on this page the composer is the only
@@ -727,8 +734,31 @@ export default function NaamApp({ seed }: NaamAppProps) {
     (row: NaamRow) => {
       const already = pickedIds.has(row.id)
       const index = picks.length
+      /**
+       * Does THIS press close the third slot? Read from the action rather than
+       * derived from picks.length, and that distinction is a bug I shipped and
+       * caught: as an effect watching the count, it fired again on every page
+       * load with a full tray, because picks are restored from localStorage and
+       * an empty-then-three rehydration looks exactly like a fill. A returning
+       * visitor got the bowl struck and a dozen embers for doing nothing. A
+       * celebration belongs to the press that earned it.
+       */
+      const fills = !already && index === PICK_MAX - 1
       const slot = slotRefs.current[index]
-      const card = streamRef.current?.querySelector<HTMLElement>(
+      /**
+       * SEARCHED FROM THE SHELL, not from the stream. This read streamRef until
+       * the hand moved onto the tray, and then it silently found nothing: `from`
+       * came back undefined, the guard below returned early, and the card
+       * flight — the one piece of motion this page is built around — stopped
+       * happening at all. Keeping still worked, so nothing looked broken; the
+       * name simply appeared in the slot with no arc, no hitstop and no recoil.
+       *
+       * .nm-shell is the right scope rather than `document`: the no-JS fallback
+       * renders twelve more [data-nm-card] nodes and hides them with CSS, and
+       * measuring a display:none card gives an all-zero rect, which would fly
+       * every name from the top-left corner of the window.
+       */
+      const card = shellRef.current?.querySelector<HTMLElement>(
         `[data-nm-card="${typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(row.id) : row.id}"]`,
       )
       const from = card?.getBoundingClientRect()
@@ -800,6 +830,18 @@ export default function NaamApp({ seed }: NaamAppProps) {
           later(() => {
             token.remove()
             seat()
+            // CLAY, on the frame the seat appears — the sound is the contact,
+            // so it belongs after the hitstop with the recoil, not at the end
+            // of the flight when the token is still in the air.
+            playCue('land')
+            // …and if that was the third, the bowl and the embers ride the same
+            // frame. The ring starts under the tock rather than after it, which
+            // is what makes three names read as one completed thing instead of
+            // two events in a row.
+            if (fills) {
+              playCue('complete')
+              embers()
+            }
             slot.animate(
               [
                 { transform: 'scale(1, 1)', offset: 0 },
@@ -962,6 +1004,62 @@ export default function NaamApp({ seed }: NaamAppProps) {
     }
     return null
   }, [turns])
+
+  /**
+   * PAPER, once per card, on the beat the card actually arrives. The deal is
+   * staggered 100ms apart and each card takes 420ms, so a tick at i*100+360
+   * lands under the card rather than under the gesture that requested it — the
+   * difference between hearing three cards put down and hearing one click
+   * repeated. Nothing plays unless the visitor turned sound on.
+   */
+  const dealtId = useRef<string | null>(null)
+  useEffect(() => {
+    if (!hand) {
+      dealtId.current = null
+      return
+    }
+    if (dealtId.current === hand.id) return
+    dealtId.current = hand.id
+    hand.matches.forEach((_, i) => later(() => playCue('deal'), i * 100 + 360))
+  }, [hand, later])
+
+  /**
+   * EMBERS, not confetti — and this is the reason there is no confetti library
+   * here at all. `canvas-confetti` is 6 kB for a shape the page would have to
+   * argue with: paper squares raining down belong to a birthday, and the one
+   * light source on this screen is a flame. So the third name lifts a dozen
+   * sparks off the lamp instead. They come from the diyo's own rect, they rise
+   * and cool, and they are warm-only. Twelve of them, once.
+   *
+   * Math.random is safe here in a way it is not in render: this runs from a
+   * click, long after hydration, so there is no server frame to disagree with.
+   */
+  const embers = useCallback(() => {
+    const host = fxRef.current
+    const lamp = shellRef.current?.querySelector('.nm-diyo')
+    if (!host || !lamp || reducedMotion()) return
+    const lit = lamp.getBoundingClientRect()
+    const box = host.getBoundingClientRect()
+    for (let i = 0; i < 12; i++) {
+      const spark = document.createElement('span')
+      spark.className = 'nm-ember'
+      spark.style.left = `${lit.left - box.left + lit.width * (0.34 + Math.random() * 0.32)}px`
+      spark.style.top = `${lit.top - box.top + lit.height * 0.2}px`
+      host.append(spark)
+      const dx = (Math.random() - 0.5) * 56
+      const dy = -(58 + Math.random() * 92)
+      const rise = spark.animate(
+        [
+          { transform: 'translate(0, 0) scale(0.6)', opacity: 0 },
+          { transform: `translate(${dx * 0.38}px, ${dy * 0.34}px) scale(1)`, opacity: 1, offset: 0.24 },
+          { transform: `translate(${dx}px, ${dy}px) scale(0.42)`, opacity: 0 },
+        ],
+        { duration: 900 + Math.random() * 520, easing: 'cubic-bezier(0.16, 0.7, 0.3, 1)', delay: i * 34 },
+      )
+      const clear = () => spark.remove()
+      rise.finished.then(clear, clear)
+    }
+  }, [])
 
   /** One deal, rendered the same whether it is on the tray or reopened inline. */
   const dealCards = (matches: readonly NaamMatch[]) => (
@@ -1307,6 +1405,27 @@ export default function NaamApp({ seed }: NaamAppProps) {
         >
           {source ? BADGE[source] : ''}
         </span>
+
+        {/* Default off, and pressing it is BOTH the preference and the gesture
+            the autoplay policy requires — so there is no second "enable audio"
+            step and nothing can make a noise at somebody who did not ask. The
+            label says which state it is in; aria-pressed carries what pressing
+            it will do. */}
+        <button
+          type="button"
+          className="nm-sound label-mono label-mono--sm"
+          aria-pressed={audible}
+          onClick={() => {
+            const next = !audible
+            setSound(next)
+            // Struck on the way ON only, and it is the sample: this is what
+            // you have just switched on, at the volume it will be.
+            if (next) playCue('land')
+          }}
+        >
+          <span className="nm-sound-glyph" aria-hidden="true" data-on={audible ? 'true' : undefined} />
+          <span className="nm-sound-word">{audible ? C.app.sound.on : C.app.sound.off}</span>
+        </button>
 
         {/* The one link the header nav does not carry. The rest of the site
             index used to sit on the tray row competing with the slots; this is
