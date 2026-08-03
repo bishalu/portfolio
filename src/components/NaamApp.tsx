@@ -400,6 +400,25 @@ export default function NaamApp({ seed }: NaamAppProps) {
    */
   const [own, setOwn] = useState('')
   /**
+   * CAN THIS BROWSER ACTUALLY DRAW THE FOLDED HANDS?
+   *
+   * नमस्ते is the first thing anyone reads here, and a system with no emoji
+   * font puts a hollow box in front of it — which is worse than no gesture at
+   * all. Plenty of Linux desktops ship without one; the machine this was built
+   * on has 103 fonts and not one of them has a glyph for it, which is how the
+   * tofu got noticed in the first place.
+   *
+   * Width heuristics are unreliable, so this asks the honest question: emoji
+   * fonts are COLOUR fonts, tofu is not. Paint it and look for a pixel whose
+   * channels disagree.
+   *
+   * Starts false and is only ever turned on after mount, which also keeps the
+   * server and the first client render identical — a glyph that appears during
+   * hydration is a mismatch, and this way it is simply an enhancement that
+   * arrives.
+   */
+  const [canEmoji, setCanEmoji] = useState(false)
+  /**
    * Passed turns the visitor has pressed back open. It is never cleared: a bead
    * they chose to re-open stays open, because closing it again on the next ask
    * would be the page overruling a decision it had just been asked to make.
@@ -443,6 +462,28 @@ export default function NaamApp({ seed }: NaamAppProps) {
     document.addEventListener('astro:before-swap', () => ac.abort(), { signal })
 
     hydrate()
+
+    try {
+      const canvas = document.createElement('canvas')
+      canvas.width = 24
+      canvas.height = 24
+      const ctx = canvas.getContext('2d', { willReadFrequently: false })
+      if (ctx) {
+        ctx.font = '20px sans-serif'
+        ctx.textBaseline = 'top'
+        ctx.fillText(C.app.greetingGlyph, 0, 0)
+        const { data } = ctx.getImageData(0, 0, 24, 24)
+        for (let i = 0; i < data.length; i += 4) {
+          if (data[i + 3] > 0 && (data[i] !== data[i + 1] || data[i + 1] !== data[i + 2])) {
+            setCanEmoji(true)
+            break
+          }
+        }
+      }
+    } catch {
+      /* a tainted or unavailable canvas just means no gesture, which is fine */
+    }
+
     // Reads the stored preference only. Nothing can make a sound until the
     // toggle is pressed, which is also the gesture the autoplay policy wants —
     // so a returning visitor with sound on still hears nothing until they act.
@@ -1228,6 +1269,11 @@ export default function NaamApp({ seed }: NaamAppProps) {
       case 'agent':
         return (
           <p className={turn.lead ? 'nm-said nm-said--lead' : turn.quiet ? 'nm-said nm-said--quiet' : 'nm-said'}>
+            {turn.lead && canEmoji && (
+              <span className="nm-namaste" aria-hidden="true">
+                {C.app.greetingGlyph}
+              </span>
+            )}
             {turn.text}
           </p>
         )
@@ -1689,7 +1735,7 @@ export default function NaamApp({ seed }: NaamAppProps) {
       {/* LAST IN-FLOW ITEM OF THE COLUMN, never position: fixed — a fixed
           composer sits against the layout viewport and ends up underneath the
           iOS keyboard permanently. */}
-      <div className="nm-composer">
+      <div className="nm-composer" data-typing={ask.trim().length > 0 ? 'true' : undefined}>
         <div className="nm-composer-in">
           <label className="sr-only" htmlFor="nma-ask">
             {C.app.composerLabel}

@@ -330,6 +330,15 @@ if (!seedRow) {
        precisely why it survived a review that was looking at the lamp. */
     --nm-ember: color-mix(in srgb, var(--crimson) 55%, var(--marigold) 45%);
 
+    /* THE CONVERSATION'S OWN SURFACE. The page is one room with a lamp at the
+       right-hand end of it, so the left is the side of the room the light has
+       not reached: a shade cooler and a shade lighter than the canvas, enough
+       to read as a different place to stand without a line drawn to say so.
+       It is a mix rather than a literal so it stays correct on both grounds —
+       the dark one resolves cool-dark, the light one resolves cool-pale, and
+       neither needs a second declaration. */
+    --nm-talk: color-mix(in srgb, var(--nm-surface) 62%, var(--nm-canvas));
+
     /* THE LEAF, and it is declared on .nm rather than on #naam-app on purpose:
        a palm leaf is a physical thing and it does not change colour because the
        room it is in is dark. These three are the only colours on this page that
@@ -448,9 +457,14 @@ if (!seedRow) {
          ~560px, which is a comfortable measure for prose and more than the
          invitation was getting when it had the whole width. */
       grid-template-columns: minmax(0, 1fr) clamp(31rem, 56vw, 46rem);
+      /* The composer belongs to the CONVERSATION, not to the page. Spanning
+         the full width it read as a page-level toolbar sitting under two
+         unrelated columns; under the left column it is plainly the bottom of
+         the thing you are talking into, and the plate on the right becomes one
+         uninterrupted object from the hand down to the slots. */
       grid-template-areas:
         'stream tray'
-        'composer composer';
+        'composer tray';
     }
 
     .nm-streamwrap {
@@ -491,6 +505,15 @@ if (!seedRow) {
 
     .nm-composer {
       grid-area: composer;
+      /* No border between the columns. The conversation side is a surface and
+         the plate is the lit ground; two materials at two temperatures say
+         "different place" without a rule drawn to announce it. */
+      border-top: 0;
+    }
+
+    .nm-streamwrap,
+    .nm-composer {
+      background: var(--nm-talk);
     }
 
     /* The lamp moved into the right column, so its light moves with it.
@@ -1249,7 +1272,12 @@ if (!seedRow) {
   .nm-shelf {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    /* Objects with air around them, not rows in a table. */
+    gap: 6px;
+    /* A hard cut through the middle of a leaf reads as a rendering fault. The
+       mask fades the last few pixels so the edge says "there is more of this"
+       — which is true, and is the only honest way to end a list that grows. */
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 18px), transparent 100%);
     margin: 0;
     padding: 0;
     max-height: clamp(5.5rem, 21vh, 11rem);
@@ -1632,6 +1660,137 @@ if (!seedRow) {
     background: var(--nm-surface);
     padding: 0.35rem 0.85rem;
     color: var(--nm-text);
+  }
+
+  /* नमस्ते is a gesture before it is a word, and this is the gesture. Set
+     SMALLER than the line it opens — the greeting is the largest type on the
+     page and an emoji matched to it reads as a sticker — and given an explicit
+     emoji stack, because the body face has no glyph for it and an unresolved
+     one renders as a hollow box in exactly the place a visitor first looks. */
+  .nm-namaste {
+    vertical-align: 0.06em;
+    margin-right: 0.4rem;
+    font-size: 0.72em;
+    line-height: 1;
+    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+  }
+
+  /* ── THE COMPOSER, ARRIVING AND ANSWERING ──────────────────────────────
+     Two moments, and both exist because a text field is the least alive thing
+     an interface can put in front of someone.
+
+     THE ARRIVAL is a page-load sequence, not an effect: the invitation is
+     already on screen and the composer rises into place a beat later, so the
+     order you read it in is the order it happens — here is who is asking, here
+     is what we are asking, here is where you answer. It runs once.
+
+     THE ANSWER is the ring. At rest it is a hairline; the moment the field has
+     focus or a single character in it, the ring warms to lamp colour and the
+     lamplight pools under it. Nothing moves — a field that jumps as you type is
+     unusable — the LIGHT changes, which is the same language the rest of this
+     page speaks. */
+  .nm-composer-in {
+    animation: nm-composer-arrive 620ms cubic-bezier(0.05, 0.7, 0.1, 1) 420ms backwards;
+  }
+
+  @keyframes nm-composer-arrive {
+    from {
+      transform: translateY(10px);
+      opacity: 0;
+    }
+
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
+
+  .nm-composer-in:focus-within,
+  .nm-composer[data-typing] .nm-composer-in {
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, var(--nm-keep) 16%, transparent),
+      0 8px 26px -14px color-mix(in srgb, var(--nm-keep) 72%, transparent);
+    border-color: var(--nm-keep);
+  }
+
+  /* The send button is dead weight until there is something to send, and then
+     it is the only warm thing in the column. */
+  .nm-composer-go:not(:disabled) {
+    background: var(--nm-keep-fill);
+    color: var(--nm-text);
+  }
+
+  /* ── THE LEAVES FLOAT ──────────────────────────────────────────────────
+     What makes a rendered scene read as a space rather than a picture of one is
+     never the texture — it is that things sit at different DEPTHS and betray it
+     when anything moves. Three cues, all of them cheap, all composited:
+
+       PARALLAX. NaamWall publishes the pointer's offset from the shelf's centre
+       as --px/--py; each leaf multiplies it by its own depth, so they slide
+       past each other rather than together. This is the one that does most of
+       the work, and it is why the listener is on the window rather than on
+       hover — a scene answers where you are, not whether you are touching it.
+
+       AN IDLE BOB, per leaf, on its own clock. Durations are 5.3/6.1/7.3s and
+       deliberately incommensurate: a shelf where everything breathes together
+       is a shelf that is animating, and one where nothing quite lines up is a
+       shelf that is alive. Same trick as the flame.
+
+       A CONTACT SHADOW AND A LIFT SHADOW, and the gap between them IS the
+       height. One blurred shadow is a card in a list; a hard shadow directly
+       under the object plus a wide soft one further out is an object above a
+       surface.
+
+     DEPTH IS SUPPORT. A name several people have chosen floats higher, casts a
+     longer shadow and travels further under the pointer. So the thing the eye
+     reads as "closest to me" is the thing the family keeps coming back to, and
+     the tally stops being an annotation and becomes the arrangement. */
+  .nm-shelf {
+    /* The leaves need somewhere to float IN. Without a perspective the whole
+       thing is 2D sliding and the eye knows. */
+    perspective: 700px;
+  }
+
+  .nm-leaf {
+    /* Support sets the height, and POSITION IN THE STACK breaks the ties. With
+       depth from support alone, a shelf where nothing has been chosen twice yet
+       gives every leaf the same value, and six things displacing by an
+       identical 6.5px is not parallax — it is the whole slab sliding, which the
+       eye reads as one flat object moving. Leaves in a real stack do not share a
+       height. The index term runs the same way the sort does (most-supported
+       first, so deeper as you go down), which means it reinforces the order
+       rather than muddling it. */
+    --depth: calc(0.42 + var(--support, 1) * 0.15 - var(--i, 0) * 0.045);
+
+    translate: calc(var(--px, 0) * var(--depth) * -7px) calc(var(--py, 0) * var(--depth) * -4px);
+    animation: nm-leaf-float calc(5.3s + var(--i, 0) * 0.62s) ease-in-out calc(var(--i, 0) * -1.7s) infinite;
+    transition: translate 220ms cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow:
+      0 1px 1px color-mix(in srgb, var(--nm-leaf-ink) 16%, transparent),
+      0 calc(2px + var(--depth) * 9px) calc(6px + var(--depth) * 16px) calc(-4px - var(--depth) * 2px)
+        color-mix(in srgb, var(--nm-leaf-ink) 26%, transparent);
+    border-radius: 3px;
+  }
+
+  @keyframes nm-leaf-float {
+    0%,
+    100% {
+      transform: translateY(0) rotateX(0deg);
+    }
+
+    50% {
+      transform: translateY(calc(var(--depth) * -3.5px)) rotateX(1.4deg);
+    }
+  }
+
+  /* A leaf lifts out of the stack under the pointer — the one place the shelf
+     answers a touch directly rather than a position. */
+  .nm-leaf:hover {
+    z-index: 1;
+    box-shadow:
+      0 1px 1px color-mix(in srgb, var(--nm-leaf-ink) 18%, transparent),
+      0 calc(6px + var(--depth) * 10px) calc(14px + var(--depth) * 18px) calc(-4px - var(--depth) * 2px)
+        color-mix(in srgb, var(--nm-leaf-ink) 32%, transparent);
   }
 
   /* ── The card, on both grounds ────────────────────────────────────────── */
@@ -2557,8 +2716,18 @@ if (!seedRow) {
     }
 
     /* A leaf still arrives and still marks itself as yours; it stops sliding
-       in to do it. */
+       in to do it. The float and the parallax go entirely — depth stays, told
+       by the shadows, which is the still frame of a floating thing. NaamWall
+       also declines to attach the pointer listener at all under this query, so
+       --px/--py are never written and `translate` never has anything to apply. */
+    .nm-leaf,
     .nm-leaf[data-mine] {
+      translate: none;
+      animation: none;
+      transition: none;
+    }
+
+    .nm-composer-in {
       animation: none;
     }
   }

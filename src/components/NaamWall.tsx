@@ -55,7 +55,7 @@
  * Every visible string reaches the DOM through JSX interpolation. `from` and
  * `relation` are a stranger's typed text and are never assembled into markup.
  */
-import type { CSSProperties } from 'react'
+import { useEffect, useRef, type CSSProperties } from 'react'
 import { NAAM_COPY } from '@/lib/naam/copy'
 
 const C = NAAM_COPY
@@ -84,6 +84,68 @@ export interface NaamWallProps {
 }
 
 export default function NaamWall({ notes }: NaamWallProps) {
+  const shelfRef = useRef<HTMLUListElement>(null)
+
+  /**
+   * PARALLAX, which is the cheapest real depth cue there is.
+   *
+   * A stack of leaves that never moves is a table with a texture on it. What
+   * makes a rendered scene read as a SPACE rather than a picture of one is that
+   * things at different depths displace by different amounts when the viewpoint
+   * shifts — so the shelf publishes the pointer's offset from its own centre as
+   * two numbers, and each leaf multiplies them by its own depth. A leaf several
+   * people have chosen floats higher, so it moves more.
+   *
+   * The listener is on the WINDOW, not on the shelf. Parallax that only responds
+   * while the cursor is over the thing is a hover effect; a scene responds to
+   * where you are even when you are looking somewhere else, and that difference
+   * is most of the effect.
+   *
+   * One rAF at a time, passive, and it writes two custom properties — no layout
+   * is read per move except a cached rect, and nothing here can schedule a
+   * second frame's work from inside the first.
+   */
+  useEffect(() => {
+    const el = shelfRef.current
+    if (!el) return
+    if (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+    let frame = 0
+    let rect = el.getBoundingClientRect()
+    const remeasure = () => {
+      rect = el.getBoundingClientRect()
+    }
+    const onMove = (event: PointerEvent) => {
+      if (frame) return
+      frame = requestAnimationFrame(() => {
+        frame = 0
+        if (rect.width === 0) return
+        // −1…1 either side of the shelf's centre, clamped so a pointer at the
+        // far edge of a wide screen does not send the leaves off their stack.
+        const x = Math.max(-1, Math.min(1, (event.clientX - (rect.left + rect.width / 2)) / (rect.width * 0.9)))
+        const y = Math.max(-1, Math.min(1, (event.clientY - (rect.top + rect.height / 2)) / (rect.height * 2.2)))
+        el.style.setProperty('--px', x.toFixed(3))
+        el.style.setProperty('--py', y.toFixed(3))
+      })
+    }
+    const rest = () => {
+      el.style.setProperty('--px', '0')
+      el.style.setProperty('--py', '0')
+    }
+
+    window.addEventListener('pointermove', onMove, { passive: true })
+    window.addEventListener('scroll', remeasure, { passive: true })
+    window.addEventListener('resize', remeasure)
+    document.addEventListener('pointerleave', rest)
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('scroll', remeasure)
+      window.removeEventListener('resize', remeasure)
+      document.removeEventListener('pointerleave', rest)
+      if (frame) cancelAnimationFrame(frame)
+    }
+  }, [])
+
   return (
     <>
       <p className="label-mono label-mono--sm nm-quiet-label" id="nm-shelf-label">
@@ -98,15 +160,22 @@ export default function NaamWall({ notes }: NaamWallProps) {
           role="list" is restorative — `list-style: none` strips list semantics
           in Safari/VoiceOver, and every list on this page is unstyled. */}
       {/* eslint-disable-next-line jsx-a11y/no-redundant-roles, jsx-a11y/no-noninteractive-tabindex */}
-      <ul className="nm-shelf" role="list" tabIndex={0} aria-labelledby="nm-shelf-label">
-        {notes.map((note) => (
+      <ul className="nm-shelf" role="list" tabIndex={0} aria-labelledby="nm-shelf-label" ref={shelfRef}>
+        {notes.map((note, i) => (
           <li
             className="nm-leaf"
             key={note.key}
             data-mine={note.mine ? 'true' : undefined}
             /* Support drives the ink, capped at five so a runaway favourite
                cannot black the leaf out and make its own name unreadable. */
-            style={{ '--support': Math.min(note.count, 5) } as CSSProperties}
+            style={
+              {
+                '--support': Math.min(note.count, 5),
+                /* Depth from support, and the index only staggers the bob so
+                   six leaves never breathe in unison. */
+                '--i': i,
+              } as CSSProperties
+            }
           >
             <span className="nm-leaf-name">
               {note.deva && (

@@ -106,8 +106,20 @@ export const NAAM_COPY = {
     headline: 'Help us name our son.',
     /** The invitation, in one breath, with the one number that matters. */
     standfirst: `Sneha and Bishal are expecting a son. There are ${n(NAAM_COUNTS.total)} names to choose from, and we would rather not choose alone.`,
-    /** Quiet, one line, not the headline. The family joke, told once. */
-    letters: 'B is Bishal, S is Sneha. V is here because at home we say व as ब — so Vachas is Bachas.',
+    /**
+     * B is Bishal and S is Sneha, and that much is just what the list is. What
+     * this line USED to do is explain the third letter — that व is said ब at
+     * home, so Vachas is Bachas — and that explanation has been taken out of
+     * every static surface on the page.
+     *
+     * It is the agent's to make, and only in front of a name it is actually
+     * holding up in both forms. A joke printed in the furniture before anyone
+     * has seen a V name is a joke explained before it is told; the same
+     * sentence, said once, about a specific name someone is looking at, is the
+     * warmest thing on the page. Same words, and the difference is entirely
+     * whether they arrive on cue.
+     */
+    letters: 'B is Bishal, S is Sneha. The V names are here for a reason of their own.',
     /** Stated once, as the reason two names exist. Three short sentences. */
     nwaran:
       'On the eleventh day, at the nwaran, a priest reads the stars and gives him one name. The name we will actually call him at home is ours to choose. That is the one we are asking about.',
@@ -140,6 +152,19 @@ export const NAAM_COPY = {
      */
     speakerAgent: 'Naam',
     speakerYou: 'You',
+    /**
+     * The folded hands, and they are a separate string rather than a character
+     * inside the greeting for two reasons. They are sized independently — the
+     * greeting is the largest type on the page and an emoji set to match it
+     * reads as a sticker — and they are aria-hidden, because नमस्ते is already
+     * the first word a screen reader reaches and "folded hands, namaste" is
+     * the same greeting twice.
+     *
+     * This is the page's one emoji, and the voice note above says there are
+     * none. The exception is deliberate: नमस्ते is a gesture before it is a
+     * word, and the hands are what makes it one on a screen.
+     */
+    greetingGlyph: '🙏',
     greeting:
       'नमस्ते. Sneha and Bishal are expecting a son. He needs a name before he arrives, and we would rather not choose it alone.',
     /**
@@ -153,7 +178,7 @@ export const NAAM_COPY = {
      * letters are the family's own joke arriving as information — B for Bishal,
      * S for Sneha, V because at home व is said ब.
      */
-    source: `${n(NAAM_COUNTS.total)} names, out of the Vedas and the Sutras. Only the ones starting B, S or V — those are ours.`,
+    source: `${n(NAAM_COUNTS.total)} names, out of the Vedas and the Sutras — the ones that begin with B, S or V.`,
     invitation: 'Sit with us a while. Say what kind of name you have in mind, or start with one of these.',
     /**
      * It said "Names the family keeps coming back to", which was true when the
@@ -181,7 +206,7 @@ export const NAAM_COPY = {
     starters: [
       'something calm, about love not war',
       'short, and easy to say abroad',
-      'the V names we say with a ब',
+      'show me the V names',
       'what does Snehaja mean',
     ],
     dismissStarters: 'Hide these',
