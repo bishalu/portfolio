@@ -1007,13 +1007,43 @@ if (!seedRow) {
      vertical rule IS the timeline-library look. Together the line carries the
      continuity a strung object needs and the ticks give it a twist, and at
      13% under 26% neither is individually legible. */
+  /* THE CORD IS STRUNG WITH BEADS, and that is what was missing. It used to be
+     a 2px line with a diagonal twist laid over it — honest about being a cord,
+     and it read as a hairline rule, because the thing that makes a mala legible
+     is not the thread. It is that the thread is COVERED in beads.
+
+     So the cord carries its own: a repeating radial-gradient of 4px beads every
+     7px down its length, each one lit from the top-left like the big ones. The
+     line between the turns stops being empty. At a glance you see a strung
+     object; at reading distance you see the beads that matter sitting among the
+     ones that are only counting. */
   .nm-turn-rail::before,
   .nm-turn-rail::after {
     position: absolute;
-    left: calc(var(--nm-rail) / 2 - 1px);
-    background-image: repeating-linear-gradient(-64deg, var(--nm-hair-strong) 0 1px, transparent 1px 3px);
-    background-color: var(--nm-hair);
-    width: 2px;
+    left: calc(var(--nm-rail) / 2 - 3px);
+    background-image:
+      /* THE COUNTING BEADS ARE THE SAME WOOD AS THE BIG ONES. They were mixed
+         from --nm-text, which is this page's INK — so they came out blue-grey,
+         and the cord read as a dashed rule with wooden beads parked on it.
+         That is two objects, not one strung thing. Cut from the same browns
+         now, lit from the same top-left, on a warm thread rather than a
+         hairline. */
+      repeating-radial-gradient(
+        circle at 50% 3.4px,
+        #a58459 0 1.5px,
+        #7d5c36 1.5px 2.3px,
+        #5d4326 2.3px 2.8px,
+        transparent 3px 3.6px
+      ),
+      linear-gradient(#8a7048 0 100%);
+    background-position:
+      center top,
+      center top;
+    background-size:
+      6px 6.8px,
+      1.5px 100%;
+    background-repeat: repeat-y, repeat-y;
+    width: 6px;
     content: '';
   }
 
@@ -1066,6 +1096,17 @@ if (!seedRow) {
      writing both into one `transform` would mean every worn facet has to
      restate the rotation. They are static, so the note about individual
      transforms not compositing does not apply — nothing animates them. */
+  /* ROUND, ALWAYS, AND TURNED. The previous cut gave each kind of turn its own
+     silhouette — a facet at 45°, a strip, a ring — on the reasoning that one
+     repeated dot is what makes a vertical sequence read as a log. That reasoning
+     is sound and it produced the wrong object, because A MALA IS ONE SHAPE
+     REPEATED. That is the entire thing that makes it recognisable. Five
+     silhouettes on a cord is a chart legend.
+
+     So every bead is the same round bead now, lit from the top-left and shaded
+     to the bottom-right the way a turned wooden one is, and the TYPE is carried
+     in colour and in a little size — which is also true of a real mala, where
+     the marker beads and the guru differ in material and scale, never in shape. */
   .nm-bead {
     display: block;
     position: absolute;
@@ -1075,7 +1116,10 @@ if (!seedRow) {
       opacity var(--dur-base) ease,
       scale var(--dur-base) ease,
       filter var(--dur-base) ease;
-    border: 1.5px solid transparent;
+    box-shadow:
+      inset -1px -1.5px 2px color-mix(in srgb, #2a1c0c 26%, transparent),
+      inset 1px 1px 1.5px rgb(255 255 255 / 42%),
+      0 1px 1.5px color-mix(in srgb, #2a1c0c 22%, transparent);
     border-radius: 50%;
     width: var(--nm-bead);
     height: var(--nm-bead);
@@ -1084,47 +1128,50 @@ if (!seedRow) {
   /* The agent spoke. The ordinary counting bead, and the one there are most
      of, so it is the quietest. */
   .nm-bead[data-bead='said'] {
-    background: color-mix(in srgb, var(--nm-text) 30%, transparent);
+    background: radial-gradient(circle at 34% 30%, #b08a5e, #7d5a34 62%, #5d4023);
   }
 
   /* You asked. Open, because a question is. */
+  /* You asked. The paler bead a mala uses as a counting marker. */
   .nm-bead[data-bead='asked'] {
-    border-color: var(--crimson);
-    background: var(--nm-canvas);
+    background: radial-gradient(circle at 34% 30%, #f4ece0, #d9c7ad 62%, #b39c7d);
   }
 
   /* Names came. The facet — the bead that catches the light. */
+  /* Names came. The amber bead — same bead, different stone. */
   .nm-bead[data-bead='dealt'] {
-    rotate: 45deg;
-    border-color: var(--nm-keep);
-    border-radius: 3px;
-    background: var(--nm-keep-fill);
+    background: radial-gradient(circle at 34% 30%, #e8b970, #c8862c 60%, #8f5d18);
   }
 
   /* The shelf: the shape of the leaf it summarises — a narrow strip, not a
      square of paper. */
+  /* The shelf. Bone, against all the wood. */
   .nm-bead[data-bead='note'] {
-    border-color: color-mix(in srgb, var(--nm-leaf-ink) 30%, transparent);
-    border-radius: 1px;
-    background: var(--nm-leaf);
+    background: radial-gradient(circle at 34% 30%, #f0e6cf, #d8c9a5 62%, #ad9c76);
   }
 
   /* Nothing came back. A facet that did not fill. */
+  /* Nothing came back. The dark bead. */
   .nm-bead[data-bead='stuck'] {
-    rotate: 45deg;
-    border-color: var(--nm-accent-text);
-    border-radius: 3px;
-    background: var(--nm-canvas);
+    background: radial-gradient(circle at 34% 30%, #a9736b, #7d443c 62%, #582b25);
   }
 
   /* The send: the large bead a mala is counted from and finished at. The ring
      is box-shadow rather than a bigger box, so the bead keeps the same
      geometry as every other one and the worn scale still centres on it. */
+  /* THE GURU BEAD. The one every mala is counted from and finished at, and the
+     only bead allowed to be a different size — it is larger on a real one, so it
+     is larger here, with the tassel's knot below it. */
   .nm-bead[data-bead='guru'] {
+    top: calc(var(--nm-bead-top) - 2px);
+    left: calc((var(--nm-rail) - var(--nm-bead) - 5px) / 2);
     box-shadow:
-      0 0 0 2px var(--nm-canvas),
-      0 0 0 3.5px var(--nm-keep);
-    background: var(--nm-keep);
+      inset -1px -2px 3px color-mix(in srgb, #2a1c0c 34%, transparent),
+      inset 1px 1px 2px rgb(255 255 255 / 46%),
+      0 1px 2px color-mix(in srgb, #2a1c0c 30%, transparent);
+    background: radial-gradient(circle at 34% 30%, #d8a24e, #a8681c 60%, #6d3f0c);
+    width: calc(var(--nm-bead) + 5px);
+    height: calc(var(--nm-bead) + 5px);
   }
 
   /* WORN. Smaller, fainter, desaturated — the beads you have already passed
@@ -1202,12 +1249,18 @@ if (!seedRow) {
   /* A turn is a typographic block. No bubble, no avatar, no right-aligned
      user message — that is the single clearest chat-widget tell and P11
      forbids the grammar. The speaker is stated in .sr-only text instead. */
+  /* The conversation is the page's voice and it was set at body size, which is
+     what you use for text somebody has to get THROUGH. Nobody is skimming here
+     — there are three sentences and then a question — so it is set at the size
+     you would use for the one paragraph on a page. 62ch stays: the measure is
+     what makes a long line readable, and enlarging the type without holding the
+     measure just makes a wider block of the same problem. */
   .nm-said {
     margin: 0;
     max-width: 62ch;
     color: var(--nm-text-soft);
-    font-size: 1rem;
-    line-height: 1.7;
+    font-size: 1.12rem;
+    line-height: 1.72;
   }
 
   .nm-said--lead {
@@ -1713,8 +1766,8 @@ if (!seedRow) {
      are waiting — the first cut ran 1260ms and felt exactly that long. */
   .nm-shell[data-first] .nm-said {
     animation: nm-say 460ms cubic-bezier(0.05, 0.7, 0.1, 1) backwards;
-    font-size: 1.06rem;
-    line-height: 1.72;
+    font-size: 1.2rem;
+    line-height: 1.74;
   }
 
   .nm-shell[data-first] .nm-turn:nth-of-type(1) .nm-said {
@@ -1742,12 +1795,12 @@ if (!seedRow) {
   }
 
   .nm-shell[data-first] .nm-said--lead {
-    font-size: clamp(1.4rem, 2.5vw, 1.85rem);
-    line-height: 1.4;
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    line-height: 1.36;
   }
 
   .nm-shell[data-first] .nm-said--quiet {
-    font-size: 0.86rem;
+    font-size: 0.95rem;
   }
 
   /* The sub-degree settle is what reads as hand-set type rather than as a
@@ -1755,7 +1808,7 @@ if (!seedRow) {
      being a tilt. */
   @keyframes nm-say {
     from {
-      transform: translateY(var(--rise, 9px)) rotate(var(--tilt-in, 0deg));
+      transform: translateY(var(--rise, 9px)) rotate(var(--tilt-in, 0deg)) scale(0.985);
       opacity: 0;
     }
 
@@ -1770,12 +1823,68 @@ if (!seedRow) {
      paragraph that disappears on a keystroke reads as a bug, and one that
      drifts up out of the way reads as the room turning to listen. It is still
      there, still legible, just no longer the loudest thing. */
+  /* ── EVERY TURN ARRIVES ────────────────────────────────────────────────
+     Nothing here animated on mount. The opening was staged, and then every
+     message after it — yours and the agent's — was simply inserted into the
+     list at full opacity, which is the "choppy" the page was accused of. A
+     conversation where the last line teleports into place has no sense of
+     someone speaking; it has the sense of a log being written to.
+
+     So the arrival lives on .nm-turn and runs for all of them, and the two
+     speakers arrive DIFFERENTLY, because they are doing different things:
+
+       YOU  travel further and land with an overshoot — cubic-bezier's
+            1.52 control point carries it a few pixels past the mark and
+            settles back. That is the physics of something you threw.
+       THE AGENT does not overshoot. It rises a little, scales up from 0.985
+            and fades in on an emphasized-decelerate curve, so it reads as
+            arriving rather than as being launched — a voice, not an object.
+
+     No library. A spring's whole visible signature at this scale is an
+     overshoot and a settle, and a back-out bezier is that curve; motion.dev's
+     springs would be ~30kB gzipped to reproduce a shape one line of CSS
+     already draws, on a page whose entire JS budget is 80kB. */
+  .nm-turn {
+    animation: nm-say 500ms cubic-bezier(0.05, 0.7, 0.1, 1) backwards;
+  }
+
+  .nm-turn:has(.nm-said--you) {
+    --rise: 18px;
+    animation-duration: 560ms;
+    animation-timing-function: cubic-bezier(0.34, 1.52, 0.64, 1);
+
+    animation-name: nm-turn-you;
+  }
+
   .nm-said,
   .nm-turn {
     transition:
       transform 620ms cubic-bezier(0.34, 1.2, 0.64, 1),
       opacity 620ms ease,
       font-size 380ms ease;
+  }
+
+  /* The still frame of an arrival: it still arrives, it just does not travel. */
+  @keyframes nm-fade-in {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes nm-turn-you {
+    from {
+      transform: translateY(var(--rise, 18px));
+      opacity: 0;
+    }
+
+    to {
+      transform: none;
+      opacity: 1;
+    }
   }
 
   .nm-shell[data-composing] .nm-turn {
@@ -1796,11 +1905,21 @@ if (!seedRow) {
      the line is made rather than revealed — then sways a degree and a half on a
      slow loop so it stays alive without asking for attention. It leaves the
      instant the visitor types. */
+  /* IT SPANS THE GAP IT IS POINTING ACROSS. It used to be an 81px scribble in
+     the bottom-left corner of a 255px void — pointing, but from nowhere in
+     particular to nowhere in particular. Anchored to the bottom of the stream
+     and given real height, it starts under the last line of the invitation and
+     ends just above the composer, so the thing it connects is legible as a
+     connection.
+
+     Bottom-anchored rather than top-anchored because the invitation's height
+     changes with the viewport and the composer's does not: measuring down from
+     the fixed end is the one that cannot drift into the text. */
   .nm-doodle {
     position: absolute;
-    bottom: 0.25rem;
-    left: clamp(0.5rem, 3vw, 2.5rem);
-    transform-origin: 20% 10%;
+    bottom: 0.4rem;
+    left: clamp(0.75rem, 4vw, 3rem);
+    transform-origin: 50% 6%;
     z-index: 3;
     /* IT WAITS BEFORE IT POINTS. A hint that arrives with the page is a hint
        nobody needed yet, and NN/g's work on coach marks is blunt about the cost
@@ -1812,8 +1931,8 @@ if (!seedRow) {
     animation:
       nm-doodle-in 400ms ease 3400ms backwards,
       nm-doodle-sway 4.6s ease-in-out 4.4s infinite;
-    width: clamp(72px, 9vw, 108px);
-    height: auto;
+    width: clamp(46px, 5vw, 62px);
+    height: clamp(132px, 30vh, 224px);
     pointer-events: none;
     color: color-mix(in srgb, var(--nm-keep) 74%, var(--nm-text-soft));
   }
@@ -2774,7 +2893,9 @@ if (!seedRow) {
     padding: 0.45rem 0;
     min-width: 0;
     color: var(--nm-text);
-    font-size: 1rem;
+    /* Never below 1rem — iOS Safari zooms the viewport on focus under 16px, and
+       this page does not survive a zoom. */
+    font-size: 1.08rem;
     line-height: 1.7;
     font-family: var(--font-deva), var(--font-body);
 
@@ -3039,6 +3160,11 @@ if (!seedRow) {
     /* The opening still arrives and still makes way; it stops travelling to do
        either. Opacity is the one channel WCAG 2.3.3 leaves open, and it is
        enough to say "this has stepped back". */
+    .nm-turn,
+    .nm-turn:has(.nm-said--you) {
+      animation: nm-fade-in 180ms ease backwards;
+    }
+
     .nm-shell[data-first] .nm-said,
     /* Drawn already, and still. stroke-dashoffset must be zeroed explicitly:
        killing the animation alone would leave the dasharray at 100 and the

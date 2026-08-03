@@ -1624,26 +1624,42 @@ export default function NaamApp({ seed }: NaamAppProps) {
             its answer is a nag. aria-hidden and pointer-events:none; the
             composer's own label is what a screen reader follows. */}
         {!asked && (
-          <svg className="nm-doodle" viewBox="0 0 120 90" aria-hidden="true" focusable="false">
+          <svg
+            className="nm-doodle"
+            viewBox="0 0 64 210"
+            preserveAspectRatio="xMidYMax meet"
+            aria-hidden="true"
+            focusable="false"
+          >
             {/* pathLength="100" normalises the dash maths, so the draw-on needs
                 no getTotalLength() call and survives any edit to the curve or
                 the viewBox. The first cut hard-coded a dasharray of 132 and
                 would have silently half-drawn the moment the path changed. */}
+            {/* IT WANDERS ON THE WAY DOWN. A clean arc from A to B is a
+                connector; three changes of mind between them is somebody's
+                hand. The curve overshoots left, right, left again and settles —
+                the squiggles are not decoration, they are the reason it reads as
+                drawn rather than as drawn-by-software.
+
+                pathLength="100" normalises the dash maths, so the draw-on needs
+                no getTotalLength() and survives any edit to this curve. It draws
+                from the START of the path, which is the top — so the stroke
+                travels the way a hand would, down toward the box. */}
             <path
               className="nm-doodle-line"
-              d="M18 6C14 26 20 40 34 52c12 10 30 15 52 16"
+              d="M34 6C14 30 54 42 30 64C8 86 50 100 28 124C12 148 46 160 33 191"
               pathLength="100"
               fill="none"
               strokeLinecap="round"
             />
-            {/* The two barbs are separate paths on separate beats. One path that
-                draws the shaft and the arrowhead in a single continuous sweep is
-                a stroke no hand can make, and the eye knows it even when it
-                cannot say why. */}
-            <path className="nm-doodle-barb" d="M78 60l10 8" pathLength="100" fill="none" strokeLinecap="round" />
+            {/* The two barbs are separate paths on separate beats, after the
+                shaft has arrived. One path drawing shaft-and-head in a single
+                continuous sweep is a stroke no hand can make, and the eye knows
+                it even when it cannot say why. */}
+            <path className="nm-doodle-barb" d="M23 178L33 191" pathLength="100" fill="none" strokeLinecap="round" />
             <path
               className="nm-doodle-barb nm-doodle-barb--b"
-              d="M88 68l-11 7"
+              d="M44 180L33 191"
               pathLength="100"
               fill="none"
               strokeLinecap="round"
