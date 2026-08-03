@@ -107,13 +107,38 @@ export default function NaamWall({ notes }: NaamWallProps) {
    */
   useEffect(() => {
     const el = shelfRef.current
-    if (!el) return
-    if (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    if (!el || typeof matchMedia !== 'function') return
+
+    /**
+     * TWO GATES, AND BOTH HAVE TO BE IN JAVASCRIPT.
+     *
+     * A `@media (prefers-reduced-motion)` block cannot stop a pointer listener
+     * or a transform written from script — CSS can only decline to animate what
+     * CSS owns. So the preference is read here, and it is WATCHED: somebody who
+     * turns the setting on mid-session is asking for the motion to stop now, not
+     * on their next visit.
+     *
+     * The second gate is the pointer itself. On a touch screen there is no
+     * hovering cursor to parallax against, so the listener would be a wasted
+     * subscription that can never fire meaningfully — and `deviceorientation` is
+     * NOT the fallback: it needs an explicit permission prompt on iOS and
+     * gyro-driven parallax is a considerably worse nausea trigger than the
+     * pointer kind. Touch gets the static dealt arrangement, which is the honest
+     * still frame of this effect.
+     */
+    const calm = matchMedia('(prefers-reduced-motion: reduce)')
+    const fine = matchMedia('(hover: hover) and (pointer: fine)')
 
     let frame = 0
     let rect = el.getBoundingClientRect()
+    let bound = false
+
     const remeasure = () => {
       rect = el.getBoundingClientRect()
+    }
+    const rest = () => {
+      el.style.setProperty('--px', '0')
+      el.style.setProperty('--py', '0')
     }
     const onMove = (event: PointerEvent) => {
       if (frame) return
@@ -124,25 +149,48 @@ export default function NaamWall({ notes }: NaamWallProps) {
         // far edge of a wide screen does not send the leaves off their stack.
         const x = Math.max(-1, Math.min(1, (event.clientX - (rect.left + rect.width / 2)) / (rect.width * 0.9)))
         const y = Math.max(-1, Math.min(1, (event.clientY - (rect.top + rect.height / 2)) / (rect.height * 2.2)))
+        // NEVER ROUNDED. The whole travel is a dozen pixels, so integers would
+        // step visibly; sub-pixel transforms composite on the GPU anyway.
         el.style.setProperty('--px', x.toFixed(3))
         el.style.setProperty('--py', y.toFixed(3))
       })
     }
-    const rest = () => {
-      el.style.setProperty('--px', '0')
-      el.style.setProperty('--py', '0')
-    }
 
-    window.addEventListener('pointermove', onMove, { passive: true })
-    window.addEventListener('scroll', remeasure, { passive: true })
-    window.addEventListener('resize', remeasure)
-    document.addEventListener('pointerleave', rest)
-    return () => {
+    const bind = () => {
+      if (bound) return
+      bound = true
+      // The listener is on the WINDOW: a scene answers where you are, not
+      // whether you are touching it. Passive, and it only ever reads two
+      // coordinates — the rect is cached, so no move can force a reflow.
+      window.addEventListener('pointermove', onMove, { passive: true })
+      window.addEventListener('scroll', remeasure, { passive: true })
+      window.addEventListener('resize', remeasure)
+      document.addEventListener('pointerleave', rest)
+    }
+    const unbind = () => {
+      if (!bound) return
+      bound = false
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('scroll', remeasure)
       window.removeEventListener('resize', remeasure)
       document.removeEventListener('pointerleave', rest)
       if (frame) cancelAnimationFrame(frame)
+      frame = 0
+      rest()
+    }
+
+    const decide = () => {
+      if (calm.matches || !fine.matches) unbind()
+      else bind()
+    }
+
+    decide()
+    calm.addEventListener('change', decide)
+    fine.addEventListener('change', decide)
+    return () => {
+      calm.removeEventListener('change', decide)
+      fine.removeEventListener('change', decide)
+      unbind()
     }
   }, [])
 

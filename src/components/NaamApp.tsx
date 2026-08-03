@@ -1625,18 +1625,28 @@ export default function NaamApp({ seed }: NaamAppProps) {
             composer's own label is what a screen reader follows. */}
         {!asked && (
           <svg className="nm-doodle" viewBox="0 0 120 90" aria-hidden="true" focusable="false">
+            {/* pathLength="100" normalises the dash maths, so the draw-on needs
+                no getTotalLength() call and survives any edit to the curve or
+                the viewBox. The first cut hard-coded a dasharray of 132 and
+                would have silently half-drawn the moment the path changed. */}
             <path
               className="nm-doodle-line"
               d="M18 6C14 26 20 40 34 52c12 10 30 15 52 16"
+              pathLength="100"
               fill="none"
               strokeLinecap="round"
             />
+            {/* The two barbs are separate paths on separate beats. One path that
+                draws the shaft and the arrowhead in a single continuous sweep is
+                a stroke no hand can make, and the eye knows it even when it
+                cannot say why. */}
+            <path className="nm-doodle-barb" d="M78 60l10 8" pathLength="100" fill="none" strokeLinecap="round" />
             <path
-              className="nm-doodle-head"
-              d="M78 60l10 8-11 7"
+              className="nm-doodle-barb nm-doodle-barb--b"
+              d="M88 68l-11 7"
+              pathLength="100"
               fill="none"
               strokeLinecap="round"
-              strokeLinejoin="round"
             />
           </svg>
         )}

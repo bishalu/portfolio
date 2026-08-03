@@ -1702,22 +1702,43 @@ if (!seedRow) {
      And they are BIGGER. The opening is the only thing on this half of the
      screen and it was set as if it were competing for room it does not have to
      compete for. */
+  /* THE IRREGULARITY IS HAND-AUTHORED, and that is the whole point. Identical
+     durations with an identical delay step is the single loudest tell that a
+     stagger was generated rather than composed — and Math.random() at runtime is
+     worse, because noise that re-rolls every load is both untestable and reads
+     as jitter rather than as a hand. So these six numbers are picked, fixed, and
+     slightly wrong on purpose: 430/500/460ms at 0/120/360ms, lifting 10/8/11px.
+
+     Total run 820ms. Past about 1.2s a visitor is no longer being greeted, they
+     are waiting — the first cut ran 1260ms and felt exactly that long. */
   .nm-shell[data-first] .nm-said {
-    animation: nm-say 560ms cubic-bezier(0.05, 0.7, 0.1, 1) backwards;
+    animation: nm-say 460ms cubic-bezier(0.05, 0.7, 0.1, 1) backwards;
     font-size: 1.06rem;
     line-height: 1.72;
   }
 
   .nm-shell[data-first] .nm-turn:nth-of-type(1) .nm-said {
-    animation-delay: 120ms;
+    --rise: 10px;
+    --tilt-in: 0.35deg;
+    animation-duration: 430ms;
+
+    animation-delay: 0ms;
   }
 
   .nm-shell[data-first] .nm-turn:nth-of-type(2) .nm-said {
-    animation-delay: 420ms;
+    --rise: 8px;
+    --tilt-in: -0.2deg;
+    animation-duration: 500ms;
+
+    animation-delay: 120ms;
   }
 
   .nm-shell[data-first] .nm-turn:nth-of-type(3) .nm-said {
-    animation-delay: 700ms;
+    --rise: 11px;
+    --tilt-in: 0.3deg;
+    animation-duration: 460ms;
+
+    animation-delay: 360ms;
   }
 
   .nm-shell[data-first] .nm-said--lead {
@@ -1729,9 +1750,12 @@ if (!seedRow) {
     font-size: 0.86rem;
   }
 
+  /* The sub-degree settle is what reads as hand-set type rather than as a
+     transform. Above about half a degree it stops being a settle and starts
+     being a tilt. */
   @keyframes nm-say {
     from {
-      transform: translateY(9px);
+      transform: translateY(var(--rise, 9px)) rotate(var(--tilt-in, 0deg));
       opacity: 0;
     }
 
@@ -1755,8 +1779,8 @@ if (!seedRow) {
   }
 
   .nm-shell[data-composing] .nm-turn {
-    transform: translateY(-14px);
-    opacity: 0.42;
+    transform: translateY(-10px);
+    opacity: 0.55;
   }
 
   .nm-shell[data-composing] .nm-said--lead {
@@ -1778,9 +1802,16 @@ if (!seedRow) {
     left: clamp(0.5rem, 3vw, 2.5rem);
     transform-origin: 20% 10%;
     z-index: 3;
+    /* IT WAITS BEFORE IT POINTS. A hint that arrives with the page is a hint
+       nobody needed yet, and NN/g's work on coach marks is blunt about the cost
+       of over-hinting: people dismiss them faster and rate the product as more
+       complicated. 3.4s is long enough that it only ever meets somebody who has
+       read the invitation and not moved, and it leaves for good on the first
+       keystroke. (A considered starting point, not a measured optimum — there
+       is no published figure for idle-hint delay on a chat composer.) */
     animation:
-      nm-doodle-in 900ms ease 900ms backwards,
-      nm-doodle-sway 4.6s ease-in-out 1.8s infinite;
+      nm-doodle-in 400ms ease 3400ms backwards,
+      nm-doodle-sway 4.6s ease-in-out 4.4s infinite;
     width: clamp(72px, 9vw, 108px);
     height: auto;
     pointer-events: none;
@@ -1788,37 +1819,40 @@ if (!seedRow) {
   }
 
   .nm-doodle-line,
-  .nm-doodle-head {
+  .nm-doodle-barb {
     stroke: currentcolor;
+    /* Normalised by pathLength="100" on every path, so this one number is
+       correct for all three regardless of their real lengths. */
+    stroke-dasharray: 100;
     stroke-width: 2.2;
   }
 
+  /* ONE CONFIDENT STROKE, 480ms. The first cut ran 1100ms on an ease-in-out,
+     which is the speed AND the evenness of a progress bar rather than a pen — a
+     ~140px line drawn at roughly 0.29px/ms is a hand moving. This curve
+     accelerates into the middle of the stroke and decelerates at the tip, which
+     is what a wrist does; `linear` is the plotter tell. */
   .nm-doodle-line {
-    animation: nm-doodle-draw 1100ms cubic-bezier(0.4, 0, 0.2, 1) 900ms backwards;
-    stroke-dasharray: 132;
+    animation: nm-doodle-draw 480ms cubic-bezier(0.65, 0, 0.35, 1) 3400ms backwards;
   }
 
-  .nm-doodle-head {
-    animation: nm-doodle-tip 320ms ease 1900ms backwards;
+  /* The barbs land after the shaft arrives, 40ms apart, because that is the
+     order and the rhythm a hand draws them in. */
+  .nm-doodle-barb {
+    animation: nm-doodle-draw 140ms cubic-bezier(0.65, 0, 0.35, 1) 3820ms backwards;
+  }
+
+  .nm-doodle-barb--b {
+    animation-delay: 3860ms;
   }
 
   @keyframes nm-doodle-draw {
     from {
-      stroke-dashoffset: 132;
+      stroke-dashoffset: 100;
     }
 
     to {
       stroke-dashoffset: 0;
-    }
-  }
-
-  @keyframes nm-doodle-tip {
-    from {
-      opacity: 0;
-    }
-
-    to {
-      opacity: 1;
     }
   }
 
@@ -2554,17 +2588,26 @@ if (!seedRow) {
 
   /* Typing straight into the slot. It fills the box rather than sitting in it,
      so the box does not appear to gain a second, smaller box. */
+  /* 1rem IS A HARD FLOOR, not a taste. iOS Safari zooms the viewport when a
+     focused input's font-size is under 16px, and on a page whose whole premise
+     is that it never scrolls, that zoom breaks the layout the moment somebody
+     taps a slot. The visible text is smaller elsewhere on this row; this one
+     control cannot be.
+
+     line-height 1.6 for the same reason the cards use it: Devanagari matras sit
+     above and below the baseline and clip inside a 64px box at 1.2. */
   .nm-slot-input {
     border: 0;
     border-bottom: 1.5px solid var(--nm-keep);
     border-radius: 0;
     background: transparent;
-    padding: 0 0.5rem;
+    padding: 0 0.4rem;
     width: 100%;
     height: 100%;
     color: var(--nm-text);
-    font-size: 0.92rem;
-    font-family: var(--font-body);
+    font-size: 1rem;
+    line-height: 1.6;
+    font-family: var(--font-deva), var(--font-body);
     text-align: center;
   }
 
@@ -2997,10 +3040,14 @@ if (!seedRow) {
        either. Opacity is the one channel WCAG 2.3.3 leaves open, and it is
        enough to say "this has stepped back". */
     .nm-shell[data-first] .nm-said,
+    /* Drawn already, and still. stroke-dashoffset must be zeroed explicitly:
+       killing the animation alone would leave the dasharray at 100 and the
+       arrow would simply never appear. */
     .nm-doodle,
     .nm-doodle-line,
-    .nm-doodle-head {
+    .nm-doodle-barb {
       animation: none;
+      stroke-dashoffset: 0;
     }
 
     .nm-said,
