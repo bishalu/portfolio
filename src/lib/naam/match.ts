@@ -592,7 +592,24 @@ export function retrieve(rows: readonly NaamRow[], query: string, limit = 24): N
   }
 
   hits.sort((a, z) => z.score - a.score || qualityRank(a.row) - qualityRank(z.row) || (a.row.id < z.row.id ? -1 : 1))
-  return hits.slice(0, limit)
+
+  /**
+   * A RELEVANCE FLOOR, WITH A FLOOR OF ITS OWN. Taking a fixed top-N off an OR
+   * query pads the pool with rows that matched one weak term and nothing else,
+   * and this corpus makes that acute: `name` appears in 71.8% of glosses and
+   * `of` in 78.6%, so one ordinary shared word drags a row in.
+   *
+   * The cut is 30% of the top score rather than the 50% the arithmetic
+   * suggests, and it always keeps six, because of the exact-gloss bonus above.
+   * Sasi — whose whole meaning is "moon" — scores 19.0 while Suma ("the moon")
+   * scores 7.9, so a half-of-top cut threw away a perfectly good answer to keep
+   * a slightly better one. Measured: it took "moon" from twenty hits to one and
+   * "fire" and "thunder" to one apiece. A threshold tuned on scores without
+   * that multiplier is the wrong threshold for scores with it.
+   */
+  const floor = hits.length > 0 ? hits[0].score * 0.3 : 0
+  const strong = hits.filter((hit) => hit.score >= floor)
+  return (strong.length >= 6 ? strong : hits.slice(0, 6)).slice(0, limit)
 }
 
 /**
