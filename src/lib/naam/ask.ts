@@ -52,10 +52,13 @@ import { NAAM_COPY } from './copy'
 import {
   normalizePrefs,
   parseFreeText,
+  passesHardFilters,
   pool,
   rankRelaxed,
   relatedTo,
+  retrieve,
   scoreName,
+  type NaamHit,
   type NaamMatch,
   type NaamNearMiss,
   type Prefs,
@@ -74,6 +77,13 @@ export const POOL_SIZE = 40
  * mentioned names cannot crowd out the pool the wish asked for.
  */
 const RELATED_PER_NAME = 6
+/**
+ * How many rows the meaning search may put at the head of the pool. Generous,
+ * because this is the part that actually answers the question — but well under
+ * POOL_SIZE so a wish with both a meaning and a shape ("a short name about the
+ * moon") still leaves room for the shape-ranked candidates behind it.
+ */
+const RETRIEVE_MAX = 22
 /**
  * Longer than the route's own 11s budget by a second, so the server's honest
  * `timeout` reason wins the race and the visitor is told which end was slow.
@@ -95,6 +105,13 @@ export interface NaamRead {
   prefs: Prefs
   /** Names the visitor put on the table themselves — a lookup or a comparison. */
   named: NaamRow[]
+  /**
+   * What searching the document's own meanings turned up, with the terms each
+   * row matched. Empty means the words they used appear in no definition at
+   * all — which is the signal that the concept needs rethinking rather than
+   * that the document has nothing.
+   */
+  hits: NaamHit[]
   /**
    * A name they typed that this document does not contain, with the nearest
    * rows it does. Carried through to the model so it can say so plainly rather
@@ -161,11 +178,36 @@ export function readAsk(text: string, rows: readonly NaamRow[]): NaamRead {
   const neighbours = named.flatMap((row) => relatedTo(row, rows, RELATED_PER_NAME))
   const nearRows = parsed.near.flatMap((miss) => miss.rows)
 
-  const poolIds = [...new Set([...named, ...nearRows, ...neighbours, ...candidates].map((row) => row.id))].slice(
-    0,
-    POOL_SIZE,
-  )
-  return { prefs, named, near: parsed.near, poolIds, relaxed }
+  /**
+   * THE MEANINGS COME FIRST, and this is the change that matters.
+   *
+   * Everything above answers "what SHAPE of name did they ask for" — a letter,
+   * a length, a name they already like. None of it answers "what did they ask
+   * it to MEAN", because that used to be handled by mapping the sentence onto
+   * nineteen hand-tagged themes, and a concept outside those nineteen produced
+   * no signal whatsoever. The pool then fell back to its quality-ranked default
+   * and the model was handed forty names that had nothing to do with the
+   * question. "Moon" returned none of the thirty-six rows whose meaning
+   * mentions the moon.
+   *
+   * retrieve() reads the document's own definitions instead. It goes ahead of
+   * the ranked candidates because a name that MEANS what somebody asked for is
+   * a better answer than a name that merely scores well.
+   *
+   * The visitor's shape constraints still apply to it — asking for a short moon
+   * name should not return a four-syllable one — but only while they leave
+   * something behind. A hard filter that empties the retrieval is a filter that
+   * has thrown away the only rows that answered the question, so it is dropped
+   * and the meaning wins.
+   */
+  const hits = retrieve(rows, text, RETRIEVE_MAX)
+  const shaped = hits.filter((hit) => passesHardFilters(hit.row, prefs))
+  const meant = (shaped.length > 0 ? shaped : hits).map((hit) => hit.row)
+
+  const poolIds = [
+    ...new Set([...named, ...nearRows, ...meant, ...neighbours, ...candidates].map((row) => row.id)),
+  ].slice(0, POOL_SIZE)
+  return { prefs, named, near: parsed.near, hits, poolIds, relaxed }
 }
 
 /**

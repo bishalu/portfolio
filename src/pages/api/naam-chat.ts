@@ -30,16 +30,26 @@
  * Credentials are BALGO_-prefixed because Lambda strips inbound AWS_* vars.
  */
 import type { APIRoute } from 'astro'
-import { BedrockRuntimeClient, ConverseCommand, type ToolInputSchema } from '@aws-sdk/client-bedrock-runtime'
 import {
+  BedrockRuntimeClient,
+  ConverseCommand,
+  type Message,
+  type ToolInputSchema,
+} from '@aws-sdk/client-bedrock-runtime'
+import {
+  buildSearchResult,
   buildSystemPrompt,
   buildUserTurn,
   coerceModelReply,
   NAAM_MAX_PICKS,
+  NAAM_SEARCH_SCHEMA,
+  NAAM_SEARCH_TOOL,
   NAAM_TOOL_NAME,
   NAAM_TOOL_SCHEMA,
 } from '@/lib/naam/prompt'
+import { retrieve } from '@/lib/naam/match'
 import { ceilinged, clientIp, isRowId, json, loadCoreRows, rateLimited, tidy } from '@/lib/naam/server'
+import type { NaamRow } from '@/types/naam'
 
 export const prerender = false
 
@@ -85,6 +95,16 @@ const ASK_MAX = 400
  * identical; the cast is the whole of the difference.
  */
 const TOOL_SCHEMA = { json: NAAM_TOOL_SCHEMA } as unknown as ToolInputSchema
+const SEARCH_SCHEMA = { json: NAAM_SEARCH_SCHEMA } as unknown as ToolInputSchema
+/**
+ * How many times the model may go back to the document before it must answer.
+ * Two is the number: one round to translate a concept it could not find, one
+ * more if that was also thin. A third round is a model going in circles, and
+ * every round is a full Bedrock turn against an 11s budget.
+ */
+const MAX_SEARCH_ROUNDS = 2
+/** Rows returned per search term. Enough to choose from, small enough to read. */
+const SEARCH_LIMIT = 10
 
 /** Never a 500. `reason` picks which honest line the page shows. */
 function degraded(reason: string): Response {
@@ -155,48 +175,126 @@ export const POST: APIRoute = async (context) => {
   const timer = setTimeout(() => controller.abort(), Math.min(TIMEOUT_MS, remaining))
   try {
     const client = new BedrockRuntimeClient({ region, credentials: { accessKeyId, secretAccessKey } })
-    const command = new ConverseCommand({
-      modelId,
-      system: [{ text: buildSystemPrompt() }],
-      messages: [{ role: 'user', content: [{ text: buildUserTurn(ask, poolRows, absent) }] }],
-      inferenceConfig: { maxTokens: MAX_TOKENS, temperature: 0.6 },
-      /**
-       * gpt-oss is a reasoning model and its thinking is billed against the
-       * SAME maxTokens as the answer. At `low` it spends a few dozen tokens
-       * deciding; left at the default it enumerates the entire pool one row at
-       * a time — measured, verbatim: "bhadra meaning deity? Not calm. bhaga
-       * light... Not calm." — and on the asks that deserve the most care it ran
-       * out of budget mid-thought and returned `stopReason: 'max_tokens'` with
-       * a reasoningContent block and NO toolUse at all. That is the whole of
-       * the intermittent `degraded: 'empty'`: not a parse failure, a model that
-       * never got to the answer.
-       *
-       * Reading the pool row by row is also not the work. The pool is at most
-       * 60 rows of one-line glosses and the job is to choose three and say why
-       * — `low` is the honest setting for it, not a cost saving.
-       */
-      additionalModelRequestFields: { reasoning_effort: 'low' },
-      toolConfig: {
-        tools: [{ toolSpec: { name: NAAM_TOOL_NAME, inputSchema: TOOL_SCHEMA } }],
-        // One tool is declared, so `any` is a forced call to it — and it is the
-        // choice mode every Bedrock model supports, including gpt-oss.
-        toolChoice: { any: {} },
-      },
-    })
 
-    const response = await client.send(command, { abortSignal: controller.signal })
-    const content = response.output?.message?.content ?? []
-    const toolUse = content.find((block) => block.toolUse)?.toolUse
-    const raw = toolUse?.input ?? content.find((block) => block.text)?.text
+    /**
+     * THE GROUNDING SET GROWS, AND THAT IS THE POINT — it never loosens.
+     *
+     * The model may only name ids it has actually been shown, and until now
+     * that was exactly the pool the client sent. With a search tool it can be
+     * shown more, so `allowed` accumulates every row the document hands back.
+     * Every one of those came out of loadCoreRows() by id, so the guarantee is
+     * unchanged in kind: a name that is not in the document cannot enter this
+     * set, and coerceModelReply still drops anything outside it. What has
+     * changed is that the model can go and find rows the first search missed
+     * instead of being told the document is empty.
+     */
+    const allowed = new Set(poolRows.map((row) => row.id))
+    const messages: Message[] = [{ role: 'user', content: [{ text: buildUserTurn(ask, poolRows, absent) }] }]
 
-    // Filtered against the pool that RESOLVED to real rows, not the pool that
-    // was submitted. `poolIds` is only what survived isRowId(), so an id that
-    // is well-formed but names nothing could otherwise round-trip in pickIds.
-    // The client drops it and nothing renders, but the route's stated contract
-    // is that every id it returns names a row, and this is where that is true.
+    const converse = (force: boolean) =>
+      new ConverseCommand({
+        modelId,
+        system: [{ text: buildSystemPrompt() }],
+        messages,
+        inferenceConfig: { maxTokens: MAX_TOKENS, temperature: 0.6 },
+        /**
+         * gpt-oss is a reasoning model and its thinking is billed against the
+         * SAME maxTokens as the answer. At `low` it spends a few dozen tokens
+         * deciding; left at the default it enumerates the entire pool one row at
+         * a time — measured, verbatim: "bhadra meaning deity? Not calm. bhaga
+         * light... Not calm." — and on the asks that deserve the most care it ran
+         * out of budget mid-thought and returned `stopReason: 'max_tokens'` with
+         * a reasoningContent block and NO toolUse at all. That is the whole of
+         * the intermittent `degraded: 'empty'`: not a parse failure, a model that
+         * never got to the answer.
+         *
+         * Reading the pool row by row is also not the work. The pool is at most
+         * 60 rows of one-line glosses and the job is to choose three and say why
+         * — `low` is the honest setting for it, not a cost saving.
+         */
+        additionalModelRequestFields: { reasoning_effort: 'low' },
+        toolConfig: {
+          /**
+           * On the last round the search tool is TAKEN AWAY rather than merely
+           * discouraged. `toolChoice: any` forces a call to some tool, and a
+           * model that still has a search available will keep reaching for it
+           * — so the way to make it answer is to leave it nothing else it can
+           * do. Removing the tool is also what keeps the 11s budget honest:
+           * there is no round in which another search is possible.
+           */
+          tools: force
+            ? [{ toolSpec: { name: NAAM_TOOL_NAME, inputSchema: TOOL_SCHEMA } }]
+            : [
+                { toolSpec: { name: NAAM_TOOL_NAME, inputSchema: TOOL_SCHEMA } },
+                { toolSpec: { name: NAAM_SEARCH_TOOL, inputSchema: SEARCH_SCHEMA } },
+              ],
+          // `any` is a forced call to one of the declared tools, and it is the
+          // choice mode every Bedrock model supports, including gpt-oss.
+          toolChoice: { any: {} },
+        },
+      })
+
+    /**
+     * ASK, AND LET IT GO BACK TO THE DOCUMENT.
+     *
+     * Most turns end on the first pass: the pool was built by searching the
+     * meanings for the visitor's own words, so "moon" arrives already holding
+     * Sasi. The loop is for the turns where the visitor's word is not the
+     * dictionary's word — "brave", which appears in no gloss here while
+     * valiant, heroic and bold all do — and it costs a round trip only on the
+     * asks that need one.
+     */
+    let raw: unknown
+    for (let round = 0; ; round++) {
+      const last = round >= MAX_SEARCH_ROUNDS || deadline - Date.now() < 3500
+      const response = await client.send(converse(last), { abortSignal: controller.signal })
+      const message = response.output?.message
+      const content = message?.content ?? []
+      const call = content.find((block) => block.toolUse?.name === NAAM_SEARCH_TOOL)?.toolUse
+
+      if (!call || last) {
+        const answer = content.find((block) => block.toolUse?.name === NAAM_TOOL_NAME)?.toolUse
+        raw = answer?.input ?? content.find((block) => block.text)?.text
+        break
+      }
+
+      // Run the model's own queries against the document's meanings.
+      const input = (call.input ?? {}) as { queries?: unknown }
+      const queries = (Array.isArray(input.queries) ? input.queries : [])
+        .map((q) => tidy(q, 60))
+        .filter((q): q is string => Boolean(q))
+        .slice(0, 4)
+
+      const found: NaamRow[] = []
+      for (const query of queries) {
+        for (const hit of retrieve(rows, query, SEARCH_LIMIT)) {
+          if (allowed.has(hit.row.id) && found.some((r) => r.id === hit.row.id)) continue
+          allowed.add(hit.row.id)
+          if (!found.some((r) => r.id === hit.row.id)) found.push(hit.row)
+        }
+      }
+
+      if (message) messages.push(message)
+      messages.push({
+        role: 'user',
+        content: [
+          {
+            toolResult: {
+              toolUseId: call.toolUseId,
+              content: [{ text: buildSearchResult(queries, found) }],
+            },
+          },
+        ],
+      })
+    }
+
+    // Filtered against every row the model was actually SHOWN — the pool it
+    // started with plus anything its own searches returned. All of it came out
+    // of loadCoreRows() by id, so an id that names nothing still cannot
+    // round-trip, which is the contract this route states.
     const { reply, pickIds } = coerceModelReply(
       raw,
-      poolRows.map((row) => row.id),
+      [...allowed].map((id) => byId.get(id)).filter((row) => row !== undefined),
     )
     if (!reply) return degraded('empty')
 

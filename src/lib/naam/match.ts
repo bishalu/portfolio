@@ -413,6 +413,188 @@ function qualityRank(row: NaamRow): number {
   return 3
 }
 
+/* ────────────────────────────────────────────────────────────────────────────
+   RETRIEVAL — reading the meanings, not classifying the question
+
+   THIS EXISTS BECAUSE THE PAGE WAS NOT SEARCHING. Free text used to be mapped
+   onto a fixed nineteen-word theme taxonomy, and a question that matched none
+   of those words produced NO signal at all — pool() then returned its
+   quality-ranked default, so every unrecognised concept got the same forty
+   names. Asked for "moon" the model was handed a pool containing none of the
+   thirty-six rows whose meaning mentions the moon, and correctly reported that
+   it could not see one. Sasi, whose entire gloss is the word "moon", was never
+   in the room.
+
+   A taxonomy answers "which of my nineteen buckets is this?" A person asking
+   for a name for their son is not thinking in buckets. So this reads the
+   DEFINITIONS instead, which is where the answer always was.
+
+   BM25, and the parameters are chosen for this corpus rather than copied:
+
+     k1 = 1.2   standard. Term saturation barely matters when a gloss is six
+                words long and almost never repeats a term.
+     b  = 0.7   length normalisation, and it does the heavy lifting here. These
+                documents run from one word ("moon") to sixty, and without
+                normalisation a long dictionary line that mentions the moon in
+                passing outranks the row that simply IS the moon. At 0.7, Sasi
+                scores 19.0 and "name of the twelfth kala of the moon" scores
+                6.7 — which is the order a person would put them in.
+
+   The gloss is weighted well above the raw source line: `gloss` is the tidied
+   meaning we show on the card, `sourceGloss` is the unedited dictionary entry
+   full of abbreviations and cross-references, and a hit in the second is much
+   weaker evidence than a hit in the first.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+export interface NaamHit {
+  row: NaamRow
+  score: number
+  /** The query terms this row actually matched, for the agent to reason with. */
+  matched: string[]
+}
+
+/**
+ * FORM WORDS ARE NOT MEANING WORDS. Everything here is something parseFreeText
+ * has already read as a SHAPE — a length, a letter, a sound — and searching the
+ * definitions for it produces pure noise, because these are ordinary English
+ * words that appear all over a dictionary in a completely different sense.
+ * Measured: "two syllables" retrieved "name of two arhats"; "a short name about
+ * light" put "without, except, short of" above the rows that actually mean
+ * light. The shape is handled by prefs; this keeps it out of the meaning.
+ */
+const FORM_WORDS = new Set(
+  (
+    'short shorter shortest long longer longest brief snappy crisp syllable syllables syllabic ' +
+    'letter letters start starts starting begin begins beginning end ends ending spell spelling spelt ' +
+    'say saying said pronounce pronounced pronunciation easy easier hard harder simple ' +
+    'abroad overseas foreign english nepali nepal home one two three four five six seven ' +
+    'first second third last single double'
+  ).split(' '),
+)
+
+/** Words that carry no meaning to search for. */
+const QUERY_STOP = new Set([
+  ...'the a an and or of to in for with that this is are be am was were it its his her their my our your'.split(' '),
+  ...'i we you he she they me us them who what which when where how why'.split(' '),
+  ...'name names called mean means meaning definition sense about related relating something anything'.split(' '),
+  ...'some any other more most less few give show find look looking want wants need needs like likes'.split(' '),
+  ...'please can could would should do does did have has had get got make makes made'.split(' '),
+  ...'sound sounds sounding word words son boy child baby there here yes no not but if then than'.split(' '),
+])
+
+const normalise = (value: string): string =>
+  (value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+/** Content words, three letters or more. */
+export function queryTerms(query: string): string[] {
+  return [...new Set(normalise(query).split(' '))].filter(
+    (t) => t.length > 2 && !QUERY_STOP.has(t) && !FORM_WORDS.has(t),
+  )
+}
+
+interface IndexedRow {
+  row: NaamRow
+  gloss: string
+  glossTerms: Set<string>
+  length: number
+  sourceTerms: Set<string>
+  latin: string
+}
+
+interface GlossIndex {
+  docs: IndexedRow[]
+  df: Map<string, number>
+  avgLength: number
+}
+
+const glossIndexCache = new WeakMap<readonly NaamRow[], GlossIndex>()
+
+/** Built once per dataset and cached on it. ~2,100 short docs — a few ms. */
+function glossIndex(rows: readonly NaamRow[]): GlossIndex {
+  const cached = glossIndexCache.get(rows)
+  if (cached) return cached
+
+  const df = new Map<string, number>()
+  let total = 0
+  const docs = rows.map((row) => {
+    const gloss = normalise(row.gloss)
+    const words = gloss.split(' ').filter((t) => t.length > 2 && !QUERY_STOP.has(t))
+    const glossTerms = new Set(words)
+    for (const term of glossTerms) df.set(term, (df.get(term) ?? 0) + 1)
+    const length = words.length || 1
+    total += length
+    return {
+      row,
+      gloss,
+      glossTerms,
+      length,
+      /**
+       * A SET, NOT A STRING, and that is a bug fix rather than a refactor.
+       * Matching the raw source line with `.includes()` matched INSIDE words:
+       * "long" hit "belonging", "art" hit "particular", "one" hit "stone". A
+       * query for "not too long" came back with "bright-toothed" because of it.
+       */
+      sourceTerms: new Set(
+        normalise(row.sourceGloss)
+          .split(' ')
+          .filter((t) => t.length > 2),
+      ),
+      latin: normalise(row.latin),
+    }
+  })
+
+  const index: GlossIndex = { docs, df, avgLength: total / (docs.length || 1) }
+  glossIndexCache.set(rows, index)
+  return index
+}
+
+/**
+ * Search the document's own meanings. Returns ranked rows and, for each, the
+ * terms it matched — the agent needs to know WHY something came back so it can
+ * say so.
+ */
+export function retrieve(rows: readonly NaamRow[], query: string, limit = 24): NaamHit[] {
+  const terms = queryTerms(query)
+  if (terms.length === 0) return []
+
+  const { docs, df, avgLength } = glossIndex(rows)
+  const n = docs.length || 1
+  const k1 = 1.2
+  const b = 0.7
+  const idf = (term: string) => {
+    const seen = df.get(term) ?? 0
+    return Math.log(1 + (n - seen + 0.5) / (seen + 0.5))
+  }
+
+  const hits: NaamHit[] = []
+  for (const doc of docs) {
+    let score = 0
+    const matched: string[] = []
+    for (const term of terms) {
+      let tf = 0
+      if (doc.glossTerms.has(term)) tf = 2
+      else if (doc.sourceTerms.has(term)) tf = 0.6
+      if (doc.latin === term) tf += 6
+      if (tf === 0) continue
+      matched.push(term)
+      score += idf(term) * ((tf * (k1 + 1)) / (tf + k1 * (1 - b + b * (doc.length / avgLength))))
+    }
+    if (score === 0) continue
+    // The meaning IS the word. One-word queries against one-word glosses are
+    // the commonest thing a person types, and they should win outright.
+    if (terms.length === 1 && doc.gloss === terms[0]) score *= 2.4
+    else if (terms.some((t) => doc.gloss.startsWith(t))) score *= 1.25
+    hits.push({ row: doc.row, score, matched })
+  }
+
+  hits.sort((a, z) => z.score - a.score || qualityRank(a.row) - qualityRank(z.row) || (a.row.id < z.row.id ? -1 : 1))
+  return hits.slice(0, limit)
+}
+
 /**
  * Substring search over `searchKey` (latin + B-variant + gloss, lowercased).
  * Buckets rather than fuzzy scoring: a name that starts with what you typed
