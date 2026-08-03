@@ -105,23 +105,15 @@ export default function NaamCard({
   // reader who can read it that the swap was not happening.
   const devanagari = naamPreferredDevanagari(row, preferB)
   const marked = row.badges.hardCluster
-  const sourceMeta = [
-    ...row.sources.map((s) => C.sourceLabel(s)),
-    ...(row.badges.attested ? [C.attested] : []),
-    ...(row.badges.evocative ? [C.evocative] : []),
-    ...(row.badges.hardCluster ? [C.hardCluster] : []),
-    C.page(row.page),
-  ]
 
   /**
    * THE WHOLE CARD KEEPS THE NAME. Asking someone to find a small pill in the
    * corner of a card is three steps — notice it, aim at it, work out that it
    * and not the name above it is the thing that chooses — for one idea.
    *
-   * Two regions opt out, because they do a different job and both are one tap
-   * of their own: the व/ब pill, which changes how a name is SPELLED rather
-   * than choosing it, and "from the document", which is the source disclosure
-   * this entire page exists to honour. Anything else on the card is Keep.
+   * One region opts out, because it does a different job and is one tap of its
+   * own: the व/ब pill, which changes how a name is SPELLED rather than
+   * choosing it. Everything else on the card is Keep.
    *
    * The real <button> is still rendered and still does the work, so the
    * accessibility tree has exactly one properly-named control per card and the
@@ -132,7 +124,7 @@ export default function NaamCard({
   const keepFromCard = (event: MouseEvent<HTMLElement>) => {
     if (!onPick || (trayFull && !picked)) return
     const target = event.target as HTMLElement
-    if (target.closest('.nm-source') || target.closest('.nm-swap') || target.closest('.nm-pick')) return
+    if (target.closest('.nm-swap') || target.closest('.nm-pick')) return
     onPick()
   }
 
@@ -226,24 +218,16 @@ export default function NaamCard({
           </button>
         )}
 
-        {!undocumented && (
-          <details className="nm-source">
-            <summary className="label-mono">
-              {C.sourceSummary}
-              <span className="sr-only"> — {primary}</span>
-            </summary>
-            <div className="nm-source-body">
-              {!row.glossIsVerbatim && <p className="nm-source-gloss">“{row.sourceGloss}”</p>}
-              <p className="nm-source-meta label-mono label-mono--sm">{sourceMeta.join(' · ')}</p>
-              <p className="nm-source-note label-mono label-mono--sm">
-                {row.glossIsVerbatim ? C.glossVerbatim : C.glossTidied}
-              </p>
-              {row.badges.feminineEnding && (
-                <p className="nm-source-note label-mono label-mono--sm">{C.feminineEnding}</p>
-              )}
-            </div>
-          </details>
-        )}
+        {/* THE "FROM THE DOCUMENT" DISCLOSURE IS GONE. It carried the verbatim
+            source line, the corpus labels and a page number under every card,
+            and it was the most machinery-looking thing on a page about naming a
+            child — a footnote apparatus on a card someone is choosing between.
+
+            The provenance is not weakened by removing it: the names, the
+            spellings, the Devanagari and the meanings still come from the
+            document and nowhere else, and the matcher still cannot surface a
+            name that is not in it. What has gone is the CITATION, not the
+            sourcing. The meaning on the card is the document's own line. */}
       </div>
     </article>
   )

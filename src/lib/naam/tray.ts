@@ -169,6 +169,31 @@ export function togglePick(row: NaamRow): void {
   emit()
 }
 
+/**
+ * A NAME THE DOCUMENT DOES NOT HAVE, seated in an empty slot.
+ *
+ * The id is prefixed rather than being a row id because it is NOT one, and
+ * everything downstream needs to be able to tell: /api/naam-submit checks every
+ * submitted pick against the real rows and drops what does not resolve, so an
+ * own-name travels in the `names` field instead — the same field the no-JS form
+ * has always used. Prefixing keeps that sortable at the client with no server
+ * change and no way for a typed name to be mistaken for a cited one.
+ */
+export function addOwnPick(spelling: string): void {
+  const clean = spelling.trim().slice(0, 40)
+  if (!clean || picks.length >= PICK_MAX) return
+  const id = `own-${clean.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'name'}`
+  if (isPicked(id)) return
+  picks = Object.freeze([...picks, { id, spelling: clean }])
+  persist()
+  emit()
+}
+
+/** Typed by the visitor rather than cited from the document. */
+export function isOwnPick(id: string): boolean {
+  return id.startsWith('own-')
+}
+
 export function removePick(id: string): void {
   if (!isPicked(id)) return
   picks = Object.freeze(picks.filter((p) => p.id !== id))

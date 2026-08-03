@@ -648,9 +648,22 @@ if (!seedRow) {
      lamp is simply not in the set. */
   .nm-shell[data-first] .nm-slots,
   .nm-shell[data-first] .nm-quiet-label {
-    opacity: 0.36;
-    filter: saturate(0.5);
-    pointer-events: none;
+    opacity: 0.52;
+    filter: saturate(0.6);
+  }
+
+  /* NOT pointer-events: none, and that used to be here. It was correct while a
+     slot could only RECEIVE a name kept from the deck — nothing had been dealt,
+     so there was nothing it could take. It stopped being correct the moment an
+     empty slot became the way to put in a name of your own: the one visitor it
+     locked out is the relative who arrived already knowing what they wanted to
+     say, which is the best visitor this page gets. Dimmed is a statement about
+     emphasis; inert is a statement about what works, and only the first one was
+     ever true here. */
+  .nm-shell[data-first] .nm-slot-empty:hover,
+  .nm-shell[data-first] .nm-slot-empty:focus-visible {
+    opacity: 1;
+    filter: none;
   }
 
   /* The composer is the one control that matters on the first frame, so it is
@@ -910,6 +923,7 @@ if (!seedRow) {
   /* ── The stream ───────────────────────────────────────────────────────── */
   .nm-streamwrap {
     display: flex;
+    /* The doodle hangs off this. */
     position: relative;
     flex: 1 1 0;
     min-height: 0;
@@ -1675,6 +1689,168 @@ if (!seedRow) {
     font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
   }
 
+  /* ── THE OPENING, AS A SEQUENCE ────────────────────────────────────────
+     Three lines arrived at once, at reading size, and then sat there. Nothing
+     about that says a person is on the other side — it is a paragraph.
+
+     They are staged now, one beat apart, in the order they are meant to be
+     read: who is asking, what the list is, what to do. Each rises a few pixels
+     as it fades, which is the difference between text appearing and text being
+     SAID. `backwards` holds each one invisible through its own delay, so
+     nothing flashes at full opacity before its turn.
+
+     And they are BIGGER. The opening is the only thing on this half of the
+     screen and it was set as if it were competing for room it does not have to
+     compete for. */
+  .nm-shell[data-first] .nm-said {
+    animation: nm-say 560ms cubic-bezier(0.05, 0.7, 0.1, 1) backwards;
+    font-size: 1.06rem;
+    line-height: 1.72;
+  }
+
+  .nm-shell[data-first] .nm-turn:nth-of-type(1) .nm-said {
+    animation-delay: 120ms;
+  }
+
+  .nm-shell[data-first] .nm-turn:nth-of-type(2) .nm-said {
+    animation-delay: 420ms;
+  }
+
+  .nm-shell[data-first] .nm-turn:nth-of-type(3) .nm-said {
+    animation-delay: 700ms;
+  }
+
+  .nm-shell[data-first] .nm-said--lead {
+    font-size: clamp(1.4rem, 2.5vw, 1.85rem);
+    line-height: 1.4;
+  }
+
+  .nm-shell[data-first] .nm-said--quiet {
+    font-size: 0.86rem;
+  }
+
+  @keyframes nm-say {
+    from {
+      transform: translateY(9px);
+      opacity: 0;
+    }
+
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
+
+  /* AS YOU TYPE, THE OPENING MAKES WAY. It has said its piece the moment
+     somebody answers it, so it rises and thins rather than vanishing — a
+     paragraph that disappears on a keystroke reads as a bug, and one that
+     drifts up out of the way reads as the room turning to listen. It is still
+     there, still legible, just no longer the loudest thing. */
+  .nm-said,
+  .nm-turn {
+    transition:
+      transform 620ms cubic-bezier(0.34, 1.2, 0.64, 1),
+      opacity 620ms ease,
+      font-size 380ms ease;
+  }
+
+  .nm-shell[data-composing] .nm-turn {
+    transform: translateY(-14px);
+    opacity: 0.42;
+  }
+
+  .nm-shell[data-composing] .nm-said--lead {
+    font-size: clamp(1.15rem, 1.9vw, 1.4rem);
+  }
+
+  /* ── THE DOODLE ────────────────────────────────────────────────────────
+     A drawn hint rather than a written one. "Type here" is an instruction and
+     reads as an apology for the interface; a line curving down to the box is
+     the gesture a person makes when they point at something across a table.
+
+     It draws itself once — stroke-dashoffset from the full length to zero, so
+     the line is made rather than revealed — then sways a degree and a half on a
+     slow loop so it stays alive without asking for attention. It leaves the
+     instant the visitor types. */
+  .nm-doodle {
+    position: absolute;
+    bottom: 0.25rem;
+    left: clamp(0.5rem, 3vw, 2.5rem);
+    transform-origin: 20% 10%;
+    z-index: 3;
+    animation:
+      nm-doodle-in 900ms ease 900ms backwards,
+      nm-doodle-sway 4.6s ease-in-out 1.8s infinite;
+    width: clamp(72px, 9vw, 108px);
+    height: auto;
+    pointer-events: none;
+    color: color-mix(in srgb, var(--nm-keep) 74%, var(--nm-text-soft));
+  }
+
+  .nm-doodle-line,
+  .nm-doodle-head {
+    stroke: currentcolor;
+    stroke-width: 2.2;
+  }
+
+  .nm-doodle-line {
+    animation: nm-doodle-draw 1100ms cubic-bezier(0.4, 0, 0.2, 1) 900ms backwards;
+    stroke-dasharray: 132;
+  }
+
+  .nm-doodle-head {
+    animation: nm-doodle-tip 320ms ease 1900ms backwards;
+  }
+
+  @keyframes nm-doodle-draw {
+    from {
+      stroke-dashoffset: 132;
+    }
+
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @keyframes nm-doodle-tip {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes nm-doodle-in {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes nm-doodle-sway {
+    0%,
+    100% {
+      rotate: -1.5deg;
+    }
+
+    50% {
+      rotate: 1.5deg;
+    }
+  }
+
+  .nm-shell[data-composing] .nm-doodle {
+    transform: translateY(8px);
+    opacity: 0;
+    transition:
+      opacity 320ms ease,
+      transform 320ms ease;
+  }
+
   /* ── THE COMPOSER, ARRIVING AND ANSWERING ──────────────────────────────
      Two moments, and both exist because a text field is the least alive thing
      an interface can put in front of someone.
@@ -2327,9 +2503,95 @@ if (!seedRow) {
     visibility: hidden;
   }
 
+  /* AN EMPTY SLOT IS A CONTROL NOW, so it has to look like one can be pressed
+     without shouting at three of them on the first frame. At rest it is what it
+     always was — a Devanagari numeral in a waiting box — and the + only fades up
+     under a pointer or a focus ring. The whole box is the target. */
   .nm-slot-empty {
     display: grid;
+    position: relative;
     place-items: center;
+    transition:
+      background var(--dur-base) ease,
+      border-color var(--dur-base) ease;
+    cursor: pointer;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .nm-slot-add {
+    position: absolute;
+    right: 0.42rem;
+    bottom: 0.28rem;
+    transform: scale(0.8);
+    opacity: 0;
+    transition:
+      opacity var(--dur-base) ease,
+      transform var(--dur-base) ease;
+    color: var(--nm-accent-text);
+    font-size: 0.95rem;
+    line-height: 1;
+  }
+
+  .nm-slot-empty:hover,
+  .nm-slot-empty:focus-visible {
+    background: color-mix(in srgb, var(--nm-keep) 9%, transparent);
+  }
+
+  .nm-slot-empty:hover .nm-slot-add,
+  .nm-slot-empty:focus-visible .nm-slot-add {
+    transform: none;
+    opacity: 1;
+  }
+
+  .nm-slot-empty:hover .nm-slot-ord,
+  .nm-slot-empty:focus-visible .nm-slot-ord {
+    opacity: 0.35;
+  }
+
+  /* Typing straight into the slot. It fills the box rather than sitting in it,
+     so the box does not appear to gain a second, smaller box. */
+  .nm-slot-input {
+    border: 0;
+    border-bottom: 1.5px solid var(--nm-keep);
+    border-radius: 0;
+    background: transparent;
+    padding: 0 0.5rem;
+    width: 100%;
+    height: 100%;
+    color: var(--nm-text);
+    font-size: 0.92rem;
+    font-family: var(--font-body);
+    text-align: center;
+  }
+
+  .nm-slot-input:focus {
+    outline: none;
+  }
+
+  /* The way out of the tray. Quiet until there is something to send, and then
+     it is the warmest thing under the slots. */
+  .nm-tray-send {
+    animation: nm-say 420ms cubic-bezier(0.05, 0.7, 0.1, 1) backwards;
+    transition:
+      background var(--dur-base) ease,
+      border-color var(--dur-base) ease;
+    cursor: pointer;
+    margin: 0.55rem auto 0;
+    border: 1.5px solid var(--nm-keep);
+    border-radius: 999px;
+    background: var(--nm-keep-fill);
+    padding: 0.42rem 1.1rem;
+    color: var(--nm-text);
+    font-size: 0.9rem;
+  }
+
+  .nm-tray-send:hover,
+  .nm-tray-send:focus-visible {
+    background: color-mix(in srgb, var(--nm-keep) 26%, transparent);
   }
 
   /* Devanagari numerals. Free, and unmistakably Nepali. */
@@ -2729,6 +2991,24 @@ if (!seedRow) {
 
     .nm-composer-in {
       animation: none;
+    }
+
+    /* The opening still arrives and still makes way; it stops travelling to do
+       either. Opacity is the one channel WCAG 2.3.3 leaves open, and it is
+       enough to say "this has stepped back". */
+    .nm-shell[data-first] .nm-said,
+    .nm-doodle,
+    .nm-doodle-line,
+    .nm-doodle-head {
+      animation: none;
+    }
+
+    .nm-said,
+    .nm-turn,
+    .nm-shell[data-composing] .nm-turn,
+    .nm-shell[data-composing] .nm-doodle {
+      transform: none;
+      transition: opacity 200ms ease;
     }
   }
 

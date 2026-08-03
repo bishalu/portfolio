@@ -165,8 +165,17 @@ export const NAAM_COPY = {
      * word, and the hands are what makes it one on a screen.
      */
     greetingGlyph: '🙏',
+    /**
+     * SAID IN THE AFFIRMATIVE. It ended "we would rather not choose it alone",
+     * which is the same fact stated as a lack — and a sentence built out of
+     * what is missing asks the reader to supply it. Right Speech is not only
+     * about avoiding untruth; it is about saying the thing that nourishes, and
+     * "find it together" is the identical fact facing forward. Nobody is
+     * short-handed, nobody is being rescued, and the reader is being offered
+     * something rather than asked to fill a gap.
+     */
     greeting:
-      'नमस्ते. Sneha and Bishal are expecting a son. He needs a name before he arrives, and we would rather not choose it alone.',
+      'नमस्ते. Sneha and Bishal are expecting a son. He needs a name before he arrives, and we would like to find it together.',
     /**
      * WHAT THE LIST IS, said once and quietly. A visitor who does not know
      * where these names come from cannot tell whether the page is reading a
@@ -179,7 +188,26 @@ export const NAAM_COPY = {
      * S for Sneha, V because at home व is said ब.
      */
     source: `${n(NAAM_COUNTS.total)} names, out of the Vedas and the Sutras — the ones that begin with B, S or V.`,
-    invitation: 'Sit with us a while. Say what kind of name you have in mind, or start with one of these.',
+    /**
+     * THE ASK, AND THE PROMISE THAT SOMEONE IS LISTENING. It ended "or start
+     * with one of these" and pointed at four pre-written chips; the chips are
+     * gone, so the line has to do their teaching itself — a meaning, a sound, a
+     * single word is what a person may type, said as an invitation rather than
+     * as a syntax.
+     *
+     * "However it comes to you" is the whole register. There is no correct
+     * input here and no wrong way to begin, and telling somebody that before
+     * they type is the difference between a question and a test.
+     *
+     * It does NOT say "our agent will guide you", which is what this line is
+     * for. P11 forbids assistant framing on this page and the model itself is
+     * instructed never to say what it is, so naming the machinery would break
+     * the one illusion the whole build maintains. "We will look through them
+     * with you" makes the same promise — someone is on the other side of this,
+     * and you will not be left alone with 6,715 names — in the page's voice.
+     */
+    invitation:
+      'What kind of name are you looking for? Say it however it comes to you — a meaning, a sound, a single word. We will look through them with you.',
     /**
      * It said "Names the family keeps coming back to", which was true when the
      * shelf held six seeds and nothing else. It now holds the family's, every
@@ -283,6 +311,17 @@ export const NAAM_COPY = {
       empty: (slot: number) => `Slot ${slot} of three, empty`,
       /** The whole slot is the control; there is no grey ✕. */
       taken: (slot: number, name: string) => `Slot ${slot} of three, ${name}. Take it back.`,
+      /**
+       * AN EMPTY SLOT IS AN OFFER. A name of your own used to be a field inside
+       * the send form, which nobody reaches until they have already kept
+       * something from the document — so the one person it existed for, the
+       * relative who arrived with a name in mind, could not get to it. The tray
+       * is where names live; this is how one that is not in the document gets
+       * there.
+       */
+      ownGlyph: '+',
+      ownLabel: (slot: number) => `Slot ${slot} of three. Add a name of your own.`,
+      ownPlaceholder: 'a name…',
     },
     /**
      * The last turn: the send fields arrive in the stream on the FIRST kept
@@ -305,6 +344,13 @@ export const NAAM_COPY = {
       /** The app's code-switch, glossed by the English right beside it. */
       why: 'Kina? — why this one?',
       submit: 'Send them to us',
+      /**
+       * The tray's own way out, and it counts what it is about to send so the
+       * visitor knows before they leave the tray. It replaces a form that used
+       * to open by itself on the first kept name — which read as "that's
+       * enough" while somebody was still choosing.
+       */
+      open: (count: number) => (count === 1 ? 'Send this one →' : `Send these ${count} →`),
     },
   },
 

@@ -3,9 +3,9 @@ import type { CSSProperties, FormEvent } from 'react'
 import NaamCard from './NaamCard'
 import NaamDiyo, { type DiyoState } from './NaamDiyo'
 import NaamWall, { type WallNote } from './NaamWall'
-import { askNaam, failureNote, mergeNamed, readAsk, withReasons, RESULT_MAX } from '@/lib/naam/ask'
+import { askNaam, failureNote, readAsk, withReasons } from '@/lib/naam/ask'
 import { NAAM_COPY, NAAM_RELATIONS } from '@/lib/naam/copy'
-import { rankRelaxed, type NaamMatch } from '@/lib/naam/match'
+import type { NaamMatch } from '@/lib/naam/match'
 import { hydrateSound, playCue, setSound, soundOff, soundOn, subscribeSound } from '@/lib/naam/sound'
 import { NAAM_SEED_ROWS } from '@/lib/naam/seeds'
 import {
@@ -15,6 +15,8 @@ import {
   getPreferB,
   hydrate,
   loadCoreRows,
+  addOwnPick,
+  isOwnPick,
   removePick,
   subscribe,
   togglePick,
@@ -365,9 +367,7 @@ export default function NaamApp({ seed }: NaamAppProps) {
     // inventing names, which is the one thing it must never be ambiguous about.
     { id: 'source', kind: 'agent', text: C.app.source, quiet: true },
     { id: 'invitation', kind: 'agent', text: C.app.invitation },
-    { id: 'starters', kind: 'starters' },
   ])
-  const [starters, setStarters] = useState<readonly string[]>(C.app.starters)
   const [ask, setAsk] = useState('')
   const [asking, setAsking] = useState(false)
   /**
@@ -398,7 +398,8 @@ export default function NaamApp({ seed }: NaamAppProps) {
    * whether it is empty: with no picks AND no typed name there is nothing to
    * send, and with either one there is.
    */
-  const [own, setOwn] = useState('')
+  /** Which empty slot is currently accepting a typed name, if any. */
+  const [owning, setOwning] = useState<number | null>(null)
   /**
    * CAN THIS BROWSER ACTUALLY DRAW THE FOLDED HANDS?
    *
@@ -700,14 +701,9 @@ export default function NaamApp({ seed }: NaamAppProps) {
 
   /** What the visitor said, then the model's turn. */
   const runAsk = useCallback(
-    (text: string, typed: boolean) => {
+    (text: string) => {
       const value = text.trim()
       if (!rows || asking || value.length === 0) return
-
-      // Chips are a way in, not a script. Once the visitor has said something
-      // of their own the starters have done their job and leave.
-      if (typed) setStarters([])
-      else setStarters((prev) => prev.filter((chip) => chip !== text))
 
       setTurns((prev) => [...prev, { id: nextId(), kind: 'you', text: value }])
       void runModel(value)
@@ -715,37 +711,11 @@ export default function NaamApp({ seed }: NaamAppProps) {
     [asking, rows, runModel],
   )
 
-  /**
-   * The document's own list — and only because it was asked for. This is the
-   * quiet button on a `stuck` turn, the matcher runs here and nowhere else on
-   * the ask path, and the deck it produces is badged LOCAL. It replaces the
-   * stuck turn in place: that turn said there were no names and offered this,
-   * so the names belong in its spot rather than underneath an offer they have
-   * just answered.
-   */
-  const showDocument = useCallback(
-    (failedId: string, value: string) => {
-      const dataset = rows
-      if (!dataset) return
-      const { prefs, named } = readAsk(value, dataset)
-      const { matches: ranked, relaxed } = rankRelaxed(dataset, prefs, RESULT_MAX)
-      const matches = mergeNamed(named, ranked, prefs)
-      const note = relaxed ? `${C.badge.localCaption} ${C.results.relaxed}` : C.badge.localCaption
-      setTurns((prev) =>
-        prev.map((turn) =>
-          turn.id === failedId ? { id: failedId, kind: 'names', matches, badge: 'local', note } : turn,
-        ),
-      )
-      setAnnounce(matches.length === 0 ? C.results.emptyAsk : note)
-    },
-    [rows],
-  )
-
   const submitAsk = useCallback(() => {
     const value = ask.trim()
     if (value.length === 0) return
     setAsk('')
-    runAsk(value, true)
+    runAsk(value)
   }, [ask, runAsk])
 
   /* — Keep, and take back, which is animated exactly as hard ——————————— */
@@ -948,8 +918,20 @@ export default function NaamApp({ seed }: NaamAppProps) {
    * (`send.lead`), which is why that string had to stop saying "that is your
    * three": it fires when there is one.
    */
-  useEffect(() => {
-    if (formShown || picks.length < 1) return
+  /**
+   * OPENED BY THE VISITOR, never by the count.
+   *
+   * The form used to arrive on its own the moment a name was kept, and it was
+   * in the way: it filled the conversation column with fields while somebody
+   * was still choosing, and it read as "that's enough, hand them over" after
+   * exactly one pick. Three slots that invite three names and a form that opens
+   * on the first are arguing with each other.
+   *
+   * So the tray offers `send.open` once there is anything to send, and pressing
+   * it is what brings the form. Keeping goes on happening either way.
+   */
+  const openForm = useCallback(() => {
+    if (formShown) return
     setFormShown(true)
     later(
       () => {
@@ -962,7 +944,7 @@ export default function NaamApp({ seed }: NaamAppProps) {
       },
       reducedMotion() ? 0 : FORM_DELAY_MS,
     )
-  }, [formShown, later, picks.length])
+  }, [formShown, later])
 
   /**
    * Two posts, and they say different things. Netlify Forms is the durable
@@ -984,7 +966,18 @@ export default function NaamApp({ seed }: NaamAppProps) {
       // The name they typed themselves, if any. It has always been carried by
       // both endpoints; the app was the only surface that never collected it
       // and posted an empty string every time.
-      const names = String(data.get('names') ?? '').trim()
+      /**
+       * TYPED NAMES TRAVEL IN `names`, CITED ONES IN `picks`, and the split is
+       * the server's rule rather than a preference: /api/naam-submit checks
+       * every submitted pick against the document's real rows and drops what
+       * does not resolve. An own-name in `picks` would simply vanish. `names`
+       * is the field the no-JS form has always used for exactly this.
+       */
+      const cited = picks.filter((pick) => !isOwnPick(pick.id))
+      const names = picks
+        .filter((pick) => isOwnPick(pick.id))
+        .map((pick) => pick.spelling)
+        .join(', ')
       setSending(true)
       setSendNote('')
 
@@ -992,40 +985,59 @@ export default function NaamApp({ seed }: NaamAppProps) {
         'form-name': 'naam-suggestion',
         from,
         relation,
-        picks: JSON.stringify(picks),
+        picks: JSON.stringify(cited),
         names,
         reason,
       })
 
-      try {
-        const res = await fetch('/', {
+      /**
+       * TWO POSTS, AND NEITHER IS ALLOWED TO CANCEL THE OTHER.
+       *
+       * This used to send the Netlify Forms post first and RETURN on any
+       * non-2xx from it, so a failure of the best-effort email path threw away
+       * a suggestion the durable queue would have accepted. The dependency was
+       * exactly backwards: Forms is the notification, /api/naam-submit is the
+       * record. Caught locally, where `netlify serve` answers POST / with 405
+       * and every submission silently aborted before reaching the queue at all.
+       *
+       * They run together now and the visitor is only told it failed if BOTH
+       * did. `Promise.allSettled`, not `all`: one rejecting must not take the
+       * other's result with it.
+       */
+      const [mailed, stored] = await Promise.allSettled([
+        fetch('/', {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: encoded.toString(),
           keepalive: true,
-        })
-        if (!res.ok) throw new Error(String(res.status))
-      } catch {
+        }),
+        fetch('/api/naam-submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ from, relation, reason, names, picks: cited }),
+          keepalive: true,
+        }),
+      ])
+
+      const emailed = mailed.status === 'fulfilled' && mailed.value.ok
+      let queued = false
+      let rateLimited = false
+      if (stored.status === 'fulfilled') {
+        rateLimited = stored.value.status === 429
+        try {
+          const body = (await stored.value.json()) as { ok?: unknown; stored?: unknown }
+          queued = body.ok === true && body.stored === true
+        } catch {
+          /* a body we cannot read is not a stored suggestion */
+        }
+      }
+
+      // Nothing got through at all — the only case worth stopping for.
+      if (!emailed && !queued && !rateLimited) {
         setSending(false)
         setSendNote(C.form.error.network)
         setAnnounce(C.form.error.network)
         return
-      }
-
-      let queued = false
-      let rateLimited = false
-      try {
-        const res = await fetch('/api/naam-submit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ from, relation, reason, names, picks }),
-          keepalive: true,
-        })
-        rateLimited = res.status === 429
-        const body = (await res.json()) as { ok?: unknown; stored?: unknown }
-        queued = body.ok === true && body.stored === true
-      } catch {
-        /* the email path already succeeded */
       }
 
       const line = rateLimited
@@ -1284,28 +1296,20 @@ export default function NaamApp({ seed }: NaamAppProps) {
       case 'family':
         return null
 
+      /**
+       * THE PRE-WRITTEN CHIPS ARE GONE. Four ready-made sentences under an
+       * invitation quietly reframe it as multiple choice: the question stops
+       * being "what kind of name are you looking for" and becomes "pick one of
+       * these", and the answers a visitor gives when they are handed options
+       * are not the ones they arrived with. The invitation now teaches what to
+       * say in its own words — a meaning, a sound, a single word — and the
+       * doodle points at where to say it.
+       *
+       * The turn kind survives so a session stored before this change still
+       * renders; it simply draws nothing.
+       */
       case 'starters':
-        if (starters.length === 0) return null
-        return (
-          <>
-            <div className="nm-chips">
-              {starters.map((chip) => (
-                <button
-                  type="button"
-                  className="nm-chip"
-                  key={chip}
-                  disabled={notReady || asking}
-                  onClick={() => runAsk(chip, false)}
-                >
-                  {chip}
-                </button>
-              ))}
-              <button type="button" className="nm-chip-hide label-mono label-mono--sm" onClick={() => setStarters([])}>
-                {C.app.dismissStarters}
-              </button>
-            </div>
-          </>
-        )
+        return null
 
       case 'thinking':
         return (
@@ -1392,15 +1396,13 @@ export default function NaamApp({ seed }: NaamAppProps) {
                   {C.failure.retry}
                 </button>
               )}
-              <button
-                type="button"
-                className="nm-chip-hide"
-                data-nm-escape=""
-                disabled={notReady}
-                onClick={() => showDocument(turn.id, turn.ask)}
-              >
-                {C.failure.escape} <span aria-hidden="true">{C.failure.escapeGlyph}</span>
-              </button>
+              {/* NO "SHOW ME WHAT THE DOCUMENT HAS ANYWAY". It was the honest
+                  way to offer the matcher's own list when the model could not
+                  answer, and it was still an invitation to give up on the
+                  conversation and read a ranked dump of 6,715 rows. Nobody
+                  naming a child wants a list; they want the next question. So
+                  the failure offers the one thing that actually helps — try
+                  again — and the agent's job is to make the retry worth it. */}
             </div>
           </>
         )
@@ -1433,35 +1435,11 @@ export default function NaamApp({ seed }: NaamAppProps) {
               </span>
             </div>
 
-            {/* A NAME OF THEIR OWN, and this is the right place for it rather
-                than a button on the first screen. Someone arrives with a name
-                already in mind — that is the commonest thing a relative has —
-                and until now the page had no answer but "it is not in the
-                document". The field has existed in /api/naam-submit and in the
-                no-JS form since the beginning; the app simply never showed it,
-                and posted names:'' every time.
-
-                It sits UNDER the picks and above Kina?, so it reads as "and
-                also this" rather than as an alternative to the whole exercise,
-                and it is invisible until the visitor has engaged enough for the
-                form to open. Not in the way; obvious once you are looking for
-                it. */}
-            <span className="nm-field">
-              <label className="label-mono label-mono--sm" htmlFor="nma-own">
-                {C.form.names.label}
-              </label>
-              <input
-                id="nma-own"
-                name="names"
-                type="text"
-                value={own}
-                maxLength={C.limits.names}
-                placeholder={C.form.names.placeholder}
-                autoComplete="off"
-                onChange={(event) => setOwn(event.target.value)}
-              />
-              <span className="nm-field-help label-mono label-mono--sm">{C.form.names.helper}</span>
-            </span>
+            {/* The "or just type a name" field used to sit here. It has moved to
+                the empty slots, where it belongs: a name is a name whether it
+                came out of the document or out of somebody's head, and the tray
+                is where names go. A field in the form asked the visitor to
+                switch surfaces to do the same thing twice. */}
 
             <span className="nm-field">
               <label className="label-mono label-mono--sm" htmlFor="nma-reason">
@@ -1470,14 +1448,7 @@ export default function NaamApp({ seed }: NaamAppProps) {
               <textarea id="nma-reason" name="reason" rows={2} maxLength={C.limits.reason}></textarea>
             </span>
 
-            {/* Either a kept name or one they typed is enough to send. Requiring
-                a pick would make the field above unreachable for the one person
-                it exists for. */}
-            <button
-              type="submit"
-              className="nm-send-go"
-              disabled={sending || (picks.length === 0 && own.trim().length === 0)}
-            >
+            <button type="submit" className="nm-send-go" disabled={sending || picks.length === 0}>
               {C.app.send.submit}
             </button>
 
@@ -1562,6 +1533,9 @@ export default function NaamApp({ seed }: NaamAppProps) {
       data-thinking={asking ? 'true' : undefined}
       data-kept={picks.length}
       data-first={!asked ? 'true' : undefined}
+      /* Typing before the first ask: the opening lifts and thins out, because
+         the invitation has done its job the moment somebody answers it. */
+      data-composing={!asked && ask.trim().length > 0 ? 'true' : undefined}
     >
       {/* The room the lamp lights, and the dust in it. Both are behind
           everything (z-index 0, pointer-events none) and both are decoration
@@ -1643,6 +1617,30 @@ export default function NaamApp({ seed }: NaamAppProps) {
           )}
         </ol>
 
+        {/* THE DOODLE. Drawn rather than written: a curve from the last line of
+            the invitation down to the composer, with an arrowhead. It draws
+            itself once on arrival, sways very slightly while it waits, and
+            leaves the moment the visitor starts typing — a hint that outstays
+            its answer is a nag. aria-hidden and pointer-events:none; the
+            composer's own label is what a screen reader follows. */}
+        {!asked && (
+          <svg className="nm-doodle" viewBox="0 0 120 90" aria-hidden="true" focusable="false">
+            <path
+              className="nm-doodle-line"
+              d="M18 6C14 26 20 40 34 52c12 10 30 15 52 16"
+              fill="none"
+              strokeLinecap="round"
+            />
+            <path
+              className="nm-doodle-head"
+              d="M78 60l10 8-11 7"
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        )}
+
         {!pinned && (
           <button type="button" className="nm-jump label-mono label-mono--sm" onClick={jumpToLatest}>
             {C.app.jump}
@@ -1719,17 +1717,65 @@ export default function NaamApp({ seed }: NaamAppProps) {
                   </span>
                   <span className="sr-only">{C.app.tray.taken(index + 1, seatedLatin(rows, pick, preferB))}</span>
                 </button>
+              ) : owning === index ? (
+                /* Typing straight into the slot. It commits on Enter or on
+                   blur and cancels on Escape, so there is no confirm button in
+                   a 90px box. */
+                <input
+                  className="nm-slot-input"
+                  /* Focused on mount rather than with autoFocus: same effect,
+                     and it is correct here because the visitor pressed this
+                     slot in order to type in it. */
+                  ref={(node) => node?.focus()}
+                  type="text"
+                  maxLength={C.limits.name}
+                  placeholder={C.app.tray.ownPlaceholder}
+                  aria-label={C.app.tray.ownLabel(index + 1)}
+                  onBlur={(event) => {
+                    addOwnPick(event.target.value)
+                    setOwning(null)
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault()
+                      event.currentTarget.blur()
+                    }
+                    if (event.key === 'Escape') {
+                      event.currentTarget.value = ''
+                      event.currentTarget.blur()
+                    }
+                  }}
+                />
               ) : (
-                <span className="nm-slot-empty">
+                /* AN EMPTY SLOT IS THE OFFER, not a placeholder. It used to be
+                   inert type, and the way to contribute a name the document
+                   does not have was a field buried in the send form — which
+                   nobody reaches until they have already kept something. The
+                   slot is where names live, so it is where a name of your own
+                   goes in. */
+                <button type="button" className="nm-slot-empty" onClick={() => setOwning(index)}>
                   <span className="nm-slot-ord" aria-hidden="true" lang="sa-Deva">
                     {C.app.tray.ordinals[index]}
                   </span>
-                  <span className="sr-only">{C.app.tray.empty(index + 1)}</span>
-                </span>
+                  <span className="nm-slot-add" aria-hidden="true">
+                    {C.app.tray.ownGlyph}
+                  </span>
+                  <span className="sr-only">{C.app.tray.ownLabel(index + 1)}</span>
+                </button>
               )}
             </li>
           ))}
         </ol>
+
+        {/* The way out of the tray, and it appears only when there is something
+            to send. Before that it would be a control for nothing; after the
+            form is open it would be a second copy of a button already on
+            screen. */}
+        {picks.length > 0 && !formShown && (
+          <button type="button" className="nm-tray-send" onClick={openForm}>
+            {C.app.send.open(picks.length)}
+          </button>
+        )}
       </section>
 
       {/* LAST IN-FLOW ITEM OF THE COLUMN, never position: fixed — a fixed
