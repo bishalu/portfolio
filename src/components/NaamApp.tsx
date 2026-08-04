@@ -430,6 +430,11 @@ export default function NaamApp({ seed }: NaamAppProps) {
   const mountRef = useRef<AbortController | null>(null)
   const shellRef = useRef<HTMLDivElement | null>(null)
   const valleyRef = useRef<HTMLCanvasElement | null>(null)
+  /** The scene loads ~260ms after mount, long after the first notes exist, so
+   *  the count is kept in a ref for it to read on arrival — and the handle is
+   *  kept so later arrivals can be pushed straight through. */
+  const lampCountRef = useRef(0)
+  const valleyHandleRef = useRef<{ setLamps(n: number): void } | null>(null)
   /** React renders this empty and never diffs its children, so it is the one
       safe place to park an imperatively created flying name. */
   const fxRef = useRef<HTMLDivElement | null>(null)
@@ -472,7 +477,7 @@ export default function NaamApp({ seed }: NaamAppProps) {
   useEffect(() => {
     const canvas = valleyRef.current
     if (!canvas) return
-    let handle: { look(x: number, y: number): void; resize(): void; destroy(): void } | null = null
+    let handle: { setLamps(n: number): void; resize(): void; destroy(): void } | null = null
     let cancelled = false
     const still = reducedMotion()
 
@@ -481,25 +486,29 @@ export default function NaamApp({ seed }: NaamAppProps) {
         const { createValley } = await import('@/lib/naam/scene/valley')
         if (cancelled) return
         handle = await createValley({ canvas, still })
-        if (cancelled) handle.destroy()
+        if (cancelled) {
+          handle.destroy()
+          return
+        }
+        valleyHandleRef.current = handle
+        handle.setLamps(lampCountRef.current)
       } catch {
         // WebGL blocked, context lost, chunk failed — all the same outcome, and
         // it is not an error state. The gradient below is a complete page.
       }
     }, 260)
 
-    const onPointer = (event: PointerEvent) => {
-      handle?.look(event.clientX / window.innerWidth, event.clientY / window.innerHeight)
-    }
+    // No pointer listener: the valley does not pan. What moves is the flags and
+    // the birds, on their own clock — a window you look through, not a widget
+    // that follows the cursor.
     const onResize = () => handle?.resize()
-    if (!still) window.addEventListener('pointermove', onPointer, { passive: true })
     window.addEventListener('resize', onResize, { passive: true })
 
     return () => {
       cancelled = true
       window.clearTimeout(start)
-      window.removeEventListener('pointermove', onPointer)
       window.removeEventListener('resize', onResize)
+      valleyHandleRef.current = null
       handle?.destroy()
     }
   }, [])
@@ -1319,6 +1328,14 @@ export default function NaamApp({ seed }: NaamAppProps) {
       (a, b) => b.count - a.count || (b.mine ? 1 : 0) - (a.mine ? 1 : 0) || a.latin.localeCompare(b.latin),
     )
   }, [family, picks, preferB, rows, wall])
+
+  /** One lamp per name, pushed to the scene whenever the family's list changes.
+   *  The ref covers the case where the notes exist before the scene has loaded;
+   *  the handle covers every change after it has. */
+  useEffect(() => {
+    lampCountRef.current = notes.length
+    valleyHandleRef.current?.setLamps(notes.length)
+  }, [notes.length])
 
   /**
    * The cut between what you have passed and what you are on: the last thing

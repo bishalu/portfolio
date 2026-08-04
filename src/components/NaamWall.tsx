@@ -55,8 +55,9 @@
  * Every visible string reaches the DOM through JSX interpolation. `from` and
  * `relation` are a stranger's typed text and are never assembled into markup.
  */
-import { useEffect, useRef, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { NAAM_COPY } from '@/lib/naam/copy'
+import { lampSpots } from '@/lib/naam/scene/lamps'
 
 const C = NAAM_COPY
 
@@ -85,6 +86,22 @@ export interface NaamWallProps {
 
 export default function NaamWall({ notes }: NaamWallProps) {
   const shelfRef = useRef<HTMLUListElement>(null)
+
+  /**
+   * The SAME geometry the canvas uses to draw the glow. Read once per render
+   * from the shared module rather than duplicated here — a label two percent
+   * away from its lamp is a hover target over empty sky.
+   */
+  const [stacked, setStacked] = useState(false)
+  useEffect(() => {
+    if (typeof matchMedia !== 'function') return
+    const q = matchMedia('(max-width: 599px)')
+    const read = () => setStacked(q.matches)
+    read()
+    q.addEventListener('change', read)
+    return () => q.removeEventListener('change', read)
+  }, [])
+  const spots = lampSpots(notes.length, stacked)
 
   /**
    * PARALLAX, which is the cheapest real depth cue there is.
@@ -199,74 +216,65 @@ export default function NaamWall({ notes }: NaamWallProps) {
       <p className="label-mono label-mono--sm nm-quiet-label" id="nm-shelf-label">
         {C.app.familyLead}
       </p>
-      {/* THE SHELF SCROLLS, SO IT MUST BE REACHABLE. axe's
-          scrollable-region-focusable is a serious violation and it caught this
-          the moment the shelf gained a max-height: a region a mouse can scroll
-          and a keyboard cannot is content only some people can read. tabIndex
-          makes it focusable and aria-labelledby borrows the heading already
-          above it, so the label is not written twice and cannot drift.
-          role="list" is restorative — `list-style: none` strips list semantics
-          in Safari/VoiceOver, and every list on this page is unstyled. */}
-      {/* eslint-disable-next-line jsx-a11y/no-redundant-roles, jsx-a11y/no-noninteractive-tabindex */}
-      <ul className="nm-shelf" role="list" tabIndex={0} aria-labelledby="nm-shelf-label" ref={shelfRef}>
-        {notes.map((note, i) => (
-          <li
-            className="nm-leaf"
-            key={note.key}
-            data-mine={note.mine ? 'true' : undefined}
-            /* Support drives the ink, capped at five so a runaway favourite
-               cannot black the leaf out and make its own name unreadable. */
-            style={
-              {
-                '--support': Math.min(note.count, 5),
-                /* Depth from support, and the index only staggers the bob so
-                   six leaves never breathe in unison. */
-                '--i': i,
-              } as CSSProperties
-            }
-          >
-            <span className="nm-leaf-name">
-              {note.deva && (
-                <span className="nm-leaf-deva" lang="sa-Deva">
-                  {note.deva}
+      {/*
+        THE SHELF BECAME LAMPS IN THE VALLEY.
+
+        This was a scrolling stack of pothi leaves, and it was the single
+        heaviest thing on the right of the page — six names at full contrast,
+        each with a tally, sitting on top of the scene rather than in it. Two
+        objects competing for the same column.
+
+        What the list actually says is "these names are burning somewhere in the
+        family". So it says it in the world: one lamp per name, out across the
+        town at dusk, and the same warm colour as the diyo because they are the
+        same gesture. The count is now light — a name several people chose burns
+        brighter, which needs no legend and no digit beside a child's name.
+
+        THE CANVAS DRAWS THE GLOW; THIS DRAWS THE CONTROL. Canvas cannot be
+        focused, labelled, or read by a screen reader, and the gate on this page
+        is zero axe violations. So each lamp gets a real <button> positioned
+        over it from the SAME geometry (lampSpots), carrying the name for
+        hover, focus and assistive tech. Nothing here depends on seeing light.
+      */}
+      {/* eslint-disable-next-line jsx-a11y/no-redundant-roles */}
+      <ul className="nm-lamps" role="list" aria-labelledby="nm-shelf-label" ref={shelfRef}>
+        {notes.map((note, i) => {
+          const spot = spots[i]
+          if (!spot) return null
+          return (
+            <li
+              className="nm-lamp"
+              key={note.key}
+              data-mine={note.mine ? 'true' : undefined}
+              style={
+                {
+                  left: `${spot.x * 100}%`,
+                  top: `${spot.y * 100}%`,
+                  // Support drives BRIGHTNESS, capped at five. Size would make
+                  // the least-supported names hardest to see, which is backwards
+                  // on a page asking people to consider them.
+                  '--support': Math.min(note.count, 5),
+                  '--i': i,
+                } as CSSProperties
+              }
+            >
+              <button type="button" className="nm-lamp-hit">
+                <span className="nm-lamp-name">
+                  {note.deva && (
+                    <span className="nm-lamp-deva" lang="sa-Deva">
+                      {note.deva}
+                    </span>
+                  )}
+                  <span className="nm-lamp-latin">{note.latin}</span>
                 </span>
-              )}
-              <span className="nm-leaf-latin">{note.latin}</span>
-            </span>
-
-            {/*
-              THE TALLY IS BEADS, and that is a choice among three.
-
-              SIZE — a name set larger the more people chose it — is the
-              word-cloud answer, and it makes the names with least support the
-              hardest to read, which is backwards on a page asking people to
-              consider them.
-
-              A DIGIT reads as a score. This is a family choosing a child's
-              name, not a leaderboard, and "4" beside a name invites the reader
-              to treat the other one as losing.
-
-              BEADS are already this page's counting object — the thread down
-              the conversation, the three slots — so one bead per person reads
-              instantly, needs no legend, and stays warm. Past five they stop
-              being countable at a glance, so the fifth carries a numeral
-              instead of the row growing forever.
-
-              The beads are aria-hidden and the count is stated in words, so
-              nothing here depends on counting dots or seeing ink density.
-            */}
-            <span className="nm-leaf-tally" aria-hidden="true">
-              {note.count > 5 ? (
-                <span className="nm-leaf-many label-mono label-mono--sm">{note.count}</span>
-              ) : (
-                Array.from({ length: note.count }, (_, i) => <span className="nm-leaf-bead" key={i} />)
-              )}
-            </span>
-            <span className="sr-only">{C.wall.support(note.count)}</span>
-
-            {note.who && note.count === 1 && <span className="nm-leaf-who">{note.who}</span>}
-          </li>
-        ))}
+                <span className="sr-only">
+                  {C.wall.support(note.count)}
+                  {note.who && note.count === 1 ? ` — ${note.who}` : ''}
+                </span>
+              </button>
+            </li>
+          )
+        })}
       </ul>
     </>
   )

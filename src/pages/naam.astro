@@ -1396,12 +1396,129 @@ if (!seedRow) {
      it took 210px of a 669px column on the day it was built and squeezed the
      hand until the cards were clipped at both ends. It gets a share and
      scrolls; the hand keeps the rest. */
+  /* ────────────────────────────────────────────────────────────────────────
+     LAMPS IN THE VALLEY — what the shelf of pothi leaves became.
+
+     The shelf was a scrolling stack of six names at full contrast, each with a
+     tally, sitting in the same column as the scene: two objects competing for
+     one space, and the heaviest thing on the right of the page. What the list
+     SAYS is that these names are burning somewhere in the family, so now it
+     says it in the world.
+
+     The wrapper takes no space and no input. It is a positioning surface
+     stretched over the canvas, and only the lamps inside it are hit targets —
+     otherwise it would swallow every click meant for the tray beneath it.
+     ──────────────────────────────────────────────────────────────────────── */
   .nm-shelfwrap {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  /* The heading still exists for screen readers and for anyone who wants to
+     know what the lights are, but it no longer prints a label over the sky. */
+  .nm-shelfwrap .nm-quiet-label {
+    position: absolute;
+    clip-path: inset(50%);
+    margin: -1px;
+    border: 0;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .nm-lamps {
+    position: absolute;
+    margin: 0;
+    padding: 0;
+    inset: 0;
+    list-style: none;
+  }
+
+  .nm-lamp {
+    position: absolute;
+    /* Positioned from the SAME lampSpots() the canvas draws from, so the hit
+       target is exactly on the light rather than near it. */
+    translate: -50% -50%;
+  }
+
+  /* The hit target. Bigger than the light it sits on, because a 6px glow is not
+     a 44px touch target and the WCAG minimum is not negotiable on the one
+     control that carries other people's choices. */
+  .nm-lamp-hit {
+    display: grid;
+    position: relative;
+    place-items: center;
+    transition:
+      transform var(--dur-base) cubic-bezier(0.34, 1.2, 0.64, 1),
+      opacity var(--dur-base) ease;
+    cursor: pointer;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    padding: 0;
+    width: 44px;
+    height: 44px;
+    pointer-events: auto;
+  }
+
+  /* THE NAME IS NOT PRINTED OVER THE VALLEY UNTIL IT IS ASKED FOR. Six names
+     floating in the sky is the shelf again, in a worse place. It appears on
+     hover and on focus, which is also the only way a keyboard reaches it. */
+  .nm-lamp-name {
     display: flex;
-    flex: 0 1 auto;
+    position: absolute;
+    bottom: 100%;
     flex-direction: column;
-    gap: 0.3rem;
-    min-height: 0;
+    align-items: center;
+    gap: 0.1rem;
+    transform: translateY(4px);
+    opacity: 0;
+    transition:
+      opacity 220ms ease,
+      transform 220ms cubic-bezier(0.34, 1.2, 0.64, 1);
+    box-shadow: var(--nm-shadow);
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--nm-surface) 94%, transparent);
+    padding: 0.28rem 0.5rem;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .nm-lamp-hit:hover .nm-lamp-name,
+  .nm-lamp-hit:focus-visible .nm-lamp-name {
+    transform: none;
+    opacity: 1;
+  }
+
+  .nm-lamp-deva {
+    color: var(--nm-text);
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+
+  .nm-lamp-latin {
+    color: var(--nm-text-soft);
+    font-size: 0.78rem;
+  }
+
+  /* Yours, in the same valley. A ring rather than a different colour: the
+     lamps are all the same kind of thing and only one of them is yours. */
+  .nm-lamp[data-mine] .nm-lamp-hit::after {
+    position: absolute;
+    opacity: 0.5;
+    border: 1px solid var(--nm-keep);
+    border-radius: 999px;
+    width: 22px;
+    height: 22px;
+    content: '';
+  }
+
+  .nm-lamp-hit:hover,
+  .nm-lamp-hit:focus-visible {
+    transform: scale(1.12);
   }
 
   .nm-shelf {
@@ -2514,6 +2631,20 @@ if (!seedRow) {
      for the same reason: a rule across the pool is a seam in the room. The tray
      still reads as a distinct surface because the light falls off toward the
      edges, which is how a lit surface separates from its background anyway. */
+  /* THE CONTROLS STAY IN THE OPEN SKY, and this is the one that took two tries.
+     When the shelf of leaves left the flow to become lamps, the tray lost the
+     block that had been holding it down, so I grew it to fill the column and
+     pushed the contents to the bottom — on the reasoning that a lamp rests on
+     something. What that actually did was drop the three keep-slots and their
+     label into the busiest part of the scene, where the town, the flags and the
+     lamps are, and neither the slots nor their Devanagari numerals could be
+     read at all. A control has to win against whatever is behind it.
+
+     So the tray keeps its natural height and its contents sit high, in the
+     empty band above the range where nothing competes. The diyo does float
+     there rather than resting on ground — which is fine, and arguably better: a
+     flame against the alpenglow is the picture, and the valley below it is
+     where everyone else's lamps are. */
   .nm-tray {
     display: flex;
     position: relative;
