@@ -968,13 +968,23 @@ if (!seedRow) {
   .nm-turn {
     --nm-gap: var(--space-m);
     /* The rail's width and the bead's, in one place: the narrow breakpoint
-       re-declares these three and every offset below follows. */
-    --nm-rail: 22px;
-    --nm-rail-gap: 0.7rem;
-    --nm-bead: 12px;
+       re-declares these three and every offset below follows.
+
+       IT WAS TOO SMALL TO BE AN OBJECT. At a 22px rail with 12px beads on a
+       563px column, every bit of craft below — the turned highlight, the
+       inset shade, the counting beads strung along the cord — landed under
+       the threshold where any of it is legible, and the whole thing collapsed
+       into what it most resembles at that size: a dotted left border with
+       three dots on it. The shapes were right and the scale was wrong, which
+       is why making the beads MORE correct did not make the mala more
+       obvious. A mala is a held object. It has to be big enough to read as
+       one. */
+    --nm-rail: 30px;
+    --nm-rail-gap: 0.8rem;
+    --nm-bead: 17px;
     /* Where the bead's top sits, so it lands on the optical centre of the
        first line of text beside it (1rem at 1.7 line-height is a 27px box). */
-    --nm-bead-top: 7px;
+    --nm-bead-top: 5px;
 
     display: grid;
     grid-template-columns: var(--nm-rail) minmax(0, 1fr);
@@ -1020,7 +1030,10 @@ if (!seedRow) {
   .nm-turn-rail::before,
   .nm-turn-rail::after {
     position: absolute;
-    left: calc(var(--nm-rail) / 2 - 3px);
+    /* Half the cord's own width, so it stays centred in the rail when either
+       number changes. It was hard-coded to 3px for a 6px cord and would have
+       drifted a pixel and a half off-centre the moment the cord widened. */
+    left: calc(var(--nm-rail) / 2 - 4.5px);
     background-image:
       /* THE COUNTING BEADS ARE THE SAME WOOD AS THE BIG ONES. They were mixed
          from --nm-text, which is this page's INK — so they came out blue-grey,
@@ -1028,22 +1041,30 @@ if (!seedRow) {
          That is two objects, not one strung thing. Cut from the same browns
          now, lit from the same top-left, on a warm thread rather than a
          hairline. */
+      /* YOU HAVE TO SEE THE THREAD BETWEEN THEM. The counting beads were 5.6px
+         across on a 6.8px pitch — 1.2px of cord showing — so they fused into a
+         single dashed stroke and the rail read as a dotted border. What makes a
+         strung object legible is not that the thread is covered; it is that you
+         can see each bead END and the cord carry on to the next. At 8px on a
+         12px pitch there are 4px of visible thread between beads and they
+         separate into countable things. */
       repeating-radial-gradient(
-        circle at 50% 3.4px,
-        #a58459 0 1.5px,
-        #7d5c36 1.5px 2.3px,
-        #5d4326 2.3px 2.8px,
-        transparent 3px 3.6px
+        circle at 50% 4px,
+        #c39c6c 0 1.6px,
+        #a3804f 1.6px 2.8px,
+        #7a5931 2.8px 3.6px,
+        #543c20 3.6px 4px,
+        transparent 4.1px 6px
       ),
       linear-gradient(#8a7048 0 100%);
     background-position:
       center top,
       center top;
     background-size:
-      6px 6.8px,
-      1.5px 100%;
+      9px 12px,
+      2px 100%;
     background-repeat: repeat-y, repeat-y;
-    width: 6px;
+    width: 9px;
     content: '';
   }
 
@@ -1116,10 +1137,16 @@ if (!seedRow) {
       opacity var(--dur-base) ease,
       scale var(--dur-base) ease,
       filter var(--dur-base) ease;
+    /* Scaled with the bead. A 1px inset shade reads as turned wood at 12px and
+       as a flat disc at 17px — the shading has to keep its proportion to the
+       sphere or the bead stops being round. Three layers, and each is doing one
+       job: the dark inset is the far side curving away, the white inset is the
+       specular where the light lands, and the outer drop is the bead sitting
+       ON the cord rather than being printed on it. */
     box-shadow:
-      inset -1px -1.5px 2px color-mix(in srgb, #2a1c0c 26%, transparent),
-      inset 1px 1px 1.5px rgb(255 255 255 / 42%),
-      0 1px 1.5px color-mix(in srgb, #2a1c0c 22%, transparent);
+      inset -1.5px -2px 3px color-mix(in srgb, #2a1c0c 34%, transparent),
+      inset 1.5px 1.5px 2.5px rgb(255 255 255 / 52%),
+      0 1.5px 2.5px color-mix(in srgb, #2a1c0c 28%, transparent);
     border-radius: 50%;
     width: var(--nm-bead);
     height: var(--nm-bead);
@@ -1915,10 +1942,24 @@ if (!seedRow) {
      Bottom-anchored rather than top-anchored because the invitation's height
      changes with the viewport and the composer's does not: measuring down from
      the fixed end is the one that cannot drift into the text. */
+  /* IT SITS UNDER THE TEXT, WHICH IS WHERE IT WAS POINTING FROM.
+     Measured at 1280: the invitation's lines run 56→541 with their centre at
+     298 and the composer's input centre at 265, while the doodle sat at 46→110,
+     centred on 78. It was not under the invitation at all — it hung off the left
+     margin, over the mala's rail, and pointed down past the corner of the box.
+     A gesture across a table only reads as one when it starts where you were
+     looking, so it is centred on the column both ends share.
+
+     `left` and a negative half-width rather than translateX, because the sway
+     and the arrival both animate `transform` and a static translate on the same
+     element is simply overwritten by them. */
   .nm-doodle {
+    --nm-doodle-w: clamp(58px, 6.5vw, 88px);
+
     position: absolute;
     bottom: 0.4rem;
-    left: clamp(0.75rem, 4vw, 3rem);
+    left: 50%;
+    margin-left: calc(var(--nm-doodle-w) / -2);
     transform-origin: 50% 6%;
     z-index: 3;
     /* IT WAITS BEFORE IT POINTS. A hint that arrives with the page is a hint
@@ -1931,7 +1972,12 @@ if (!seedRow) {
     animation:
       nm-doodle-in 400ms ease 3400ms backwards,
       nm-doodle-sway 4.6s ease-in-out 4.4s infinite;
-    width: clamp(46px, 5vw, 62px);
+    /* WIDER AGAIN. It was clamp(72px, 9vw, 108px) and got cut to 62px in the
+       same pass that lengthened it, which left a 224px drop through a 62px
+       channel — the wander had nowhere to go and the three changes of mind
+       flattened into a wavy line. The curve needs room across to read as a hand
+       rather than as a squiggle drawn down a corridor. */
+    width: var(--nm-doodle-w);
     height: clamp(132px, 30vh, 224px);
     pointer-events: none;
     color: color-mix(in srgb, var(--nm-keep) 74%, var(--nm-text-soft));
@@ -3200,12 +3246,34 @@ if (!seedRow) {
     }
 
     /* Every offset on the thread is derived from these three, so the rail
-       narrows by re-declaring them and nothing else moves by hand. */
+       narrows by re-declaring them and nothing else moves by hand.
+
+       Narrower than the desktop rail but no longer TINY. At 16px and a 10px
+       bead this was the worst version of the dotted-border problem, on the
+       screen most of the family will actually open the page on. 22px costs
+       about ten pixels of a 341px measure, which is a word every few lines —
+       cheap for the difference between an ornament and an object. */
     .nm-turn {
-      --nm-rail: 16px;
-      --nm-rail-gap: 0.55rem;
-      --nm-bead: 10px;
-      --nm-bead-top: 8px;
+      --nm-rail: 22px;
+      --nm-rail-gap: 0.65rem;
+      --nm-bead: 13px;
+      --nm-bead-top: 7px;
+    }
+
+    /* NO ARROW HERE, AND THAT IS THE POINT OF IT.
+       The doodle exists to span an empty gap between the invitation and the
+       composer — on a 1280 desktop that gap is a 255px void and the gesture
+       reads. At 390 there is no void: measured, the stream is 376px tall, the
+       invitation overflows it and scrolls, and a 224px arrow bottom-anchored to
+       that stream draws itself straight down through "6,715 names, out of the
+       Vedas and the Sutras" and through the question under it. A hint that
+       crosses out the words it is pointing at is worse than no hint, and on a
+       phone the composer is already inches below the text it refers to.
+
+       Hidden rather than shortened: any height at all lands on copy, because
+       the copy reaches the bottom of the stream. */
+    .nm-doodle {
+      display: none;
     }
   }
 </style>
