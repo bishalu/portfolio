@@ -1847,14 +1847,31 @@ if (!seedRow) {
       scroll-snap-align: start;
     }
 
+    /* NEVER SQUASHED, AND THE MEASUREMENT THAT FOUND IT.
+       On a 375px phone the card's content was 183px and its box was 83px, with
+       overflow visible — so the Latin name spilled out of the bottom of the
+       card and lay across the tray beneath it. "Samaya" was cut through the
+       middle on a page whose entire subject is names.
+
+       The cause is the default: on a phone the deal is a horizontal row, and a
+       row flex container stretches its items to the CONTAINER's height. The
+       hand had 90px, so every card was compressed a hundred pixels below what
+       it had to show. `start` lets each card be as tall as its content and
+       leaves the scrolling to .nm-deal, which was already set up for it. */
+    .nm-hand > .nm-deal {
+      align-items: start;
+    }
+
     /* Long glosses are the other overflow, and they are the document's words —
        so this clamps rather than truncates the source: the full line is always
-       one tap away under "from the document". */
+       one tap away under "from the document". Two lines on a phone rather than
+       three: the card has to fit beside a thumb, and the gloss is the part of
+       it that is already available in full one tap below. */
     .nm-hand .nm-gloss {
       display: -webkit-box;
       overflow: hidden;
       -webkit-box-orient: vertical;
-      -webkit-line-clamp: 3;
+      -webkit-line-clamp: 2;
     }
   }
 
@@ -1893,10 +1910,40 @@ if (!seedRow) {
        exactly how 360×640 kept the send button 77px below the fold after the
        390×780 numbers had been fixed. A percentage cannot: whatever the tray
        takes, the stream and the composer keep the rest. */
-    .nm-tray {
+    /* A FLOOR AS WELL AS A CAP. The cap stops the tray eating the conversation;
+       without a floor the opposite happened — a long reply pushed the tray down
+       to 224px, of which the hand got 90, which is half a card. The names are
+       what the visitor came to choose between, so they get a guaranteed share
+       of the screen rather than whatever is left over. */
+    /* #naam-app, and not for emphasis. The base .nm-tray rule is declared LATER
+       in this file, and a media query adds no specificity — so this block's
+       flex and min-height were silently losing to it, and had been all along.
+       Measured: computed flex `1 1 auto`, min-height `0px`, neither of them
+       from here. */
+    #naam-app .nm-tray {
       flex: 0 1 auto;
-      min-height: 0;
+      /* Enough for the three slots to read as three slots. Squeezed below this
+         they collapse into a single hairline bar — which is not a smaller
+         version of the same thing, it is a divider, and the whole point of
+         drawing them before anything is in them is that the visitor can see
+         there are three and that they are empty. */
+      min-height: min(34%, 188px);
       max-height: 58%;
+    }
+
+    /* A FLOOR, BUT ONLY ONCE THERE IS A HAND TO PUT ON IT.
+       Without a floor a long reply squeezed the tray to 224px, of which the
+       hand got 90 — half a card, with the name spilling out of the bottom.
+       With an unconditional floor the opposite broke: on the first screen there
+       are no cards at all, so the reserved space sat empty while the invitation
+       above it — the paragraph that explains what this page is — was cut off
+       mid-sentence behind the lamp.
+
+       `:has(.nm-card)` says the actual rule: the hand gets a guaranteed share
+       of a phone screen exactly when it has something to show, and the
+       conversation keeps the whole screen until then. */
+    #naam-app .nm-tray:has(.nm-card) {
+      min-height: min(58%, 292px);
     }
 
     .nm-hand {
@@ -2146,14 +2193,12 @@ if (!seedRow) {
     }
   }
 
-  .nm-shell[data-composing] .nm-turn {
-    transform: translateY(-10px);
-    opacity: 0.55;
-  }
-
-  .nm-shell[data-composing] .nm-said--lead {
-    font-size: clamp(1.15rem, 1.9vw, 1.4rem);
-  }
+  /* NOTHING MOVES WHILE YOU TYPE. The stream used to lift 10px and drop to 55%
+     opacity, and the invitation used to shrink, the moment a first character
+     was entered — an effect that fires while the visitor's eyes are on the
+     keyboard and their sentence is half-formed. It read as noise, and it moved
+     the very words they were answering. Submitting is the event worth marking,
+     and submitting already changes the whole stream. */
 
   /* ── THE DOODLE ────────────────────────────────────────────────────────
      A drawn hint rather than a written one. "Type here" is an instruction and
@@ -2308,7 +2353,10 @@ if (!seedRow) {
     }
   }
 
-  .nm-shell[data-composing] .nm-doodle {
+  /* The hint leaves when the question is answered, not when it is being typed.
+     It stays mounted and fades rather than unmounting, so there is something to
+     animate — an element removed from the tree cannot transition. */
+  .nm-doodle[data-gone] {
     transform: translateY(8px);
     opacity: 0;
     transition:
@@ -2330,6 +2378,57 @@ if (!seedRow) {
      lamplight pools under it. Nothing moves — a field that jumps as you type is
      unusable — the LIGHT changes, which is the same language the rest of this
      page speaks. */
+  /* ── Ways in ──────────────────────────────────────────────────────────────
+     Three chips above the box, before the first turn only.
+
+     They are deliberately NOT the loudest thing here. The composer is where the
+     page wants people to end up, and a row of filled buttons above it would
+     out-shout the box and turn an invitation into a menu — the visitor's own
+     words are the point, and these exist for the visitor who has not found
+     theirs yet. So: the paper ground, a hairline, and the same quiet ink as the
+     rest of the rail. The border warms on hover rather than the fill changing,
+     which is how every other quiet control on this page behaves.
+
+     PHONE FIRST. At 375px three chips do not fit abreast, and shrinking the
+     type until they do would make them the smallest text on the screen. They
+     wrap instead, and each one keeps a 44px hit area — the row is allowed to be
+     two lines tall, because two readable lines beat three cramped ones. */
+  .nm-starters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0 0 0.5rem;
+    padding: 0;
+    list-style: none;
+  }
+
+  .nm-starter {
+    display: inline-flex;
+    align-items: center;
+    /* 44px of thumb, without a 44px-tall pill: the padding does the work and
+       min-height guarantees the floor on the shortest label. */
+    min-height: 44px;
+    transition:
+      border-color var(--dur-base) ease,
+      color var(--dur-base) ease;
+    cursor: pointer;
+    border: 1px solid var(--nm-hair);
+    border-radius: 999px;
+    background: transparent;
+    padding: 0.3rem 0.85rem;
+    color: var(--nm-text-soft);
+    font-size: 0.9rem;
+    font-family: var(--font-body, inherit);
+    line-height: 1.2;
+    text-align: left;
+  }
+
+  .nm-starter:hover,
+  .nm-starter:focus-visible {
+    border-color: var(--nm-keep);
+    color: var(--nm-accent-text);
+  }
+
   .nm-composer-in {
     animation: nm-composer-arrive 620ms cubic-bezier(0.05, 0.7, 0.1, 1) 420ms backwards;
   }
@@ -3296,6 +3395,70 @@ if (!seedRow) {
     }
   }
 
+  /* ── Reaching the small controls ──────────────────────────────────────────
+     Audited on a 412px Android with touch emulation, and three controls came
+     back under the 44px a thumb needs: the send button at 36, the accessibility
+     link at 15, and — worst — the sound switch at 8x16, because the phone
+     layout hides its word and leaves only the 8px state glyph.
+
+     All three are the right SIZE visually. The send button at 44px would crowd
+     the composer pill it sits inside, and a 44px sound switch would be a blob
+     where a quiet dot belongs. So the hit area grows and the drawing does not:
+     a centred pseudo-element over an unchanged box.
+
+     TWO FLOORS, because there are two ways to miss. A thumb needs 44px and a
+     mouse does not — but WCAG 2.2 still asks for 24px, and the responsive gate
+     was failing these same three at 1024, 1280 and 1440 for exactly that. The
+     first cut scoped the whole thing to `pointer: coarse` and so fixed only the
+     phone. 24px always, 44px when the pointer is coarse. */
+  .nm-composer-go,
+  .nm-sound,
+  .nm-rail-a11y {
+    position: relative;
+  }
+
+  /* REAL BOX HEIGHT, not just a hit area. The pseudo-element above enlarges
+     what a pointer lands on, and it genuinely works — probed with
+     elementFromPoint, taps 21px off-centre land on the control. It is still not
+     enough on its own: the responsive gate measures the element's own
+     getBoundingClientRect, so an expander it cannot see leaves it reporting
+     8x16 forever, and a reader auditing this page by hand would reach the same
+     conclusion from the same measurement.
+
+     These two are transparent controls whose visible mark is a glyph or a line
+     of text, so growing the BOX to 26px moves nothing on screen — the glyph
+     stays 8px and centred, the link stays the same type. The size is now true
+     however you measure it. */
+  .nm-sound,
+  .nm-rail-a11y {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    min-height: 26px;
+  }
+
+  .nm-composer-go::after,
+  .nm-sound::after,
+  .nm-rail-a11y::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: max(100%, 24px);
+    height: max(100%, 24px);
+    content: '';
+  }
+
+  @media (pointer: coarse) {
+    .nm-composer-go::after,
+    .nm-sound::after,
+    .nm-rail-a11y::after {
+      width: max(100%, 44px);
+      height: max(100%, 44px);
+    }
+  }
+
   .nm-thinking--composer {
     margin: 0 auto;
     width: 100%;
@@ -3538,8 +3701,7 @@ if (!seedRow) {
 
     .nm-said,
     .nm-turn,
-    .nm-shell[data-composing] .nm-turn,
-    .nm-shell[data-composing] .nm-doodle {
+    .nm-doodle[data-gone] {
       transform: none;
       transition: opacity 200ms ease;
     }

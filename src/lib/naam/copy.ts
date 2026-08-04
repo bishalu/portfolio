@@ -276,6 +276,9 @@ export const NAAM_COPY = {
     asking: 'asking the model…',
     jump: 'Jump to the latest',
     composerLabel: 'Tell us what you have in mind',
+    /* Names the group for a screen reader. "Ways to start" rather than
+       "suggestions": each one is a whole question, and tapping it asks it. */
+    startersLabel: 'Ways to start',
     composerPlaceholder: 'even one word is enough…',
     composerSend: 'Send',
     /**

@@ -9,6 +9,7 @@ import { NAAM_COPY, NAAM_RELATIONS } from '@/lib/naam/copy'
 import type { NaamMatch } from '@/lib/naam/match'
 import { hydrateSound, playCue, setSound, soundOff, soundOn, subscribeSound } from '@/lib/naam/sound'
 import { NAAM_SEED_ROWS } from '@/lib/naam/seeds'
+import { pickStarters, type NaamStarter } from '@/lib/naam/starters'
 import {
   getDefaultPreferB,
   getEmptyPicks,
@@ -563,10 +564,16 @@ export default function NaamApp({ seed }: NaamAppProps) {
         if (cancelled) return
         const handle = await mountMala({ host, still })
         if (cancelled) handle?.destroy()
-        else {
+        else if (handle) {
           malaRef.current = handle
-          // Only now does the CSS cord stand down — so a failed import or a
-          // blocked context leaves the gradient rail visible rather than a gap.
+          // ONLY ON A REAL HANDLE. This guard was described in the comment
+          // below and not actually written: the branch ran on `else`, so a
+          // mountMala that returned null — which is exactly what it does when
+          // getContext fails — still set the flag. Audited on a phone with the
+          // canvas blocked, the result was the worst version of this feature:
+          // the CSS cord hidden, the rope absent, and three marker beads
+          // floating unconnected down an empty gutter. Losing the physics
+          // should cost the physics, not the mala.
           shellRef.current?.setAttribute('data-rope', 'true')
         }
       } catch {
@@ -874,6 +881,23 @@ export default function NaamApp({ seed }: NaamAppProps) {
     },
     [asking, rows, runModel],
   )
+
+  /**
+   * THREE WAYS IN, chosen after mount.
+   *
+   * A blank box with a blinking cursor asks the visitor to have already decided
+   * what kind of name they want, which is the one thing they came here without.
+   * These are three different questions, not three suggestions — tapping one
+   * sends it as the visitor's own turn, so the thread reads the same whether it
+   * was typed or tapped.
+   *
+   * Picked in an effect and not during render: the island is `client:load`, and
+   * a random choice made while rendering would not match the server's HTML.
+   */
+  const [starters, setStarters] = useState<NaamStarter[]>([])
+  useEffect(() => {
+    setStarters(pickStarters(3))
+  }, [])
 
   const submitAsk = useCallback(() => {
     // Typing is consent to get on with it — the rest of the opening arrives
@@ -1724,7 +1748,6 @@ export default function NaamApp({ seed }: NaamAppProps) {
       data-first={!asked ? 'true' : undefined}
       /* Typing before the first ask: the opening lifts and thins out, because
          the invitation has done its job the moment somebody answers it. */
-      data-composing={!asked && ask.trim().length > 0 ? 'true' : undefined}
     >
       {/* The room the lamp lights, and the dust in it. Both are behind
           everything (z-index 0, pointer-events none) and both are decoration
@@ -1826,9 +1849,10 @@ export default function NaamApp({ seed }: NaamAppProps) {
             arrived — pointing at an answer to a question nobody had been
             asked yet. It is gated on the opening finishing now, and its own
             delay is measured from that moment. */}
-        {!asked && opening.done && (
+        {opening.done && (
           <svg
             className="nm-doodle"
+            data-gone={asked ? 'true' : undefined}
             viewBox="0 0 90 214"
             preserveAspectRatio="xMidYMax meet"
             aria-hidden="true"
@@ -2044,6 +2068,30 @@ export default function NaamApp({ seed }: NaamAppProps) {
           composer sits against the layout viewport and ends up underneath the
           iOS keyboard permanently. */}
       <div className="nm-composer" data-typing={ask.trim().length > 0 ? 'true' : undefined}>
+        {/* Only before the first turn. They are a way to START a conversation,
+            and once one is underway the thread itself is the context — leaving
+            them up would be the page interrupting to suggest a different
+            subject. They are also the widest thing in the column on a phone, so
+            reclaiming that space for the hand matters. */}
+        {!asked && starters.length > 0 && (
+          <ul className="nm-starters" aria-label={C.app.startersLabel}>
+            {starters.map((starter) => (
+              <li key={starter.id}>
+                <button
+                  type="button"
+                  className="nm-starter"
+                  onClick={() => {
+                    opening.rush()
+                    setAsk('')
+                    runAsk(starter.prompt)
+                  }}
+                >
+                  {starter.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
         <div className="nm-composer-in">
           <label className="sr-only" htmlFor="nma-ask">
             {C.app.composerLabel}
