@@ -37,6 +37,7 @@
  */
 import { Container, FillGradient, Graphics, WebGLRenderer } from 'pixi.js'
 import { lampSpots } from './lamps'
+import { drive, type LivingLayer } from './living'
 
 /* ────────────────────────────────────────────────────────────────────────────
    PALETTE — sampled off the page's own tokens, so the canvas and the CSS
@@ -739,9 +740,9 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
     paintSky()
     paintRidges()
     paintRoofs()
-    buildFlags(paintStupa())
-    buildBirds()
-    buildLamps()
+    // One call, so a layer cannot be added to the render loop and forgotten
+    // in the resize path — the failure that looks fine until you rotate a phone.
+    living.build(w, h)
     paintVeil()
     // Cache after painting, or an empty texture is what gets stored.
     still2.cacheAsTexture(true)
@@ -817,14 +818,49 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
     })
   }
 
+  /**
+   * THE THREE MOVING LAYERS, DECLARED AGAINST THE CONTRACT.
+   *
+   * `LivingLayer` (./living.ts) exists because prose did not hold: the rule
+   * "build once, animate transform and alpha only" was written above each of
+   * these and I still wrote a per-frame rebuild into the lamps. Naming them as
+   * the interface means the compiler checks the shape, `drive()` guarantees
+   * build and animate stay in step, and a fourth layer has one obvious way in.
+   */
+  const flagLayer: LivingLayer = {
+    build: () => buildFlags(paintStupa()),
+    animate: animateFlags,
+    destroy: () => {
+      for (const line of flagLines) for (const f of line.flags) f.g.destroy()
+      flagLines = []
+    },
+  }
+
+  const birdLayer: LivingLayer = {
+    build: buildBirds,
+    animate: animateBirds,
+    destroy: () => {
+      for (const g of birdShapes) g.destroy()
+    },
+  }
+
+  const lampLayer: LivingLayer = {
+    build: buildLamps,
+    animate: animateLamps,
+    destroy: () => {
+      for (const g of lampShapes) g.destroy()
+      lampShapes = []
+    },
+  }
+
+  const living = drive([flagLayer, birdLayer, lampLayer])
+
   let clock = 0
 
   function frame() {
     if (!alive) return
     clock += 1 / 60
-    animateFlags(clock)
-    animateBirds(clock)
-    animateLamps(clock)
+    living.animate(clock)
     renderer.render(stage)
     raf = requestAnimationFrame(frame)
   }
@@ -833,9 +869,7 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
 
   if (still) {
     // One frame, with the flags hung and the birds placed — not an empty sky.
-    animateFlags(0)
-    animateBirds(0)
-    animateLamps(0)
+    living.animate(0)
     renderer.render(stage)
   } else {
     raf = requestAnimationFrame(frame)
@@ -873,7 +907,7 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
       skyFill?.destroy()
       veilFill?.destroy()
       floorFill?.destroy()
-      for (const g of lampShapes) g.destroy()
+      living.destroy()
       renderer.destroy()
     },
   }
