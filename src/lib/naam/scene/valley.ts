@@ -741,6 +741,7 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
     paintRoofs()
     buildFlags(paintStupa())
     buildBirds()
+    buildLamps()
     paintVeil()
     // Cache after painting, or an empty texture is what gets stored.
     still2.cacheAsTexture(true)
@@ -773,23 +774,46 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
    */
   let lampCount = 0
 
-  function paintLamps(time: number) {
-    lamps.clear()
+  /**
+   * BUILT ONCE, THEN ONLY DIMMED — and I got this wrong here after getting it
+   * right everywhere else. Pixi's guidance is that Graphics GEOMETRY is the
+   * expensive thing while alpha and transform are cheap, which is why the flags
+   * and the birds are built once and only moved. The lamps were written after
+   * that and still cleared and re-tessellated all 27 circles every frame: 1,620
+   * rebuilds a second, plus a fresh lampSpots() array each time, for an effect
+   * whose only per-frame change is brightness.
+   *
+   * One Graphics per lamp, holding its three falls of light at their base
+   * alphas. The flicker is `g.alpha`, which multiplies all three proportionally
+   * — the same picture, with nothing rebuilt.
+   */
+  let lampShapes: Graphics[] = []
+
+  function buildLamps() {
+    for (const g of lampShapes) g.destroy()
+    lampShapes = []
     if (lampCount <= 0) return
     const spots = lampSpots(lampCount, w < 600)
     const r = Math.max(2.2, h * 0.0042)
-    spots.forEach((spot, i) => {
-      const x = spot.x * w
-      const y = spot.y * h
-      // Each flickers on its own slow beat, the way a butter lamp does. Never
-      // in step: a row of lights pulsing together is a progress indicator.
-      const flick = 0.84 + Math.sin(time * (1.1 + i * 0.17) + i * 2.3) * 0.16
-      // Three falls of light rather than three discs — a wide dim halo, a
-      // brighter core, and the flame itself. Alphas are well under what they
-      // were: additive blending sums them, so the old values burned white.
-      lamps.circle(x, y, r * 6).fill({ color: 0xff9b3d, alpha: 0.07 * flick })
-      lamps.circle(x, y, r * 2.6).fill({ color: 0xffb85c, alpha: 0.16 * flick })
-      lamps.circle(x, y, r * 1.05).fill({ color: 0xffdca8, alpha: 0.5 * flick })
+    for (const spot of spots) {
+      const g = new Graphics()
+      // A wide dim halo, a brighter core, and the flame. Alphas are low because
+      // the container blends additively and summed light needs less of it.
+      g.circle(0, 0, r * 6).fill({ color: 0xff9b3d, alpha: 0.07 })
+      g.circle(0, 0, r * 2.6).fill({ color: 0xffb85c, alpha: 0.16 })
+      g.circle(0, 0, r * 1.05).fill({ color: 0xffdca8, alpha: 0.5 })
+      g.x = spot.x * w
+      g.y = spot.y * h
+      lamps.addChild(g)
+      lampShapes.push(g)
+    }
+  }
+
+  function animateLamps(time: number) {
+    lampShapes.forEach((g, i) => {
+      // Each on its own slow beat, never in step: a row of lights pulsing
+      // together is a progress indicator, not a village at dusk.
+      g.alpha = 0.84 + Math.sin(time * (1.1 + i * 0.17) + i * 2.3) * 0.16
     })
   }
 
@@ -800,7 +824,7 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
     clock += 1 / 60
     animateFlags(clock)
     animateBirds(clock)
-    paintLamps(clock)
+    animateLamps(clock)
     renderer.render(stage)
     raf = requestAnimationFrame(frame)
   }
@@ -811,7 +835,7 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
     // One frame, with the flags hung and the birds placed — not an empty sky.
     animateFlags(0)
     animateBirds(0)
-    paintLamps(0)
+    animateLamps(0)
     renderer.render(stage)
   } else {
     raf = requestAnimationFrame(frame)
@@ -831,9 +855,11 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
 
   return {
     setLamps(count) {
+      if (count === lampCount) return
       lampCount = count
+      buildLamps()
       if (still) {
-        paintLamps(0)
+        animateLamps(0)
         renderer.render(stage)
       }
     },
@@ -847,6 +873,7 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
       skyFill?.destroy()
       veilFill?.destroy()
       floorFill?.destroy()
+      for (const g of lampShapes) g.destroy()
       renderer.destroy()
     },
   }
