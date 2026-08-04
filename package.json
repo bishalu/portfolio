@@ -15,7 +15,8 @@
     "claims": "node scripts/check-claims.mjs",
     "naam:build": "node scripts/naam/build-dataset.mjs",
     "verify": "node scripts/verify/run.mjs",
-    "naam:eval": "node scripts/naam/eval/run.mjs"
+    "naam:eval": "node scripts/naam/eval/run.mjs",
+    "naam:thesaurus": "node scripts/naam/build-thesaurus.mjs"
   },
   "keywords": [
     "astro",
