@@ -535,6 +535,61 @@ export default function NaamApp({ seed }: NaamAppProps) {
     }
   }, [])
 
+  /**
+   * THE MALA IS A HANGING OBJECT NOW. Audited at 3×, the CSS version read as a
+   * zipper: the counting beads were a repeating gradient, so the ring artefact
+   * tiled at a fixed pitch, every bead was identical, and the cord was a
+   * dead-straight vertical — the one thing everybody knows about a mala is that
+   * it hangs. Measured alongside it: nothing on this column animated at rest or
+   * responded to the pointer, at all.
+   *
+   * Its own small renderer rather than the valley's: the valley is a full-bleed
+   * diorama painted once and cached, this is a strip that must stay pinned to
+   * lines of text. Sharing a surface would mean converting bead positions out
+   * of a page-sized coordinate space on every layout, which is the drift class
+   * that made lampSpots a shared module.
+   */
+  const malaRef = useRef<{ relayout(): void; nudge(s?: number): void; destroy(): void } | null>(null)
+
+  useEffect(() => {
+    const host = streamRef.current
+    if (!host) return
+    let cancelled = false
+    const still = reducedMotion()
+
+    const start = window.setTimeout(async () => {
+      try {
+        const { mountMala } = await import('@/lib/naam/scene/mount-mala')
+        if (cancelled) return
+        const handle = await mountMala({ host, still })
+        if (cancelled) handle?.destroy()
+        else {
+          malaRef.current = handle
+          // Only now does the CSS cord stand down — so a failed import or a
+          // blocked context leaves the gradient rail visible rather than a gap.
+          shellRef.current?.setAttribute('data-rope', 'true')
+        }
+      } catch {
+        // The CSS rail is still underneath, so losing the rope costs the
+        // physics rather than the mala. Nothing worth reporting.
+      }
+    }, 320)
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(start)
+      malaRef.current?.destroy()
+      malaRef.current = null
+      shellRef.current?.removeAttribute('data-rope')
+    }
+  }, [])
+
+  /** Every new turn restretches the rail, so the rope is rebuilt and swung. */
+  useEffect(() => {
+    malaRef.current?.relayout()
+    malaRef.current?.nudge(1)
+  }, [turns.length])
+
   /* — mount ————————————————————————————————————————————————————————— */
 
   useEffect(() => {

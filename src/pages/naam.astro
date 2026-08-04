@@ -1052,6 +1052,27 @@ if (!seedRow) {
     position: relative;
   }
 
+  /**
+   * THE CSS CORD STANDS DOWN WHEN THE ROPE ARRIVES.
+   *
+   * The gradient cord is the no-JS and no-WebGL fallback and it has to keep
+   * working — it is what a visitor sees for the first 320ms, and forever if the
+   * chunk fails or the context is blocked. But once the simulated rope is up,
+   * both drawing at once is two cords an inch apart.
+   *
+   * The flag goes on the shell rather than on each rail because the rope is one
+   * object spanning every turn, and a per-turn class would have to be applied
+   * to turns that do not exist yet.
+   */
+  .nm-shell[data-rope] .nm-turn-rail::before,
+  .nm-shell[data-rope] .nm-turn-rail::after {
+    opacity: 0;
+  }
+
+  /* The marker beads STAY. They are the anchors the rope is nailed to, they are
+     positioned by the same grid as the text so they track it for free, and they
+     are what a visitor sees if the rope never loads. */
+
   /* The cord: a continuous faint line with diagonal ticks laid over it. Two
      layers, because either one alone is wrong — the ticks by themselves render
      as a dashed border, which is worse than a plain rule, and a plain 1px
