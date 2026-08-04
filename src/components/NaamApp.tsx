@@ -502,12 +502,33 @@ export default function NaamApp({ seed }: NaamAppProps) {
     // No pointer listener: the valley does not pan. What moves is the flags and
     // the birds, on their own clock — a window you look through, not a widget
     // that follows the cursor.
+    /**
+     * A ResizeObserver ON THE CANVAS, not only a window listener.
+     *
+     * Pixi's docs are explicit that world and screen coordinates diverge "when
+     * the canvas is stretched (e.g. via CSS) or rendered at a different
+     * resolution than its display size" — and this page depends on those two
+     * agreeing exactly: lampSpots() places the glow in canvas coordinates and
+     * the DOM button for the same lamp in percentages of the element box. Any
+     * divergence and the hover target sits beside the light rather than on it.
+     *
+     * Today a window listener happens to catch every case, because the canvas
+     * is pinned to a viewport-sized shell — verified, dealing nine cards leaves
+     * it at 1280x841 with a matching buffer. That is a property of the current
+     * layout rather than a guarantee, and the failure mode is silent
+     * misalignment rather than an error, which is the kind that ships.
+     */
     const onResize = () => handle?.resize()
+    const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(onResize) : null
+    observer?.observe(canvas)
+    // Kept as well: a device-pixel-ratio change (dragging to another monitor)
+    // resizes no element at all.
     window.addEventListener('resize', onResize, { passive: true })
 
     return () => {
       cancelled = true
       window.clearTimeout(start)
+      observer?.disconnect()
       window.removeEventListener('resize', onResize)
       valleyHandleRef.current = null
       handle?.destroy()

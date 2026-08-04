@@ -183,6 +183,22 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
   const birds = new Graphics()
   const veil = new Graphics()
   const lamps = new Graphics()
+  /**
+   * ADDITIVE, BECAUSE LIGHT ADDS. The lamps were three concentric discs of
+   * warm colour at partial alpha, which is how you draw a DOT that happens to
+   * be orange — over the town they read as pale stickers sitting on the roofs.
+   * Real light does not occlude what is behind it, it sums with it: a lamp
+   * brightens the wall it stands against, and two lamps close together are
+   * brighter still where they overlap. `blendMode: 'add'` is that, and it is in
+   * Pixi's base set rather than the advanced-blend-modes extension, so it costs
+   * nothing to import.
+   *
+   * It works here specifically because the lamps sit low, over the town and the
+   * valley floor, which are the darkest parts of the frame. Additive light on
+   * the pale sky above would blow straight out to white — which is also why the
+   * alphas below are lower than they were: summed light needs less of it.
+   */
+  lamps.blendMode = 'add'
   // Order is the composition: sky, range, town, the stupa standing above the
   // town, flags strung from it, birds in front of everything, then the veil
   // that turns the left half back into paper.
@@ -768,9 +784,12 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
       // Each flickers on its own slow beat, the way a butter lamp does. Never
       // in step: a row of lights pulsing together is a progress indicator.
       const flick = 0.84 + Math.sin(time * (1.1 + i * 0.17) + i * 2.3) * 0.16
-      lamps.circle(x, y, r * 5.2).fill({ color: 0xffb85c, alpha: 0.1 * flick })
-      lamps.circle(x, y, r * 2.4).fill({ color: 0xffc978, alpha: 0.26 * flick })
-      lamps.circle(x, y, r).fill({ color: 0xfff0d2, alpha: 0.92 })
+      // Three falls of light rather than three discs — a wide dim halo, a
+      // brighter core, and the flame itself. Alphas are well under what they
+      // were: additive blending sums them, so the old values burned white.
+      lamps.circle(x, y, r * 6).fill({ color: 0xff9b3d, alpha: 0.07 * flick })
+      lamps.circle(x, y, r * 2.6).fill({ color: 0xffb85c, alpha: 0.16 * flick })
+      lamps.circle(x, y, r * 1.05).fill({ color: 0xffdca8, alpha: 0.5 * flick })
     })
   }
 
