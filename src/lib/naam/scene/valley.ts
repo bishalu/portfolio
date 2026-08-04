@@ -178,6 +178,7 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
   const stage = new Container()
   const sky = new Graphics()
   const ridgeLayer = new Container()
+  const grove = new Graphics()
   const roofs = new Graphics()
   const stupa = new Graphics()
   const flags = new Container()
@@ -206,7 +207,7 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
   // The static half — everything that only changes on resize — grouped so it
   // can be cached to a single texture.
   const still2 = new Container()
-  still2.addChild(sky, ridgeLayer, roofs, stupa)
+  still2.addChild(sky, ridgeLayer, grove, roofs, stupa)
   // Lamps sit ABOVE the veil. They are the one thing in the scene that is
   // supposed to read through the paper — a light seen from inside a room is not
   // dimmed by the wall it is beyond, and on a phone the veil is heavy enough
@@ -347,6 +348,61 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
    * STEPPED PROFILE against the sky, which is the whole of what makes a
    * Kathmandu skyline recognisable from a distance.
    */
+  /**
+   * THE MIDDLE DISTANCE — a treeline between the last ridge and the town.
+   *
+   * The composition jumped straight from a smooth ridge to rooftops with
+   * nothing in between, and that gap is what kept reading as flat: aerial
+   * perspective needs something at every depth to step through, or the eye
+   * reads two planes rather than a valley. It is the one thing that has held
+   * the desktop composition at A− through four passes.
+   *
+   * Trees rather than more hills, because the thing missing is TEXTURE at a
+   * middle scale — another smooth silhouette would just be a fifth ridge. From
+   * across a valley a treeline is not individual trees, it is a ragged upper
+   * edge on a soft mass, so that is what is drawn: one filled band whose top is
+   * a run of overlapping arcs at slightly different heights. Individually they
+   * are unreadable, which is correct — you are looking at woodland, not at a
+   * tree.
+   *
+   * Sits between the third ridge and the town in both position and colour, so
+   * it reads as the next step back rather than as an object in front.
+   */
+  function paintGrove() {
+    grove.clear()
+    const rand = prng(0x7ee5)
+    const baseY = horizon()
+    // Taller than the first cut. At 0.062 the band was there and doing nothing
+    // — a step between two planes has to be big enough to BE a plane.
+    const top = baseY - h * (w < 600 ? 0.062 : 0.09)
+    const unit = Math.max(5, h * 0.014)
+
+    grove.moveTo(-20, baseY + 4)
+    let x = -20
+    while (x < w + 30) {
+      // Each clump a slightly different height, and the arc is wider than it is
+      // tall — a canopy spreads, it does not spike. Spikes read as conifers on a
+      // ridgeline, which is a different place entirely.
+      const rise = unit * (0.7 + rand() * 1.5)
+      const half = unit * (0.9 + rand() * 1.1)
+      const cx = x + half
+      grove.quadraticCurveTo(cx, top - rise, cx + half, top + unit * 0.25)
+      x = cx + half * (0.7 + rand() * 0.4)
+    }
+    grove.lineTo(w + 30, baseY + 4)
+    grove.lineTo(-20, baseY + 4)
+    /* Pitched deliberately BETWEEN its neighbours: darker than the near ridge
+       above it (0x6e7288) and lighter than the town below (0x585470), which is
+       what makes it read as the next step back rather than as part of either.
+       At 0x7c7f95 it was lighter than both and dissolved into the haze. */
+    grove.fill({ color: 0x666a82, alpha: 0.88 })
+
+    // A thin lighter edge where the last of the sky catches the canopy — the
+    // same reason the terraces are drawn: an edge is what makes a mass read as
+    // having a top rather than being a cut-out.
+    grove.stroke({ color: 0xc2c5d6, width: Math.max(0.8, h * 0.0014), alpha: 0.42 })
+  }
+
   let floorFill: FillGradient | null = null
 
   function paintRoofs() {
@@ -739,6 +795,7 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
     still2.cacheAsTexture(false)
     paintSky()
     paintRidges()
+    paintGrove()
     paintRoofs()
     // One call, so a layer cannot be added to the render loop and forgotten
     // in the resize path — the failure that looks fine until you rotate a phone.
