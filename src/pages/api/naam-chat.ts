@@ -79,11 +79,20 @@ const CEILING_PER_MIN = 60
  * Reasoning tokens and answer tokens come out of one budget on gpt-oss, so
  * this is not "how long may the reply be" — the reply is capped at 700 chars
  * by the prompt and at MAX_REPLY_CHARS here. It is headroom for the thinking
- * that precedes it. At 900 with `reasoning_effort: 'low'` the ceiling is never
- * approached; the number is what keeps a hard ask from dying mid-thought
- * rather than what it usually costs.
+ * that precedes it. The number is what keeps a hard ask from dying mid-thought
+ * rather than what one usually costs.
+ *
+ * RAISED FROM 2200 WHEN THE DEAL WENT FROM 3 TO 12, and it was caught by
+ * measuring rather than by reasoning about it: immediately after that change
+ * "brave" came back `degraded: empty` — the model spent its budget thinking and
+ * hit the ceiling with reasoningContent and no toolUse, which is the same
+ * failure that produced 1-in-4 empties before `reasoning_effort: 'low'` was
+ * set. Twelve ids is only ~90 tokens more than three, but "brave" is precisely
+ * the ask that ALSO runs the search tool, so it was already closest to the wall
+ * and the extra ids pushed it over. A higher ceiling costs nothing on the
+ * requests that never approach it.
  */
-const MAX_TOKENS = 2200
+const MAX_TOKENS = 3400
 /** The prompt caps replies at 700; this is the outer wall in case that changes. */
 const MAX_REPLY_CHARS = 1200
 const POOL_MAX = 60

@@ -100,16 +100,61 @@ export const NAAM_SEARCH_SCHEMA = {
 } as const
 
 /**
- * Three. Independent of the tray's own cap (NAAM_COPY.limits.picks) — this one
- * bounds how many ids the MODEL may return in a single reply — but they should
- * agree in spirit: an agent dealing six names onto a three-slot tray is a
- * mismatch the interface has to paper over, and three dealt cards is a hand you
- * can read at a glance.
+ * SIX OR TWELVE, AND NOTHING BETWEEN — the deal is always whole rows.
+ *
+ * Three cards was a hand you could read at a glance, and it was too few: this
+ * document has 2,098 rows and a question like "something calm" has real
+ * competitors in it. Showing three implies the other candidates were weak when
+ * usually they were simply fourth.
+ *
+ * The two numbers are not arbitrary. The deal grid is
+ * `repeat(auto-fit, minmax(190px, 1fr))` inside the right column, which
+ * resolves to THREE columns on a desktop and one when stacked — so any multiple
+ * of three comes out even at both, and 7, 8, 10 and 11 leave a dangling card
+ * that reads as a rendering fault rather than as a choice.
+ *
+ * NINE RATHER THAN TWELVE, and that was measured rather than assumed. Twelve
+ * was tried first: four rows of cards filled the entire right column, buried
+ * the valley completely, and needed two screens of scrolling to see the last
+ * of them. Nine is three rows — enough that the shortlist feels like a real
+ * choice, few enough that the scene it sits in is still there.
+ *
+ * Nine is offered when the pool genuinely supports it and six otherwise —
+ * padding a thin answer to look generous is the opposite of the honesty this
+ * page is built on. This is independent of the tray's three slots
+ * (NAAM_COPY.limits.picks): you are shown a shortlist and you keep three.
  */
-export const NAAM_MAX_PICKS = 3
+export const NAAM_DEAL_SMALL = 6
+export const NAAM_DEAL_LARGE = 9
+export const NAAM_MAX_PICKS = NAAM_DEAL_LARGE
 
-/** A reply longer than this stopped being a kitchen-table sentence. */
-export const NAAM_MAX_REPLY_CHARS = 700
+/**
+ * Snap to a whole number of rows. The model is asked for 6 or 12 and mostly
+ * complies, but "mostly" is not a layout guarantee — anything in between is
+ * rounded DOWN to the nearest clean count rather than padded, because padding
+ * would mean naming a name the model did not choose.
+ */
+export function snapDeal(n: number): number {
+  if (n >= NAAM_DEAL_LARGE) return NAAM_DEAL_LARGE
+  if (n >= NAAM_DEAL_SMALL) return NAAM_DEAL_SMALL
+  // Below six there is no clean row, and inventing one is worse than a short
+  // deal: a genuinely thin answer should look thin.
+  return n
+}
+
+/**
+ * A reply longer than this stopped being a kitchen-table sentence.
+ *
+ * CUT FROM 700 WHEN THE DEAL GREW, because prose alone would not hold the line.
+ * Told plainly not to inventory the picks, and then told again with a hard
+ * count — "name at most two" — the model still walked through all nine: "Vidman
+ * is a short strong beat… Santa sits nicely… Subuddhi has a gentle flow…". Nine
+ * mentions need roughly 600 characters, so 700 left room for exactly the
+ * behaviour the instruction forbade. At 420 a full inventory does not fit, and
+ * the model has to spend its sentences on why this SET rather than on a lap of
+ * the cards. The constraint teaches the shape better than the sentence did.
+ */
+export const NAAM_MAX_REPLY_CHARS = 420
 
 export const NAAM_TOOL_SCHEMA = {
   type: 'object',
@@ -117,11 +162,22 @@ export const NAAM_TOOL_SCHEMA = {
     reply: {
       type: 'string',
       description:
-        'Two to four sentences of framing, in the voice described in the system prompt. Do not list the names — the page renders a card for each id in pickIds.',
+        'Two or three sentences of framing, 420 characters at the very most, in the voice ' +
+        'described in the system prompt. ' +
+        'NEVER walk through the picks one by one — the page draws a card for every id, with its ' +
+        'meaning and its B-form already on it, so a sentence per name is the same information ' +
+        'twice and turns a warm reply into a catalogue. Name at most two, and only to say ' +
+        'something the card cannot: why it fits what was asked, or how it sounds beside Sneha ' +
+        'and Bishal.',
     },
     pickIds: {
       type: 'array',
-      description: `Ids from the pool, best first, at most ${NAAM_MAX_PICKS}. Ids outside the pool are dropped. Empty is allowed when no name answers the question.`,
+      description:
+        `Ids from the pool, best first. Return exactly ${NAAM_DEAL_LARGE} when the pool has that ` +
+        `many that genuinely answer the question, and exactly ${NAAM_DEAL_SMALL} otherwise. ` +
+        `Do not pad: a thin answer should be short. Fewer than ${NAAM_DEAL_SMALL} is right when ` +
+        `the document only has a few, and empty is right when it has none. Ids outside the pool ` +
+        `are dropped.`,
       items: { type: 'string' },
     },
   },
@@ -177,7 +233,8 @@ export function coerceModelReply(raw: unknown, allowedRows: readonly NaamRow[]):
       if (pickIds.length >= NAAM_MAX_PICKS) break
     }
   }
-  return { reply, pickIds }
+  // Whole rows, always — see snapDeal.
+  return { reply, pickIds: pickIds.slice(0, snapDeal(pickIds.length)) }
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -202,7 +259,7 @@ put a preference in their mouths that they haven't stated: you can say a name is
 say, you cannot say it is their favourite.
 
 HOW TO WRITE, AND THIS IS THE ONE THAT MATTERS MOST
-Plain words. Short sentences. Two to four of them, the way you would say it at a kitchen
+Plain words. Short sentences. Two or three of them, the way you would say it at a kitchen
 table — not an essay, not a paragraph that needs reading twice. Many of the people here read
 English as their second language, and some of them are eighty. So: no long clauses, no
 lists, no headings, no bold, no rare words, and nothing that sounds like a brochure — no
@@ -308,16 +365,26 @@ answer that leaves them exactly where they were.
 
 HOW TO ANSWER
 Always answer with the ${NAAM_TOOL_NAME} tool call, never with plain text. pickIds is an ordered
-subset of the pool, best first, at most ${NAAM_MAX_PICKS}, and fewer is usually better — three well-chosen
-names beat six. Return an empty pickIds only when no name in the pool answers what was
-asked. Every id is copied from the id column exactly as it is written there, character for
+subset of the pool, best first. COUNT THE POOL ROWS THAT FIT before you choose how many to
+send, and then:
+  · ${NAAM_DEAL_LARGE} or more fit  →  send exactly ${NAAM_DEAL_LARGE}
+  · ${NAAM_DEAL_SMALL} to ${NAAM_DEAL_LARGE - 1} fit   →  send exactly ${NAAM_DEAL_SMALL}
+  · fewer than ${NAAM_DEAL_SMALL} fit  →  send all of them, however few that is
+  · none fit           →  send an empty list
+The page lays the cards out in rows, which is why ${NAAM_DEAL_SMALL} and ${NAAM_DEAL_LARGE} are
+the counts that come out even. Being shown a shortlist is the point — the visitor keeps three
+of them, so sending two when eight fit decides for them. Equally, DO NOT PAD: if the document
+truly has four, send four. A thin answer should look thin. Every id is copied from the id column exactly as it is written there, character for
 character — an id you have adjusted or remembered is an id that names nothing, and it is
 dropped before the page ever sees it.
 
-Do not INVENTORY the names: the page draws a card for every id you pick, with its spelling,
-its meaning, its source and its page number, so a list of them says everything twice. Your
-sentences are the framing — why these, what separates them, what to listen for when you say
-them out loud. But you will say a name in the course of giving a reason — "to my ear Bhas
+NAME AT MOST TWO OF THEM, and this is a hard count rather than a principle — it was written
+as "do not inventory" and, the first time nine cards were dealt, the reply walked through all
+nine in a row: "Vidman is clear, Vinnu feels light, Vedas reads the same, Vachasa is
+talkative…". The page draws a card for every id you pick, carrying its spelling, its meaning,
+its source and its page number, so a sentence per name says everything twice and turns a warm
+reply into a catalogue that nobody reads. Your sentences are the FRAMING — why this set, what
+separates them, what to listen for when you say them out loud. But you will say a name in the course of giving a reason — "to my ear Bhas
 is one clear beat" — and that is good writing, not a breach. Two rules keep it honest:
 
   · SPELL IT THE WAY THE POOL SPELLS IT. Copy the letters across; never retype a name from

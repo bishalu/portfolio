@@ -2648,10 +2648,18 @@ if (!seedRow) {
   .nm-tray {
     display: flex;
     position: relative;
-    flex: 0 0 auto;
+    /* FILLS THE COLUMN, and it has to. `.nm-hand` is `flex: 1 1 auto` with
+       `max-height: 100%; overflow-y: auto` so a nine-card deal scrolls — but a
+       tray sized to its content gives the hand nothing to be bounded BY, so the
+       grid simply overflowed and the third row was unreachable. Measured:
+       dealScrollable false against a 645px grid. min-height: 0 is the other
+       half of it — without it a flex child refuses to shrink below its content
+       and the overflow rule never engages. */
+    flex: 1 1 auto;
     flex-direction: column;
     gap: 0.5rem;
     z-index: 1;
+    min-height: 0;
     background: transparent;
     padding: 0.6rem clamp(0.75rem, 2.4vw, 1.4rem);
   }
@@ -2776,16 +2784,35 @@ if (!seedRow) {
      read — the shape is shared, so the gaps are relative to each other.
      overflow:hidden so a filled slot's marigold clips to the rounded corners
      instead of spilling past them. */
+  /* A CONTROL HAS TO WIN AGAINST WHATEVER IS BEHIND IT.
+     These sat on paper when they were designed; they now sit over a valley at
+     dusk, and wherever the tray happens to land — which moves with the deal
+     size and the viewport — the town, the prayer flags and the lamps can end up
+     directly behind them. Twice in this pass the three Devanagari numerals
+     became unreadable and both times I fixed it by moving the scene, which is
+     fixing the symptom at whichever width I happened to be looking at.
+     A translucent paper surface fixes it at every width instead: the slots
+     always read, and the valley is still visible through them. */
   .nm-slots {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
+    backdrop-filter: blur(3px);
     margin: 0 auto;
+    box-shadow: 0 1px 12px -6px rgb(26 29 46 / 22%);
     border: 1.5px solid var(--nm-hair-strong);
     border-radius: 10px;
+    background: color-mix(in srgb, var(--nm-surface) 76%, transparent);
     width: 100%;
     max-width: 460px;
     overflow: hidden;
     list-style: none;
+  }
+
+  /* The label above them, same reasoning, lighter touch. */
+  .nm-quiet-label {
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--nm-canvas) 68%, transparent);
+    padding: 0.1rem 0.4rem;
   }
 
   .nm-slot {
