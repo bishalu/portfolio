@@ -359,7 +359,23 @@ export function buildUserTurn(ask: string, poolRows: readonly NaamRow[], absent:
     `Flags: attested = someone real bore it · evocative = the document marked the meaning ` +
     `worth saying · f? = grammatically feminine ending, the document's own note to say it ` +
     `aloud and judge · ! = harder consonant cluster · B-clean / B-awkward = our read on the ` +
-    `B-form. The meaning is the document's, tidied; the themes and the B-read are ours.`
+    `B-form. The meaning is the document's, tidied; the themes and the B-read are ours.\n` +
+    /**
+     * THESE ARE FIELD NAMES, AND THEY KEEP ENDING UP IN THE REPLY.
+     *
+     * Observed live, twice in one run: "the B‑clean form Bijnanin works at home"
+     * and "Vijnanin means clever and skilful, and the B‑clean form…". `B-clean`
+     * is a column value in a table only the model can see. To the two people
+     * reading the page it is a typo with a hyphen in it, and it lands in the
+     * middle of the warmest sentence on the screen.
+     *
+     * Saying the B-form aloud is WANTED — it is the whole reason the V names are
+     * here, and the agent is the only voice allowed to raise it. What is not
+     * wanted is the flag token. Name the form, never the flag.
+     */
+    `Never write a flag name in your reply. They are column values, not English: no one reading ` +
+    `this page knows what "B-clean" or "f?" means. Say the thing instead — "Bijnanin reads ` +
+    `easily at home", not "the B-clean form Bijnanin".`
 
   const body = rows.length > 0 ? rows.map(formatRow).join('\n') : '(nothing matched — say so.)'
 
