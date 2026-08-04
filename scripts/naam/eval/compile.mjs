@@ -64,6 +64,17 @@ export async function loadMatch() {
   return import(pathToFileURL(resolve(outDir, 'naam-match.mjs')).href)
 }
 
+/** The built query thesaurus. `{}` when it has not been generated yet, which is
+ *  a valid state — retrieval works without it, just with the gaps. */
+export function loadThesaurus() {
+  const path = resolve(REPO, 'public/naam/thesaurus.json')
+  try {
+    return JSON.parse(readFileSync(path, 'utf8'))
+  } catch {
+    return {}
+  }
+}
+
 /** The 2,098 core rows, straight off disk — the same artifact the browser and
  *  the Lambda both fetch. Built by scripts/naam/build-dataset.mjs. */
 export function loadRows() {

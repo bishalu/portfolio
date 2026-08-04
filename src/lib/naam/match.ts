@@ -454,6 +454,37 @@ export interface NaamHit {
 }
 
 /**
+ * Everyday English → this document's own vocabulary. Built at build time by
+ * scripts/naam/build-thesaurus.mjs and passed in rather than imported, so this
+ * file keeps its no-I/O contract and the eval harness measures the same table
+ * production does.
+ *
+ * ONLY GAPS ARE STORED. If a word already appears in some gloss, BM25 finds it
+ * today and an entry would be dead weight — "moon" is in nineteen glosses and
+ * has no row here. What it holds is the 855 words this lexicon never uses:
+ * brave, calm, doctor, poet. That is the whole reason it is 21 kB instead of a
+ * megabyte.
+ */
+export type NaamThesaurus = Readonly<Record<string, readonly string[]>>
+
+/**
+ * An expanded term is EVIDENCE, NOT A MATCH, and is scored accordingly.
+ *
+ * A row whose gloss literally says what you asked for must always beat a row
+ * reached through a synonym, or the thesaurus starts overruling the document.
+ * At 0.55 a synonym hit is worth a bit over half a direct one, which is enough
+ * to surface Shaura for "brave" — where the alternative is the empty page it
+ * returns today — and not enough for a two-hop association to climb over a row
+ * that actually means it.
+ */
+const EXPANSION_WEIGHT = 0.55
+
+/** How many corpus words one query word may become. The builder already caps
+ *  the stored fan-out; this is the second belt, applied at query time, so a
+ *  bad thesaurus row cannot flood a query no matter what got written. */
+const EXPANSION_MAX = 6
+
+/**
  * FORM WORDS ARE NOT MEANING WORDS. Everything here is something parseFreeText
  * has already read as a SHAPE — a length, a letter, a sound — and searching the
  * definitions for it produces pure noise, because these are ordinary English
@@ -467,7 +498,18 @@ const FORM_WORDS = new Set(
     'short shorter shortest long longer longest brief snappy crisp syllable syllables syllabic ' +
     'letter letters start starts starting begin begins beginning end ends ending spell spelling spelt ' +
     'say saying said pronounce pronounced pronunciation easy easier hard harder simple ' +
-    'abroad overseas foreign english nepali nepal home one two three four five six seven ' +
+    /**
+     * `home` USED TO BE HERE and it cost a real query. It was listed beside
+     * abroad and overseas for the diaspora question — "easy to say at home and
+     * abroad" is shape, not meaning. But "a name that feels like home" is one
+     * of the warmest things anyone types into this page, and stripping `home`
+     * left it with no terms at all and returned an empty screen. Measured in
+     * scripts/naam/eval: that query was one of three still returning nothing.
+     * The diaspora reading is already caught by EASY_SAY_RE, which matches the
+     * phrases rather than the bare word, so the word itself is free to mean
+     * dwelling — which is exactly what Vasa and Vasati say.
+     */
+    'abroad overseas foreign english nepali nepal one two three four five six seven ' +
     'first second third last single double'
   ).split(' '),
 )
@@ -557,9 +599,36 @@ function glossIndex(rows: readonly NaamRow[]): GlossIndex {
  * terms it matched — the agent needs to know WHY something came back so it can
  * say so.
  */
-export function retrieve(rows: readonly NaamRow[], query: string, limit = 24): NaamHit[] {
+export function retrieve(
+  rows: readonly NaamRow[],
+  query: string,
+  limit = 24,
+  thesaurus: NaamThesaurus = {},
+): NaamHit[] {
   const terms = queryTerms(query)
   if (terms.length === 0) return []
+
+  /**
+   * CROSS THE VOCABULARY GAP BEFORE SCORING, not after.
+   *
+   * Ten graded queries used to return literally nothing — brave, calm, peace,
+   * hope, healer among them — because this is a Victorian Sanskrit lexicon and
+   * it says valiant where a parent says brave. No BM25 parameter reaches a word
+   * that is not in the index, so the query is widened into the document's own
+   * vocabulary here, once, from a table built offline.
+   *
+   * A term is only expanded when it is worth expanding: a word the glosses
+   * already contain keeps its full weight and gains nothing, because retrieval
+   * for it already works and the synonyms would only add noise.
+   */
+  const expansions = new Map<string, string>() //   expanded term → the word it came from
+  for (const term of terms) {
+    const targets = thesaurus[term]
+    if (!targets) continue
+    for (const target of targets.slice(0, EXPANSION_MAX)) {
+      if (!terms.includes(target) && !expansions.has(target)) expansions.set(target, term)
+    }
+  }
 
   const { docs, df, avgLength } = glossIndex(rows)
   const n = docs.length || 1
@@ -574,15 +643,38 @@ export function retrieve(rows: readonly NaamRow[], query: string, limit = 24): N
   for (const doc of docs) {
     let score = 0
     const matched: string[] = []
-    for (const term of terms) {
+
+    /** One term against one document. Returns 0 when the document has no use
+     *  for it, so the caller can tell a miss from a weak hit. */
+    const contribute = (term: string, weight: number): number => {
       let tf = 0
       if (doc.glossTerms.has(term)) tf = 2
       else if (doc.sourceTerms.has(term)) tf = 0.6
       if (doc.latin === term) tf += 6
-      if (tf === 0) continue
-      matched.push(term)
-      score += idf(term) * ((tf * (k1 + 1)) / (tf + k1 * (1 - b + b * (doc.length / avgLength))))
+      if (tf === 0) return 0
+      return weight * idf(term) * ((tf * (k1 + 1)) / (tf + k1 * (1 - b + b * (doc.length / avgLength))))
     }
+
+    for (const term of terms) {
+      const gain = contribute(term, 1)
+      if (gain === 0) continue
+      matched.push(term)
+      score += gain
+    }
+
+    /**
+     * Synonym hits are reported under the word the VISITOR typed, not the one
+     * the document happens to use. `matched` is what the agent reasons and
+     * speaks from — telling it a row matched "valiant" when the person asked
+     * for "brave" invites a reply explaining a word nobody used.
+     */
+    for (const [target, origin] of expansions) {
+      const gain = contribute(target, EXPANSION_WEIGHT)
+      if (gain === 0) continue
+      if (!matched.includes(origin)) matched.push(origin)
+      score += gain
+    }
+
     if (score === 0) continue
     // The meaning IS the word. One-word queries against one-word glosses are
     // the commonest thing a person types, and they should win outright.

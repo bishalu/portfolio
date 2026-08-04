@@ -15,6 +15,7 @@ import {
   getPreferB,
   hydrate,
   loadCoreRows,
+  loadThesaurus,
   addOwnPick,
   isOwnPick,
   removePick,
@@ -489,6 +490,16 @@ export default function NaamApp({ seed }: NaamAppProps) {
     // toggle is pressed, which is also the gesture the autoplay policy wants —
     // so a returning visitor with sound on still hears nothing until they act.
     hydrateSound()
+
+    /**
+     * Fire-and-forget, deliberately unawaited and never surfaced. It lets
+     * "brave" reach Shaura and "calm" reach Shamatha in the FIRST pool, which
+     * is what saves the agent a second Bedrock round trip. If it is slow or
+     * absent, readAsk() reads `{}` and retrieval is exactly what it was before
+     * the table existed — so there is nothing here worth blocking a render on,
+     * and nothing worth telling anyone about.
+     */
+    loadThesaurus()
 
     // Fetched here rather than behind onIdle(): the composer cannot compute a
     // pool without the dataset, and on this page the composer is the only

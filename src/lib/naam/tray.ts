@@ -270,6 +270,54 @@ async function fetchRows(url: string): Promise<NaamRow[]> {
   return data as NaamRow[]
 }
 
+/* ────────────────────────────────────────────────────────────────────────────
+   THE QUERY THESAURUS
+
+   Everyday English → this lexicon's own vocabulary, so "brave" reaches Shaura
+   and "calm" reaches Shamatha. Built offline by scripts/naam/build-thesaurus.mjs.
+
+   FETCHED, NOT BUNDLED. Inlining it into the island was measured at +11 kB
+   gzipped — 16.0 kB to 27.0 kB — of JSON parsed on the main thread, to avoid a
+   24 kB request that rides alongside the 1.22 MB row payload this page cannot
+   work without. The rows are requested at mount and the visitor has to type
+   before any of this is read, so it arrives well before it is wanted.
+
+   FAILURE IS SILENT AND SAFE. readAsk() is synchronous and reads whatever is
+   cached; before the fetch lands, or if it never lands, that is `{}` and
+   retrieval behaves exactly as it did before the table existed. The agent's own
+   search still crosses the gap, just at the cost of the round trip this is meant
+   to save. A missing nicety must never become an error state.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+type Thesaurus = Readonly<Record<string, readonly string[]>>
+
+let thesaurus: Thesaurus = {}
+let thesaurusPromise: Promise<Thesaurus> | null = null
+
+/** Whatever has been parsed, without starting a fetch. `{}` until it lands. */
+export function currentThesaurus(): Thesaurus {
+  return thesaurus
+}
+
+/** Idempotent. Resolves to `{}` rather than rejecting — see above. */
+export function loadThesaurus(): Promise<Thesaurus> {
+  if (!thesaurusPromise) {
+    thesaurusPromise = fetch('/naam/thesaurus.json')
+      .then((res) => (res.ok ? res.json() : {}))
+      .then((data: unknown) => {
+        const table = data && typeof data === 'object' && !Array.isArray(data) ? (data as Thesaurus) : {}
+        thesaurus = table
+        return table
+      })
+      .catch(() => {
+        // Cleared so a later mount retries; the page is fully usable without it.
+        thesaurusPromise = null
+        return {} as Thesaurus
+      })
+  }
+  return thesaurusPromise
+}
+
 /**
  * The 2,098 core rows. A failed load clears the cache so the next mount
  * retries rather than inheriting a rejected promise.

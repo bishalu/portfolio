@@ -64,6 +64,18 @@ import {
   type Prefs,
 } from './match'
 import type { NaamRow } from '@/types/naam'
+/**
+ * Everyday English → this lexicon's own vocabulary, built offline by
+ * scripts/naam/build-thesaurus.mjs and fetched alongside the rows.
+ *
+ * READ SYNCHRONOUSLY AND ALLOWED TO BE EMPTY. readAsk() is synchronous and runs
+ * the moment someone submits; the table is requested at mount, beside a 1.22 MB
+ * row payload the page cannot work without, so in practice it is always there.
+ * When it is not, retrieval simply behaves as it did before it existed — the
+ * gap goes uncrossed, nothing breaks, and the agent's own search still covers
+ * it. That is why this is a getter and not a required argument.
+ */
+import { currentThesaurus } from './tray'
 
 const C = NAAM_COPY
 
@@ -200,7 +212,7 @@ export function readAsk(text: string, rows: readonly NaamRow[]): NaamRead {
    * has thrown away the only rows that answered the question, so it is dropped
    * and the meaning wins.
    */
-  const hits = retrieve(rows, text, RETRIEVE_MAX)
+  const hits = retrieve(rows, text, RETRIEVE_MAX, currentThesaurus())
   const shaped = hits.filter((hit) => passesHardFilters(hit.row, prefs))
   const meant = (shaped.length > 0 ? shaped : hits).map((hit) => hit.row)
 

@@ -48,7 +48,7 @@ import {
   NAAM_TOOL_SCHEMA,
 } from '@/lib/naam/prompt'
 import { retrieve } from '@/lib/naam/match'
-import { ceilinged, clientIp, isRowId, json, loadCoreRows, rateLimited, tidy } from '@/lib/naam/server'
+import { ceilinged, clientIp, isRowId, json, loadCoreRows, loadThesaurus, rateLimited, tidy } from '@/lib/naam/server'
 import type { NaamRow } from '@/types/naam'
 
 export const prerender = false
@@ -163,7 +163,9 @@ export const POST: APIRoute = async (context) => {
   // model is never shown a row the client made up. The origin is a constant —
   // never `request.url` — because otherwise the Host header decides what "the
   // document" is. See src/lib/naam/server.ts.
-  const rows = await loadCoreRows()
+  // Fetched alongside the rows, and both are cached per warm instance. `{}` is
+  // an acceptable result — see loadThesaurus().
+  const [rows, thesaurus] = await Promise.all([loadCoreRows(), loadThesaurus()])
   const byId = new Map(rows.map((row) => [row.id, row]))
   const poolRows = poolIds.map((id) => byId.get(id)).filter((row) => row !== undefined)
   if (poolRows.length === 0) return degraded('empty-pool')
@@ -267,7 +269,7 @@ export const POST: APIRoute = async (context) => {
 
       const found: NaamRow[] = []
       for (const query of queries) {
-        for (const hit of retrieve(rows, query, SEARCH_LIMIT)) {
+        for (const hit of retrieve(rows, query, SEARCH_LIMIT, thesaurus)) {
           if (allowed.has(hit.row.id) && found.some((r) => r.id === hit.row.id)) continue
           allowed.add(hit.row.id)
           if (!found.some((r) => r.id === hit.row.id)) found.push(hit.row)

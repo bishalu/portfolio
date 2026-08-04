@@ -232,6 +232,42 @@ async function fetchJson(path: string): Promise<unknown> {
   }
 }
 
+/**
+ * The query thesaurus — everyday English → this lexicon's own vocabulary.
+ *
+ * THE SAME ARTIFACT THE BROWSER FETCHES, deliberately. The agent's search tool
+ * and the pool the browser built have to cross the vocabulary gap identically,
+ * or the agent searches "brave", finds rows the client could never have found,
+ * and the two halves of the page disagree about what the document contains.
+ *
+ * Unlike the rows, `{}` IS a valid answer to cache: retrieval without the table
+ * is simply retrieval as it was before the table existed. So this keeps
+ * whatever it gets, including nothing, and never retries inside a request.
+ */
+type ThesaurusTable = Readonly<Record<string, readonly string[]>>
+let thesaurus: ThesaurusTable | null = null
+let thesaurusInFlight: Promise<ThesaurusTable> | null = null
+
+export async function loadThesaurus(): Promise<ThesaurusTable> {
+  if (thesaurus) return thesaurus
+  if (!thesaurusInFlight) {
+    thesaurusInFlight = fetchJson('/naam/thesaurus.json')
+      .then((data) => {
+        const table = data && typeof data === 'object' && !Array.isArray(data) ? (data as ThesaurusTable) : {}
+        thesaurus = table
+        return table
+      })
+      .catch(() => {
+        thesaurus = {}
+        return thesaurus
+      })
+      .finally(() => {
+        thesaurusInFlight = null
+      })
+  }
+  return thesaurusInFlight
+}
+
 /** The 2,098 core rows, cached per warm instance once it has some. [] on failure. */
 export async function loadCoreRows(): Promise<NaamRow[]> {
   if (coreRows && coreRows.length > 0) return coreRows

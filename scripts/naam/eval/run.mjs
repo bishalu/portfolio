@@ -34,7 +34,7 @@
 import { writeFileSync, readFileSync, existsSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { loadMatch, loadRows, REPO } from './compile.mjs'
+import { loadMatch, loadRows, loadThesaurus, REPO } from './compile.mjs'
 import { CASES, goldIds } from './cases.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
@@ -53,6 +53,10 @@ const POOL = 10
 
 const rows = loadRows()
 const match = await loadMatch()
+/** Passed explicitly, exactly as the two call sites pass it, so the harness
+ *  cannot pass without the table production runs with. `--no-thesaurus`
+ *  measures the before picture on demand. */
+const thesaurus = has('--no-thesaurus') ? {} : loadThesaurus()
 const byLatin = new Map(rows.map((row) => [row.latin.toLowerCase(), row]))
 const byId = new Map(rows.map((row) => [row.id, row]))
 
@@ -60,7 +64,7 @@ const byId = new Map(rows.map((row) => [row.id, row]))
 
 function scoreCase(testCase) {
   const gold = goldIds(testCase, rows, byLatin)
-  const hits = match.retrieve(rows, testCase.q, POOL)
+  const hits = match.retrieve(rows, testCase.q, POOL, thesaurus)
   const ranked = hits.map((hit) => hit.row.id)
 
   if (testCase.tier === 'noise') {
@@ -137,7 +141,8 @@ if (single) {
   process.exit(0)
 }
 
-console.log(`\n  /naam retrieval — ${results.length} cases, ${rows.length} rows\n`)
+const tsize = Object.keys(thesaurus).length
+console.log(`\n  /naam retrieval — ${results.length} cases, ${rows.length} rows, ${tsize} thesaurus entries\n`)
 console.log(`  ${'tier'.padEnd(9)} ${'n'.padStart(3)}  ${'success@3'.padStart(9)} ${'P@10'.padStart(6)} ${'MRR'.padStart(6)}`)
 console.log(`  ${'─'.repeat(40)}`)
 for (const tier of TIERS) {
