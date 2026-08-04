@@ -38,6 +38,7 @@ import {
 } from '@aws-sdk/client-bedrock-runtime'
 import {
   buildSearchResult,
+  type NaamSearchHit,
   buildSystemPrompt,
   buildUserTurn,
   coerceModelReply,
@@ -49,7 +50,6 @@ import {
 } from '@/lib/naam/prompt'
 import { retrieve } from '@/lib/naam/match'
 import { ceilinged, clientIp, isRowId, json, loadCoreRows, loadThesaurus, rateLimited, tidy } from '@/lib/naam/server'
-import type { NaamRow } from '@/types/naam'
 
 export const prerender = false
 
@@ -267,14 +267,29 @@ export const POST: APIRoute = async (context) => {
         .filter((q): q is string => Boolean(q))
         .slice(0, 4)
 
-      const found: NaamRow[] = []
+      /**
+       * Kept as hits, not rows: the model is shown how strongly each answered
+       * and to which of its own words, so it can tell a hit from a shrug. Best
+       * score wins on a duplicate — the same row can surface under two of the
+       * agent's queries, and the stronger reading is the honest one to report.
+       */
+      const found: NaamSearchHit[] = []
+      const byRow = new Map<string, NaamSearchHit>()
       for (const query of queries) {
         for (const hit of retrieve(rows, query, SEARCH_LIMIT, thesaurus)) {
-          if (allowed.has(hit.row.id) && found.some((r) => r.id === hit.row.id)) continue
           allowed.add(hit.row.id)
-          if (!found.some((r) => r.id === hit.row.id)) found.push(hit.row)
+          const seen = byRow.get(hit.row.id)
+          if (!seen) {
+            const entry = { row: hit.row, score: hit.score, matched: hit.matched }
+            byRow.set(hit.row.id, entry)
+            found.push(entry)
+          } else if (hit.score > seen.score) {
+            seen.score = hit.score
+            seen.matched = hit.matched
+          }
         }
       }
+      found.sort((a, b) => b.score - a.score)
 
       if (message) messages.push(message)
       messages.push({

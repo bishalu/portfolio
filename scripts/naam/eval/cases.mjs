@@ -128,7 +128,12 @@ export const CASES = [
   { q: 'warrior', tier: 'gap', goldRe: /\b(warrior|hero\b|heroic|valiant|kshatriya|fighting)/i, keepBare: true },
   { q: 'clever', tier: 'gap', goldRe: /\b(intelligen|understanding|wise|shrewd|skilful|skilled)/i },
   { q: 'courage', tier: 'gap', goldRe: /\b(courage|valiant|heroic|bold\b|prowess|exertion)/i },
-  { q: 'kindness', tier: 'gap', goldRe: /\b(kind\b|kindness|compassion|benevolen|friendly|beneficent)/i },
+  {
+    q: 'kindness',
+    tier: 'gap',
+    goldRe: /\b(kindness|compassion|benevolen|friendly|beneficent|gracious)\b|\bkind[;,]/i,
+    note: 'NOT /\\bkind\\b/ — that matched "pl. name of a particular kind of brick" and put a brick in the gold set',
+  },
   { q: 'victory', tier: 'gap', goldRe: /\b(victor|conquer|triumph|winning)/i },
   { q: 'generous', tier: 'gap', goldRe: /\b(generous|liberal|bountiful|giving|bestow)/i },
   { q: 'noble', tier: 'gap', goldRe: /\b(noble|dignified|illustrious|eminent)/i },
@@ -171,6 +176,19 @@ export const CASES = [
   { q: 'a gentle sounding name with a good meaning', tier: 'phrase', goldRe: /\b(tender|mild|gentleness|kindness)/i },
   { q: 'what about fire', tier: 'phrase', goldRe: /\bfire\b|\bflame\b/i },
   { q: 'names that mean happy', tier: 'phrase', goldRe: /\bhappy\b|\bhappiness\b|\bjoy\b|\bglad\b/i },
+  {
+    q: 'a healer, someone who mends people',
+    tier: 'phrase',
+    goldRe: /\b(health|healthy|physician|medicine|healing)/i,
+    keepBare: true,
+    note: 'caught end to end, not here: `people` is in 57 glosses meaning a TRIBE, and it buried the real target under ethnonyms — the whole query returned no picks. Regression guard for the apparatus stopwords',
+  },
+  {
+    q: 'a name for a person with a good heart',
+    tier: 'phrase',
+    goldRe: /\b(kindness|compassion|benevolen|friendly|beneficent|gracious|virtuous)\b|\b(kind|good)[;,]/i,
+    note: '`person` is the same trap as `people`. Gold widened after the fact: retrieval answered Sadhu ("good; pleasant; auspicious") and Bhadraka ("good; fine; beneficial"), which ARE what someone means by a good heart — the narrow kindness-only pattern was my error, not the retriever\'s',
+  },
 
   /* ── noise: success is returning NOTHING ────────────────────────────────── */
   { q: 'asdfgh', tier: 'noise' },

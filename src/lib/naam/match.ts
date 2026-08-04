@@ -522,6 +522,19 @@ const QUERY_STOP = new Set([
   ...'some any other more most less few give show find look looking want wants need needs like likes'.split(' '),
   ...'please can could would should do does did have has had get got make makes made'.split(' '),
   ...'sound sounds sounding word words son boy child baby there here yes no not but if then than'.split(' '),
+  /**
+   * DICTIONARY APPARATUS AND THE WORDS PEOPLE USE TO ASK, not to mean.
+   *
+   * Measured end to end: "a healer, someone who mends people" returned no picks
+   * at all, and the pool it built was headed Sivi ("people of Sivi"), Baliha
+   * ("pl. name of a people") and Ballava ("pl. name of a people"). The query had
+   * a perfectly good target — `healer` reaches `physician` through the
+   * thesaurus — but `people` is in 57 glosses where it means a TRIBE, and it
+   * buried the real signal under ethnonyms. `various` (110) and `particular`
+   * (59) are the same shape: high-frequency lexicographer's filler that nobody
+   * types as a wish for their son.
+   */
+  ...'people person persons folk tribe various particular certain called said belonging form used'.split(' '),
 ])
 
 const normalise = (value: string): string =>

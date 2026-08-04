@@ -175,22 +175,60 @@ if (has('--failures')) {
 /* ── baseline diff ────────────────────────────────────────────────────────── */
 
 if (has('--save')) {
-  writeFileSync(BASELINE, JSON.stringify({ at: new Date().toISOString(), report }, null, 2))
+  // Per-case outcomes, not just the means — see the comparison below.
+  const cases = Object.fromEntries(results.map((r) => [r.q, r.success]))
+  writeFileSync(BASELINE, JSON.stringify({ at: new Date().toISOString(), report, cases }, null, 2))
   console.log(`  baseline written to ${BASELINE.replace(REPO + '/', '')}\n`)
 } else if (existsSync(BASELINE)) {
   const prev = JSON.parse(readFileSync(BASELINE, 'utf8'))
   console.log(`  vs baseline (${prev.at.slice(0, 16).replace('T', ' ')}):`)
-  let regressed = false
+
+  /**
+   * COMPARE CASES, NOT AVERAGES, and the difference is not academic.
+   *
+   * Adding two deliberately hard cases to the phrase tier dropped its mean and
+   * the harness printed "regression" in red for a change that had fixed a bug
+   * and broken nothing. A gate that cries wolf gets ignored, and an ignored gate
+   * is worse than none — it is the same failure as the 50% floor, just wearing a
+   * badge that says it was checked.
+   *
+   * So a regression is now defined as a NAMED CASE that used to pass and now
+   * fails. Means are still printed, because they are the useful summary, but
+   * they no longer decide anything.
+   */
+  const prevCases = prev.cases ?? null
+  const broke = prevCases ? results.filter((r) => prevCases[r.q] === true && !r.success) : []
+  const fixed = prevCases ? results.filter((r) => prevCases[r.q] === false && r.success) : []
+  const added = prevCases ? results.filter((r) => !(r.q in prevCases)) : []
+
   for (const key of ['overall', ...TIERS]) {
     if (!report[key] || !prev.report[key]) continue
     const d = report[key].success - prev.report[key].success
     const dp = report[key].precision - prev.report[key].precision
-    if (Math.abs(d) < 1e-9 && Math.abs(dp) < 1e-9) continue
+    const dn = report[key].n - prev.report[key].n
+    if (Math.abs(d) < 1e-9 && Math.abs(dp) < 1e-9 && dn === 0) continue
     const arrow = d > 0 ? '\x1b[32m▲\x1b[0m' : d < 0 ? '\x1b[31m▼\x1b[0m' : ' '
-    if (d < -1e-9) regressed = true
-    console.log(`    ${arrow} ${key.padEnd(9)} success ${d >= 0 ? '+' : ''}${(d * 100).toFixed(1)}pp · P@10 ${dp >= 0 ? '+' : ''}${(dp * 100).toFixed(1)}pp`)
+    const size = dn !== 0 ? dim(`  (${dn > 0 ? '+' : ''}${dn} cases — means not comparable)`) : ''
+    console.log(
+      `    ${arrow} ${key.padEnd(9)} success ${d >= 0 ? '+' : ''}${(d * 100).toFixed(1)}pp · ` +
+        `P@10 ${dp >= 0 ? '+' : ''}${(dp * 100).toFixed(1)}pp${size}`,
+    )
   }
-  console.log(regressed ? '\n  \x1b[31mregression\x1b[0m\n' : '\n  no regression\n')
+
+  if (!prevCases) {
+    console.log(dim('\n  baseline predates per-case tracking — re-save it to enable regression detection\n'))
+  } else {
+    if (fixed.length > 0) console.log(`\n  \x1b[32mfixed:\x1b[0m ${fixed.map((r) => `"${r.q}"`).join(', ')}`)
+    if (added.length > 0) console.log(dim(`  new:   ${added.map((r) => `"${r.q}"`).join(', ')}`))
+    if (broke.length > 0) {
+      console.log(`\n  \x1b[31mREGRESSION — ${broke.length} case(s) that used to pass now fail:\x1b[0m`)
+      for (const r of broke) console.log(`    [${r.tier}] "${r.q}"`)
+      console.log()
+      process.exitCode = 1
+    } else {
+      console.log('\n  no case regressed\n')
+    }
+  }
 } else {
   console.log(dim('  no baseline — run with --save to record one\n'))
 }

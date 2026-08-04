@@ -391,9 +391,9 @@ export function buildUserTurn(ask: string, poolRows: readonly NaamRow[], absent:
  * and try the same thing again; told plainly that those words are not in any
  * meaning, it goes and thinks of different words.
  */
-export function buildSearchResult(queries: readonly string[], rows: readonly NaamRow[]): string {
+export function buildSearchResult(queries: readonly string[], found: readonly NaamSearchHit[]): string {
   const asked = queries.map((q) => `"${clean(q).slice(0, 60)}"`).join(', ')
-  if (rows.length === 0) {
+  if (found.length === 0) {
     return (
       `Searched the meanings for ${asked} — nothing. Those exact words are in no ` +
       `definition in this document. Try different words for the same idea, or, if you have ` +
@@ -401,7 +401,38 @@ export function buildSearchResult(queries: readonly string[], rows: readonly Naa
       `offer the closest thing you have seen.`
     )
   }
-  return `Searched the meanings for ${asked}. ${rows.length} found:\n${rows.map(formatRow).join('\n')}`
+
+  /**
+   * STRENGTH, BECAUSE A LIST OF TEN LOOKS LIKE TEN ANSWERS.
+   *
+   * This tool used to hand back rows and nothing else, so a search where the
+   * best row scored 19.0 and the tenth scraped the relevance floor at 2.1
+   * arrived as ten equally-presented lines. The model cannot tell a hit from a
+   * shrug in that shape: it either treats the weak tail as real and offers a
+   * barely-related name with the same warmth as an exact one, or it searches
+   * again when it already had the answer — and that second round trip is the
+   * latency this pass exists to remove.
+   *
+   * Bands rather than raw numbers. The absolute value of a BM25 score means
+   * nothing without the whole corpus in front of you; "strong" against "weak"
+   * is a judgement the model can actually act on.
+   */
+  const top = found[0]?.score || 1
+  const band = (score: number): string => (score >= top * 0.66 ? 'strong' : score >= top * 0.33 ? 'fair' : 'weak')
+
+  const lines = found.map((hit) => `${band(hit.score)} | ${hit.matched.join('+') || '-'} | ${formatRow(hit.row)}`)
+  return (
+    `Searched the meanings for ${asked}. ${found.length} found, best first ` +
+    `(strength | which of your words matched | row):\n${lines.join('\n')}`
+  )
+}
+
+/** A row the document handed back, with how well it answered and to which of
+ *  the agent's own words. */
+export interface NaamSearchHit {
+  row: NaamRow
+  score: number
+  matched: readonly string[]
 }
 
 function formatRow(row: NaamRow): string {
