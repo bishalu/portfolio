@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "context7": {
+      "command": "node",
+      "args": ["/home/bishal/projects/fingerprinting/scripts/context7_mcp_bridge.cjs"]
+    }
+  }
+}

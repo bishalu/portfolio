@@ -565,6 +565,47 @@ if (!seedRow) {
 
      The transition is 900ms and eased, so a state change is a swell rather
      than a switch, and the 3.7s breath keeps running underneath it. */
+  /* ────────────────────────────────────────────────────────────────────────
+     THE VALLEY — dusk over the Kathmandu valley, drawn in PixiJS.
+
+     Behind everything, taking no input, carrying no information. The page is
+     complete without it: the gradient declared here is what shows while the
+     ~117 kB chunk loads, if WebGL is blocked, if the context is lost, or if the
+     import simply fails. Those are the same outcome and none of them is an
+     error — the weather does not arrive, and nothing else changes.
+
+     The gradient is not a placeholder for the scene, it is the scene's own
+     first two stops: paper on the left where the room is, dusk on the right
+     where the window is. So the swap when Pixi mounts is a deepening rather
+     than a replacement, and there is no flash of a different page.
+     ──────────────────────────────────────────────────────────────────────── */
+  /* z-index 0, NOT -1. The page root paints --nm-canvas opaquely, and a
+     negative index puts the canvas behind that fill rather than behind the
+     content — the scene rendered perfectly and was never visible. Everything
+     above it (.nm-room is 0, the stream and tray are higher) already sits in
+     the same stacking context, so 0 with the canvas first in DOM order is what
+     puts it underneath them and on top of the page's own background. */
+  .nm-valley {
+    position: absolute;
+    z-index: 0;
+    inset: 0;
+    /* The scene's own first stops, not a stand-in for them: cool paper where
+       the room is, thin cold sky, then the rose band the range stands against.
+       So when the chunk lands and Pixi takes over, the picture deepens rather
+       than swapping — no flash of a different page. */
+    background: linear-gradient(
+      104deg,
+      var(--nm-canvas) 0%,
+      var(--nm-canvas) 36%,
+      #dbe1ec 62%,
+      #e9d3cb 88%,
+      #f1cec2 100%
+    );
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
   .nm-room {
     --lit: 1;
     --warm: 0;
@@ -2903,6 +2944,13 @@ if (!seedRow) {
      the iOS keyboard permanently. */
   .nm-composer {
     display: flex;
+    position: relative;
+    /* ABOVE THE VALLEY. It has an opaque background but no stacking position,
+       so the moment a positioned canvas went in behind the shell the composer
+       lost the paint order and the input vanished under the sky — a functional
+       break, not a cosmetic one. The one place on this page a visitor must be
+       able to see and reach cannot depend on source order. */
+    z-index: 2;
     flex: 0 0 auto;
     flex-direction: column;
     gap: 0.4rem;

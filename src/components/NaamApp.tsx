@@ -429,6 +429,7 @@ export default function NaamApp({ seed }: NaamAppProps) {
 
   const mountRef = useRef<AbortController | null>(null)
   const shellRef = useRef<HTMLDivElement | null>(null)
+  const valleyRef = useRef<HTMLCanvasElement | null>(null)
   /** React renders this empty and never diffs its children, so it is the one
       safe place to park an imperatively created flying name. */
   const fxRef = useRef<HTMLDivElement | null>(null)
@@ -453,6 +454,54 @@ export default function NaamApp({ seed }: NaamAppProps) {
       fn()
     }, ms)
     timers.current.add(id)
+  }, [])
+
+  /* — the valley ——————————————————————————————————————————————————— */
+
+  /**
+   * PixiJS is ~117 kB gzipped — larger than every other line of JavaScript on
+   * this site put together — so it is imported dynamically, after the page is
+   * usable, and never on the critical path. If it never arrives, the CSS
+   * gradient behind the canvas is the page and nothing is missing but weather.
+   *
+   * Under prefers-reduced-motion the scene is built and drawn ONCE. Not
+   * skipped: the valley is the room this conversation happens in, and removing
+   * it would change what the page is rather than how it moves. What stops is
+   * the parallax.
+   */
+  useEffect(() => {
+    const canvas = valleyRef.current
+    if (!canvas) return
+    let handle: { look(x: number, y: number): void; resize(): void; destroy(): void } | null = null
+    let cancelled = false
+    const still = reducedMotion()
+
+    const start = window.setTimeout(async () => {
+      try {
+        const { createValley } = await import('@/lib/naam/scene/valley')
+        if (cancelled) return
+        handle = await createValley({ canvas, still })
+        if (cancelled) handle.destroy()
+      } catch {
+        // WebGL blocked, context lost, chunk failed — all the same outcome, and
+        // it is not an error state. The gradient below is a complete page.
+      }
+    }, 260)
+
+    const onPointer = (event: PointerEvent) => {
+      handle?.look(event.clientX / window.innerWidth, event.clientY / window.innerHeight)
+    }
+    const onResize = () => handle?.resize()
+    if (!still) window.addEventListener('pointermove', onPointer, { passive: true })
+    window.addEventListener('resize', onResize, { passive: true })
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(start)
+      window.removeEventListener('pointermove', onPointer)
+      window.removeEventListener('resize', onResize)
+      handle?.destroy()
+    }
   }, [])
 
   /* — mount ————————————————————————————————————————————————————————— */
@@ -1553,6 +1602,14 @@ export default function NaamApp({ seed }: NaamAppProps) {
           in the strict sense — aria-hidden, no content, nothing to read. They
           exist because the page was inert between clicks, which is the whole
           reason it read as a document. */}
+      {/* THE VALLEY. Dusk over the Kathmandu valley, veiled back to paper on
+          the left so you are inside a room looking out rather than reading
+          over a sky. aria-hidden and pointer-events:none: it carries no
+          information and takes no input, so axe still sees a complete page and
+          every name above it stays selectable. A CSS gradient sits behind it in
+          naam.astro, so a blocked or failed WebGL context looks deliberate
+          instead of blank. */}
+      <canvas className="nm-valley" ref={valleyRef} aria-hidden="true" />
       <div className="nm-room" aria-hidden="true" />
       <div className="nm-motes" aria-hidden="true">
         {MOTES.map((m, i) => (
