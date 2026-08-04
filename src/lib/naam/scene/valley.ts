@@ -182,9 +182,16 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
   const roofs = new Graphics()
   const stupa = new Graphics()
   const flags = new Container()
-  const birds = new Graphics()
+  /**
+   * CONTAINERS, NOT GRAPHICS. Both of these are only ever parents — nothing is
+   * drawn into either — and calling addChild on a Graphics is deprecated in
+   * Pixi v8 and slated for removal. It logged a deprecation on every load; the
+   * console gate counted it, and the message was invisible because Pixi puts
+   * the text in console.groupCollapsed and only the stack in console.warn.
+   */
+  const birds = new Container()
   const veil = new Graphics()
-  const lamps = new Graphics()
+  const lamps = new Container()
   /**
    * ADDITIVE, BECAUSE LIGHT ADDS. The lamps were three concentric discs of
    * warm colour at partial alpha, which is how you draw a DOT that happens to
@@ -200,7 +207,10 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
    * the pale sky above would blow straight out to white — which is also why the
    * alphas below are lower than they were: summed light needs less of it.
    */
-  lamps.blendMode = 'add'
+  // Additive blending moved onto each lamp as it is built (see buildLamps).
+  // A Container's blendMode is not the same thing as its children's: setting it
+  // here promotes the container to its own render group, which is a heavier
+  // object than nine circles need.
   // Order is the composition: sky, range, town, the stupa standing above the
   // town, flags strung from it, birds in front of everything, then the veil
   // that turns the left half back into paper.
@@ -860,6 +870,8 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
       g.circle(0, 0, r * 6).fill({ color: 0xff9b3d, alpha: 0.07 })
       g.circle(0, 0, r * 2.6).fill({ color: 0xffb85c, alpha: 0.16 })
       g.circle(0, 0, r * 1.05).fill({ color: 0xffdca8, alpha: 0.5 })
+      // Additive, per lamp. Summed light is why the alphas above are so low.
+      g.blendMode = 'add'
       g.x = spot.x * w
       g.y = spot.y * h
       lamps.addChild(g)

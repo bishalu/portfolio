@@ -81,9 +81,28 @@ async function consoleCheck(browser) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } })
   const page = await ctx.newPage()
   const problems = []
+  /**
+   * Messages the PAGE cannot cause and cannot fix.
+   *
+   * Chromium's GL layer emits `GL Driver Message (... Performance ...)` from the
+   * driver itself. Under headless swiftshader — which is what this gate runs on
+   * — every accelerated canvas produces a handful of `GPU stall due to
+   * ReadPixels` lines while Playwright composites it. They are software-renderer
+   * artefacts of the test rig, absent on real hardware, and they scale with how
+   * many canvases the page has rather than with anything being wrong.
+   *
+   * Counting them meant the gate failed for drawing at all, which is the kind
+   * of failure that teaches you to ignore the gate. The filter is deliberately
+   * narrow: it matches the driver's own prefix and nothing else, so a genuine
+   * console.warn from page code — a Pixi deprecation, say — still fails.
+   */
+  const RIG_NOISE = /GL Driver Message \(.*Performance/
   page.on(
     'console',
-    (m) => ['error', 'warning'].includes(m.type()) && problems.push(`[${m.type()}] ${m.text().slice(0, 200)}`),
+    (m) =>
+      ['error', 'warning'].includes(m.type()) &&
+      !RIG_NOISE.test(m.text()) &&
+      problems.push(`[${m.type()}] ${m.text().slice(0, 200)}`),
   )
   page.on('pageerror', (e) => problems.push(`[pageerror] ${String(e).slice(0, 300)}`))
   for (const path of ROUTES) {

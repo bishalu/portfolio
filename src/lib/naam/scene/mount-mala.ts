@@ -1,14 +1,21 @@
 /**
  * Mounting the mala: a second, small Pixi surface over the conversation rail.
  *
- * WHY A SEPARATE RENDERER FROM THE VALLEY. They have nothing in common but the
- * library. The valley is a full-bleed diorama behind everything, painted once
- * and cached; this is a 60px-wide strip that has to stay pinned to lines of
- * text as they arrive. Sharing a renderer would mean one canvas spanning both,
- * and then every bead position would need converting out of a coordinate space
- * that includes the entire page — the exact class of drift that made lampSpots
- * a shared module. Two surfaces, each in the box it belongs to, is simpler and
- * cannot desync.
+ * WHY A SEPARATE SURFACE FROM THE VALLEY. They have nothing in common. The
+ * valley is a full-bleed diorama behind everything, painted once and cached;
+ * this is a 60px-wide strip that has to stay pinned to lines of text as they
+ * arrive. Sharing would mean one canvas spanning both, and then every bead
+ * position would need converting out of a coordinate space that includes the
+ * entire page — the exact class of drift that made lampSpots a shared module.
+ * Two surfaces, each in the box it belongs to, cannot desync.
+ *
+ * WHY 2D AND NOT A SECOND WEBGL CONTEXT. It was WebGL first, and the console
+ * gate caught the cost: four `GPU stall due to ReadPixels` driver messages that
+ * disappeared when this module's import was blocked. Browsers cap simultaneous
+ * WebGL contexts, the valley already holds one, and this draws a polyline and
+ * forty circles. See mala.ts. It also means the rope needs no async import and
+ * no renderer init, so it can fail in exactly one way: getContext returns null,
+ * and the CSS cord stays.
  *
  * THE CANVAS LIVES INSIDE THE SCROLLER. Verified before building: the rail is a
  * descendant of .nm-stream, so a canvas placed there scrolls with the text for
@@ -34,7 +41,6 @@ export interface MountMalaOptions {
 
 export async function mountMala(options: MountMalaOptions): Promise<MalaHandle | null> {
   const { host, still = false } = options
-  const { WebGLRenderer } = await import('pixi.js')
   const { Mala: MalaClass } = await import('./mala')
 
   const canvas = document.createElement('canvas')
@@ -44,19 +50,14 @@ export async function mountMala(options: MountMalaOptions): Promise<MalaHandle |
   host.style.position = host.style.position || 'relative'
   host.prepend(canvas)
 
-  const renderer = new WebGLRenderer()
-  await renderer.init({
-    canvas,
-    antialias: true,
-    resolution: Math.min(window.devicePixelRatio || 1, 2),
-    autoDensity: true,
-    // TRANSPARENT, not the page colour. This sits over the paper and under the
-    // text; an opaque background would erase the ground the type reads against.
-    backgroundAlpha: 0,
-    width: Math.max(1, host.clientWidth),
-    height: Math.max(1, host.clientHeight),
-    powerPreference: 'low-power',
-  })
+  const ctx = canvas.getContext('2d')
+  if (!ctx) {
+    // No 2D context at all is vanishingly rare, but the caller only hides the
+    // CSS cord on a non-null return, so bailing here leaves the old rail intact
+    // rather than an empty gutter.
+    canvas.remove()
+    return null
+  }
 
   const mala: Mala = new MalaClass()
 
@@ -76,7 +77,13 @@ export async function mountMala(options: MountMalaOptions): Promise<MalaHandle |
   function relayout() {
     const w = Math.max(1, host.clientWidth)
     const h = Math.max(1, host.clientHeight)
-    renderer.resize(w, h)
+    // Backing store at device resolution, drawing coordinates in CSS pixels —
+    // capped at 2 because a 3x buffer on this strip buys nothing visible and
+    // costs real memory on the phones that report it.
+    const dpr = Math.min(window.devicePixelRatio || 1, 2)
+    canvas.width = Math.round(w * dpr)
+    canvas.height = Math.round(h * dpr)
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
     const found = anchors()
     const marker = host.querySelector<HTMLElement>('.nm-bead')
     mala.build({
@@ -86,15 +93,13 @@ export async function mountMala(options: MountMalaOptions): Promise<MalaHandle |
     if (still) {
       // Settle it in one go rather than animating: reduced motion should get a
       // hanging rope, not a rope caught mid-swing.
-      for (let i = 0; i < 60; i++) mala.animate(null)
-      renderer.render(mala.view)
+      for (let i = 0; i < 60; i++) mala.animate(ctx, null)
     }
   }
 
   function frame() {
     if (!alive) return
-    mala.animate(pointer)
-    renderer.render(mala.view)
+    mala.animate(ctx, pointer)
     raf = requestAnimationFrame(frame)
   }
 
@@ -141,7 +146,6 @@ export async function mountMala(options: MountMalaOptions): Promise<MalaHandle |
       window.removeEventListener('pointerleave', onLeave)
       document.removeEventListener('visibilitychange', onVisibility)
       mala.destroy()
-      renderer.destroy()
       canvas.remove()
     },
   }

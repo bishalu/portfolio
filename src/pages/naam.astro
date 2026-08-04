@@ -2219,13 +2219,26 @@ if (!seedRow) {
     color: color-mix(in srgb, var(--nm-keep) 74%, var(--nm-text-soft));
   }
 
-  .nm-doodle-line,
+  /* The shaft is FILLED, not stroked — it is an outline with real width that
+     varies along its length (see NaamApp). The barbs stay strokes: a barb is a
+     flick, short enough that varying its width would be invisible work. */
+  .nm-doodle-line {
+    fill: currentcolor;
+    stroke: none;
+  }
+
+  .nm-doodle-reveal,
+  .nm-doodle-barb {
+    /* Normalised by pathLength="100" on both, so this one number is correct
+       regardless of their real lengths. */
+    stroke-dasharray: 100;
+  }
+
   .nm-doodle-barb {
     stroke: currentcolor;
-    /* Normalised by pathLength="100" on every path, so this one number is
-       correct for all three regardless of their real lengths. */
-    stroke-dasharray: 100;
-    stroke-width: 2.2;
+    /* Matched to the ink where the shaft ends, not to its widest point — a barb
+       heavier than the line it finishes reads as a separate mark. */
+    stroke-width: 1.7;
   }
 
   /* ONE CONFIDENT STROKE, 480ms. The first cut ran 1100ms on an ease-in-out,
@@ -2246,7 +2259,8 @@ if (!seedRow) {
      own clock: it is not rendered at all until the opening has finished (see
      NaamApp), so this is measured from the end of the invitation rather than
      from a page load that knows nothing about it. */
-  .nm-doodle-line {
+  /* The mask is what moves; the ink underneath it never changes. */
+  .nm-doodle-reveal {
     animation: nm-doodle-draw 2200ms cubic-bezier(0.4, 0, 0.5, 1) 900ms backwards;
   }
 
@@ -3516,7 +3530,7 @@ if (!seedRow) {
        killing the animation alone would leave the dasharray at 100 and the
        arrow would simply never appear. */
     .nm-doodle,
-    .nm-doodle-line,
+    .nm-doodle-reveal,
     .nm-doodle-barb {
       animation: none;
       stroke-dashoffset: 0;

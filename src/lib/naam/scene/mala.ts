@@ -43,7 +43,25 @@
  * and hangs cord between them. Canvas draws the rope; the DOM decides where its
  * ends are nailed.
  */
-import { Container, Graphics } from 'pixi.js'
+
+/**
+ * CANVAS 2D, NOT PIXI, AND THE REASON IS MEASURED.
+ *
+ * This first shipped on its own WebGLRenderer, separate from the valley's. The
+ * console gate then reported four `GPU stall due to ReadPixels` driver messages
+ * that vanished the moment the mala's import was blocked — so they were this
+ * module's, not the valley's.
+ *
+ * That is a software-renderer symptom and would not appear on real hardware,
+ * but it pointed at something that is true everywhere: a second GPU context to
+ * draw one polyline and forty circles in a 60px strip is a bad trade. Browsers
+ * cap simultaneous WebGL contexts — commonly 8 to 16 — and the valley already
+ * holds one. Spending a second on this puts the two of them in competition on
+ * exactly the phones least able to afford it.
+ *
+ * Everything drawn here is moveTo/lineTo/arc/fill. That is Canvas 2D's native
+ * vocabulary, so the port costs nothing and removes the context.
+ */
 
 /** One point in the rope. `px/py` is the previous position — in Verlet that IS
  *  the velocity, which is why there is no velocity field. */
@@ -130,8 +148,6 @@ export interface MalaOptions {
 }
 
 export class Mala {
-  readonly view = new Container()
-  private rope = new Graphics()
   private nodes: Node[] = []
   private beads: Bead[] = []
   /**
@@ -146,10 +162,6 @@ export class Mala {
    * proportional to its own length.
    */
   private rest: number[] = []
-
-  constructor() {
-    this.view.addChild(this.rope)
-  }
 
   /**
    * Build the rope. Called on layout only — node count, rest length and bead
@@ -251,7 +263,7 @@ export class Mala {
    * a hanging thing you put your hand near moves, and this is the only element
    * on the left column that responds to anything at all.
    */
-  animate(pointer: { x: number; y: number } | null) {
+  animate(ctx: CanvasRenderingContext2D, pointer: { x: number; y: number } | null) {
     if (this.nodes.length === 0) return
 
     for (const n of this.nodes) {
@@ -298,7 +310,7 @@ export class Mala {
       }
     }
 
-    this.draw()
+    this.draw(ctx)
   }
 
   private at(t: number): { x: number; y: number; a: number } {
@@ -310,14 +322,18 @@ export class Mala {
     return { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, a: Math.atan2(b.y - a.y, b.x - a.x) }
   }
 
-  private draw() {
-    const g = this.rope
-    g.clear()
+  private draw(ctx: CanvasRenderingContext2D) {
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
 
     // The cord itself, under the beads.
-    g.moveTo(this.nodes[0].x, this.nodes[0].y)
-    for (let i = 1; i < this.nodes.length; i++) g.lineTo(this.nodes[i].x, this.nodes[i].y)
-    g.stroke({ color: 0x8a7048, width: 1.6, alpha: 0.85, cap: 'round', join: 'round' })
+    ctx.beginPath()
+    ctx.moveTo(this.nodes[0].x, this.nodes[0].y)
+    for (let i = 1; i < this.nodes.length; i++) ctx.lineTo(this.nodes[i].x, this.nodes[i].y)
+    ctx.strokeStyle = 'rgba(138, 112, 72, 0.85)'
+    ctx.lineWidth = 1.6
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    ctx.stroke()
 
     /**
      * Each bead drawn individually, which is the entire point — the gradient
@@ -329,30 +345,37 @@ export class Mala {
     for (const bead of this.beads) {
       const p = this.at(bead.t)
       const warm = 0.86 + bead.tone * 0.28
-      const body = tint(0x9a7846, warm)
-      g.ellipse(p.x, p.y, bead.r * 1.06, bead.r).fill({ color: body })
-      g.ellipse(p.x + bead.r * 0.26, p.y + bead.r * 0.22, bead.r * 0.72, bead.r * 0.62).fill({
-        color: 0x5d4326,
-        alpha: 0.42,
-      })
-      g.ellipse(p.x - bead.r * 0.3, p.y - bead.r * 0.3, bead.r * 0.34, bead.r * 0.28).fill({
-        color: 0xe6c795,
-        alpha: 0.7,
-      })
+
+      ctx.fillStyle = tint(0x9a7846, warm)
+      ellipse(ctx, p.x, p.y, bead.r * 1.06, bead.r)
+
+      ctx.fillStyle = 'rgba(93, 67, 38, 0.42)'
+      ellipse(ctx, p.x + bead.r * 0.26, p.y + bead.r * 0.22, bead.r * 0.72, bead.r * 0.62)
+
+      ctx.fillStyle = 'rgba(230, 199, 149, 0.7)'
+      ellipse(ctx, p.x - bead.r * 0.3, p.y - bead.r * 0.3, bead.r * 0.34, bead.r * 0.28)
       void bead.tilt
     }
   }
 
   destroy() {
-    this.rope.destroy()
-    this.view.destroy()
+    this.nodes = []
+    this.beads = []
   }
 }
 
-/** Multiply a packed RGB toward or away from white, clamped per channel. */
-function tint(rgb: number, k: number): number {
+/** One filled ellipse. Canvas 2D has no fill-shape shorthand. */
+function ellipse(ctx: CanvasRenderingContext2D, x: number, y: number, rx: number, ry: number) {
+  ctx.beginPath()
+  ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2)
+  ctx.fill()
+}
+
+/** Multiply a packed RGB toward or away from white, clamped per channel, as a
+ *  CSS colour — Canvas 2D takes strings where Pixi took packed ints. */
+function tint(rgb: number, k: number): string {
   const r = Math.min(255, Math.round(((rgb >> 16) & 255) * k))
   const g = Math.min(255, Math.round(((rgb >> 8) & 255) * k))
   const b = Math.min(255, Math.round((rgb & 255) * k))
-  return (r << 16) | (g << 8) | b
+  return `rgb(${r} ${g} ${b})`
 }
