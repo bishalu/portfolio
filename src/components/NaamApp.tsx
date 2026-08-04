@@ -1753,40 +1753,45 @@ export default function NaamApp({ seed }: NaamAppProps) {
         {!asked && opening.done && (
           <svg
             className="nm-doodle"
-            viewBox="0 0 64 210"
+            viewBox="0 0 90 214"
             preserveAspectRatio="xMidYMax meet"
             aria-hidden="true"
             focusable="false"
           >
-            {/* pathLength="100" normalises the dash maths, so the draw-on needs
-                no getTotalLength() call and survives any edit to the curve or
-                the viewBox. The first cut hard-coded a dasharray of 132 and
-                would have silently half-drawn the moment the path changed. */}
-            {/* IT WANDERS ON THE WAY DOWN. A clean arc from A to B is a
-                connector; three changes of mind between them is somebody's
-                hand. The curve overshoots left, right, left again and settles —
-                the squiggles are not decoration, they are the reason it reads as
-                drawn rather than as drawn-by-software.
+            {/* IT LOOPS NOW, AND THE LOOPS ARE REAL.
+                The old path wandered left, right, left and settled — three
+                changes of mind, which reads as a squiggle rather than as
+                somebody doodling while they think. This curve is a prolate
+                trochoid: the path traced by a point OUTSIDE a rolling wheel,
+                which genuinely crosses itself once per turn. That self-crossing
+                is the whole difference between a loop and a wave, and it is not
+                something you can reliably hand-place with bezier control points
+                — the first attempt at that left a cusp where the curve met its
+                own tail.
 
-                pathLength="100" normalises the dash maths, so the draw-on needs
-                no getTotalLength() and survives any edit to this curve. It draws
-                from the START of the path, which is the top — so the stroke
-                travels the way a hand would, down toward the box. */}
+                Two loops rather than three: three reads as a spring, two as
+                somebody idly curling their pen twice on the way down.
+
+                The run-out is long and drifts slightly rather than ruling
+                straight. At the first tuning the arrowhead landed INSIDE the
+                final curl, which made the direction ambiguous; it now arrives
+                in clear paper. The drift is because a dead-straight 74px
+                segment after two hand-drawn loops is the one place the whole
+                stroke would give itself away as generated. */}
             <path
               className="nm-doodle-line"
-              d="M34 6C14 30 54 42 30 64C8 86 50 100 28 124C12 148 46 160 33 191"
+              d="M45.0 12.1C46.0 12.5 49.1 13.9 51.0 14.5C53.0 15.0 54.9 15.3 56.5 15.5C58.2 15.6 59.8 15.5 61.0 15.3C62.3 15.1 63.5 14.8 64.3 14.3C65.2 13.9 65.8 13.4 66.2 12.8C66.5 12.2 66.6 11.6 66.4 11.0C66.3 10.4 65.8 9.7 65.1 9.2C64.4 8.6 63.4 8.1 62.2 7.7C60.9 7.4 59.3 7.1 57.6 7.0C55.9 6.9 53.8 7.0 51.7 7.4C49.6 7.8 47.3 8.4 45.0 9.3C42.7 10.2 40.3 11.4 38.0 12.9C35.8 14.4 33.5 16.2 31.5 18.3C29.6 20.3 27.7 22.7 26.3 25.1C24.8 27.6 23.6 30.4 22.8 33.1C22.0 35.8 21.5 38.8 21.4 41.6C21.3 44.4 21.6 47.3 22.1 50.0C22.7 52.7 23.6 55.4 24.7 57.9C25.8 60.3 27.2 62.7 28.7 64.8C30.2 67.0 32.0 68.9 33.7 70.7C35.5 72.4 37.4 74.0 39.3 75.3C41.1 76.7 43.1 77.9 45.0 78.8C46.9 79.8 48.8 80.6 50.6 81.2C52.4 81.7 54.2 82.1 55.8 82.4C57.3 82.6 58.9 82.6 60.1 82.5C61.4 82.4 62.5 82.2 63.3 81.8C64.1 81.5 64.8 81.0 65.0 80.5C65.3 80.1 65.3 79.5 65.0 79.0C64.7 78.5 64.1 78.0 63.3 77.7C62.4 77.4 61.3 77.1 60.0 77.1C58.7 77.1 57.1 77.2 55.5 77.5C53.9 77.9 52.0 78.4 50.3 79.2C48.6 80.0 46.7 80.9 45.0 82.1C43.3 83.3 41.6 84.6 40.0 86.2C38.4 87.7 36.9 89.4 35.6 91.2C34.2 93.0 33.0 94.9 32.0 96.9C30.9 99.0 30.0 101.1 29.2 103.3C28.5 105.5 27.9 107.8 27.5 110.1C27.2 112.5 27.0 114.9 27.0 117.3C27.0 119.7 27.3 122.2 27.8 124.6C28.3 127.0 29.1 129.5 30.1 131.7C31.1 134.0 32.4 136.3 33.9 138.3C35.4 140.4 37.1 142.3 39.0 143.9C40.8 145.6 42.9 147.1 45.0 148.2C47.1 149.4 49.3 150.3 51.3 150.9C53.4 151.6 55.4 151.9 57.2 152.1C59.1 152.2 60.8 152.1 62.2 151.8C63.6 151.5 64.7 151.0 65.6 150.5C66.4 150.0 67.0 149.3 67.2 148.6C67.5 148.0 67.4 147.3 67.1 146.6C66.7 146.0 66.0 145.4 65.2 144.9C64.3 144.4 63.1 144.0 61.7 143.7C60.4 143.5 58.8 143.3 57.1 143.4C55.3 143.5 53.4 143.7 51.4 144.2C49.4 144.6 46.1 144.0 45.0 146.2C43.9 148.4 45.3 152.9 45.0 157.4C44.8 161.9 43.9 167.9 43.5 173.4C43.1 178.9 42.6 184.6 42.8 190.2C42.9 195.8 44.1 204.2 44.4 207.0"
               pathLength="100"
               fill="none"
               strokeLinecap="round"
             />
-            {/* The two barbs are separate paths on separate beats, after the
-                shaft has arrived. One path drawing shaft-and-head in a single
-                continuous sweep is a stroke no hand can make, and the eye knows
-                it even when it cannot say why. */}
-            <path className="nm-doodle-barb" d="M23 178L33 191" pathLength="100" fill="none" strokeLinecap="round" />
+            {/* Two barbs, on separate beats after the shaft lands. One path
+                drawing shaft-and-head in a single sweep is a stroke no hand can
+                make, and the eye knows it even when it cannot say why. */}
+            <path className="nm-doodle-barb" d="M38.2 196.7L44.4 207.0" pathLength="100" fill="none" strokeLinecap="round" />
             <path
               className="nm-doodle-barb nm-doodle-barb--b"
-              d="M44 180L33 191"
+              d="M48.6 195.7L44.4 207.0"
               pathLength="100"
               fill="none"
               strokeLinecap="round"

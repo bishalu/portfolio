@@ -2181,8 +2181,12 @@ if (!seedRow) {
        keystroke. (A considered starting point, not a measured optimum — there
        is no published figure for idle-hint delay on a chat composer.) */
     animation:
-      nm-doodle-in 400ms ease 3400ms backwards,
-      nm-doodle-sway 4.6s ease-in-out 4.4s infinite;
+      /* NO SWAY. The arrow used to breathe on a slow loop forever after it
+         drew. With two real loops and a 2.2s draw that is one motion too many
+         on a page whose designated always-alive element is the flame — and the
+         flame is the thing that should hold that job. It draws, it points, it
+         stops. */
+      nm-doodle-in 400ms ease 900ms backwards;
     /* WIDER AGAIN. It was clamp(72px, 9vw, 108px) and got cut to 62px in the
        same pass that lengthened it, which left a 224px drop through a 62px
        channel — the wander had nowhere to go and the three changes of mind
@@ -2208,14 +2212,30 @@ if (!seedRow) {
      ~140px line drawn at roughly 0.29px/ms is a hand moving. This curve
      accelerates into the middle of the stroke and decelerates at the tip, which
      is what a wrist does; `linear` is the plotter tell. */
+  /* DRAWN SLOWLY ENOUGH TO FOLLOW.
+     480ms for a ~230px path is roughly 0.5px/ms — the speed of a hand, and far
+     too fast to WATCH. The point of a drawn hint is that you see it being made:
+     at 480ms it has already happened by the time the eye reaches it, which
+     makes it indistinguishable from a hint that simply appeared. 2200ms is
+     about 0.1px/ms, closer to somebody doodling absently than signing their
+     name, and it gives the two loops time to read as loops rather than as a
+     blur that resolves into one.
+
+     The delay is 900ms rather than 3400 because the arrow no longer runs on its
+     own clock: it is not rendered at all until the opening has finished (see
+     NaamApp), so this is measured from the end of the invitation rather than
+     from a page load that knows nothing about it. */
   .nm-doodle-line {
-    animation: nm-doodle-draw 480ms cubic-bezier(0.65, 0, 0.35, 1) 3400ms backwards;
+    animation: nm-doodle-draw 2200ms cubic-bezier(0.4, 0, 0.5, 1) 900ms backwards;
   }
 
   /* The barbs land after the shaft arrives, 40ms apart, because that is the
      order and the rhythm a hand draws them in. */
+  /* The barbs land after the shaft arrives — 3100ms in, 40ms apart, because
+     that is the order and the rhythm a hand draws them in. Still quick: a barb
+     is a flick, not a stroke. */
   .nm-doodle-barb {
-    animation: nm-doodle-draw 140ms cubic-bezier(0.65, 0, 0.35, 1) 3820ms backwards;
+    animation: nm-doodle-draw 170ms cubic-bezier(0.65, 0, 0.35, 1) 3100ms backwards;
   }
 
   .nm-doodle-barb--b {
