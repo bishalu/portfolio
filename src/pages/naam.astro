@@ -1780,7 +1780,10 @@ if (!seedRow) {
 
   .nm-dealt {
     display: flex;
-    animation: nm-deal 420ms cubic-bezier(0.05, 0.7, 0.1, 1) backwards;
+    /* Cards land slower too, and staggered: nine arriving together is a grid
+       appearing, nine arriving in sequence is a hand being dealt. */
+    animation: nm-deal 620ms cubic-bezier(0.05, 0.7, 0.1, 1) backwards;
+    animation-delay: calc(var(--i, 0) * 65ms);
     animation-delay: calc(var(--i, 0) * 100ms);
   }
 
@@ -1950,33 +1953,72 @@ if (!seedRow) {
      Total run 820ms. Past about 1.2s a visitor is no longer being greeted, they
      are waiting — the first cut ran 1260ms and felt exactly that long. */
   .nm-shell[data-first] .nm-said {
-    animation: nm-say 460ms cubic-bezier(0.05, 0.7, 0.1, 1) backwards;
     font-size: 1.2rem;
     line-height: 1.74;
   }
 
-  .nm-shell[data-first] .nm-turn:nth-of-type(1) .nm-said {
-    --rise: 10px;
-    --tilt-in: 0.35deg;
-    animation-duration: 430ms;
+  /* ────────────────────────────────────────────────────────────────────────
+     THE OPENING ARRIVES ONE BLOCK AT A TIME.
 
-    animation-delay: 0ms;
+     This was three animation-delays on :nth-of-type — 0, 120 and 360ms, an
+     820ms cascade. Two faults, and only one was about speed.
+
+     The timing one: 820ms is a menu opening, not somebody speaking. These three
+     blocks are a real sequence — greet, say what the document is, ask the
+     question — so the beat is the pause a person leaves between sentences,
+     which src/lib/naam/opening.ts sets at 1150ms.
+
+     The structural one, and the reason none of this is animation-delay any
+     more: `data-first` is removed the instant somebody submits, so every rule
+     here vanished with it and blocks two and three POPPED to full opacity. CSS
+     cannot say "finish early but still finish" — a delay cannot be shortened
+     once it has started. So the sequence is state (opening.stage), the
+     un-arrived blocks carry `data-wait`, and this is a TRANSITION that runs
+     whenever the attribute clears. Same arrival on the slow beat and the rushed
+     one, because the transition does not care what changed the attribute.
+
+     The travel is small on purpose: 12px and a fifth of a degree. What carries
+     the sequence is the WAITING between blocks, not the distance each one
+     covers — a big move would make three arrivals feel like three events.
+     ──────────────────────────────────────────────────────────────────────── */
+  .nm-shell[data-first] .nm-turn .nm-said {
+    transform: none;
+    opacity: 1;
+    transition:
+      opacity 520ms cubic-bezier(0.05, 0.7, 0.1, 1),
+      transform 620ms cubic-bezier(0.05, 0.7, 0.1, 1);
   }
 
-  .nm-shell[data-first] .nm-turn:nth-of-type(2) .nm-said {
-    --rise: 8px;
-    --tilt-in: -0.2deg;
-    animation-duration: 500ms;
-
-    animation-delay: 120ms;
+  .nm-shell[data-first] .nm-turn[data-wait] .nm-said {
+    transform: translateY(12px) rotate(0.2deg) scale(0.99);
+    opacity: 0;
+    /* No transition on the way OUT. A block that has not arrived yet should be
+       absent, not fading — and on first paint every one of them is in this
+       state, so a transition here would animate the whole opening to invisible
+       before animating it back. */
+    transition: none;
   }
 
-  .nm-shell[data-first] .nm-turn:nth-of-type(3) .nm-said {
-    --rise: 11px;
-    --tilt-in: 0.3deg;
-    animation-duration: 460ms;
+  /* The bead lands before the words it belongs to. A mala is a COUNTING object;
+     letting the bead arrive first and the sentence follow puts it to work
+     instead of leaving it as decoration beside the text. 180ms is enough to
+     read as cause and effect rather than as two things starting together. */
+  .nm-shell[data-first] .nm-turn .nm-bead {
+    transform: none;
+    opacity: 1;
+    transition:
+      opacity 300ms ease,
+      transform 420ms cubic-bezier(0.34, 1.3, 0.64, 1);
+  }
 
-    animation-delay: 360ms;
+  .nm-shell[data-first] .nm-turn[data-wait] .nm-bead {
+    transform: scale(0.3);
+    opacity: 0;
+    transition: none;
+  }
+
+  .nm-shell[data-first] .nm-turn:not([data-wait]) .nm-said {
+    transition-delay: 180ms;
   }
 
   .nm-shell[data-first] .nm-said--lead {
@@ -2029,14 +2071,25 @@ if (!seedRow) {
      overshoot and a settle, and a back-out bezier is that curve; motion.dev's
      springs would be ~30kB gzipped to reproduce a shape one line of CSS
      already draws, on a page whose entire JS budget is 80kB. */
+  /* SLOWER, BECAUSE IT HAS TO BE FELT.
+     500ms and 560ms are correct for a UI acknowledging an action and too quick
+     for this: the arrival of a turn is the page's main event, and at that speed
+     it registers as "the text changed" rather than as something coming. The
+     duration is roughly doubled, which is still well inside the range where a
+     transition reads as responsive — what changes is that there is time to
+     watch it land.
+
+     The two speakers keep their different curves, because they are doing
+     different things: yours is a thing you threw and overshoots, the agent's
+     rises and settles without overshooting because a voice is not an object. */
   .nm-turn {
-    animation: nm-say 500ms cubic-bezier(0.05, 0.7, 0.1, 1) backwards;
+    animation: nm-say 940ms cubic-bezier(0.05, 0.7, 0.1, 1) backwards;
   }
 
   .nm-turn:has(.nm-said--you) {
-    --rise: 18px;
-    animation-duration: 560ms;
-    animation-timing-function: cubic-bezier(0.34, 1.52, 0.64, 1);
+    --rise: 22px;
+    animation-duration: 1040ms;
+    animation-timing-function: cubic-bezier(0.34, 1.42, 0.64, 1);
 
     animation-name: nm-turn-you;
   }
@@ -2044,9 +2097,9 @@ if (!seedRow) {
   .nm-said,
   .nm-turn {
     transition:
-      transform 620ms cubic-bezier(0.34, 1.2, 0.64, 1),
-      opacity 620ms ease,
-      font-size 380ms ease;
+      transform 820ms cubic-bezier(0.34, 1.2, 0.64, 1),
+      opacity 820ms ease,
+      font-size 520ms ease;
   }
 
   /* The still frame of an arrival: it still arrives, it just does not travel. */

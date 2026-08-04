@@ -4,6 +4,7 @@ import NaamCard from './NaamCard'
 import NaamDiyo, { type DiyoState } from './NaamDiyo'
 import NaamWall, { type WallNote } from './NaamWall'
 import { askNaam, failureNote, readAsk, withReasons } from '@/lib/naam/ask'
+import { OPENING_STEPS, useOpening } from '@/lib/naam/opening'
 import { NAAM_COPY, NAAM_RELATIONS } from '@/lib/naam/copy'
 import type { NaamMatch } from '@/lib/naam/match'
 import { hydrateSound, playCue, setSound, soundOff, soundOn, subscribeSound } from '@/lib/naam/sound'
@@ -631,6 +632,24 @@ export default function NaamApp({ seed }: NaamAppProps) {
    */
   const asked = useMemo(() => turns.some((turn) => turn.kind === 'you'), [turns])
 
+  /**
+   * THE OPENING ARRIVES ONE BLOCK AT A TIME. Owned by a hook rather than by
+   * three more useState here — see src/lib/naam/opening.ts for why the CSS
+   * delays it replaces could not express "finish early but still finish".
+   *
+   * CAPTURED ONCE, NOT DERIVED FROM `asked`. Passing `!asked` looked right and
+   * reintroduced the exact bug this replaced: `asked` flips true the instant
+   * somebody submits, the hook was told to stop staging, and every remaining
+   * block un-waited on the same frame. Measured — interrupting after one block
+   * jumped straight to all of them in 2ms, which is the pop, not a rush.
+   *
+   * What the hook actually needs to know is whether this page STARTED on the
+   * invitation, which is a fact about the first frame and cannot change
+   * afterwards. A returning visitor mid-conversation still skips it.
+   */
+  const [staged] = useState(() => turns.every((turn) => turn.kind !== 'you'))
+  const opening = useOpening(staged)
+
   useLayoutEffect(() => {
     const el = streamRef.current
     if (!el || !pinned || !asked) return
@@ -781,6 +800,9 @@ export default function NaamApp({ seed }: NaamAppProps) {
   )
 
   const submitAsk = useCallback(() => {
+    // Typing is consent to get on with it — the rest of the opening arrives
+    // fast and in order rather than snapping to its end state.
+    opening.rush()
     const value = ask.trim()
     if (value.length === 0) return
     setAsk('')
@@ -1569,7 +1591,21 @@ export default function NaamApp({ seed }: NaamAppProps) {
     if (body === null) return null
     const past = index < passed && turn.kind !== 'form' && !reopened.has(turn.id)
     return (
-      <li className="nm-turn" key={turn.id} data-turn={turn.id} data-past={past ? 'true' : undefined}>
+      <li
+        className="nm-turn"
+        key={turn.id}
+        data-turn={turn.id}
+        data-past={past ? 'true' : undefined}
+        /* THE OPENING'S OWN BLOCKS ARRIVE IN ORDER. `data-wait` marks a block
+           whose turn has not come yet; CSS holds it at zero opacity and lets it
+           transition in when the attribute clears. A transition rather than an
+           animation, because the arrival has to work whether it comes on the
+           slow beat or the rushed one — an animation-delay cannot be changed
+           after it has started, which is exactly why the CSS version could not
+           be interrupted. Only the opening is staged; every later turn arrives
+           the moment it exists. */
+        data-wait={index < OPENING_STEPS && index >= opening.stage ? 'true' : undefined}
+      >
         <span className="sr-only">{turn.kind === 'you' ? C.app.speakerYou : C.app.speakerAgent}</span>
         {/* The thread and the bead. Decorative in the strict sense — the turn
             below says everything this says, and a screen reader announcing
@@ -1708,7 +1744,13 @@ export default function NaamApp({ seed }: NaamAppProps) {
             leaves the moment the visitor starts typing — a hint that outstays
             its answer is a nag. aria-hidden and pointer-events:none; the
             composer's own label is what a screen reader follows. */}
-        {!asked && (
+        {/* THE ARROW WAITS FOR THE WORDS. It used to appear on a fixed 3.4s
+            timer that knew nothing about the invitation, so on a slow first
+            paint it could point at the composer before the question had even
+            arrived — pointing at an answer to a question nobody had been
+            asked yet. It is gated on the opening finishing now, and its own
+            delay is measured from that moment. */}
+        {!asked && opening.done && (
           <svg
             className="nm-doodle"
             viewBox="0 0 64 210"
