@@ -53,9 +53,14 @@ const claim = z.object({
   evidence: z.string().optional(),
   evidenceUrl: z.string().optional(),
   status: z.enum(['shipped', 'shipping', 'building']).default('shipped'),
-  /** ISO date. Required when status is `shipping` — a date with no day on it
-      is a hope, and Balgo would repeat it to a prospect as a commitment. */
-  eta: z.string().optional(),
+  /** Go-live date. Required when status is `shipping` — a date with no day on
+      it is a hope, and Balgo would repeat it to a prospect as a commitment.
+      Coerced because YAML parses a bare 2026-08-09 into a Date, and everything
+      downstream wants the ISO string. */
+  eta: z
+    .union([z.string(), z.date()])
+    .transform((v) => (v instanceof Date ? v.toISOString().slice(0, 10) : v))
+    .optional(),
 })
 
 // Capabilities - the individual systems behind each product. Replaces the old
