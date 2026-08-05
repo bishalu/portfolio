@@ -891,10 +891,17 @@ export default function NaamApp({ seed }: NaamAppProps) {
    * sends it as the visitor's own turn, so the thread reads the same whether it
    * was typed or tapped.
    *
+   * They stay for the whole conversation rather than only the first turn: the
+   * second question is as hard to think of as the first, and a row that
+   * disappears the moment you use it punishes the visitor who found it useful.
+   * They REFRESH instead — `usedStarters` keeps what has already been asked, so
+   * the row never offers back a question answered directly above it.
+   *
    * Picked in an effect and not during render: the island is `client:load`, and
    * a random choice made while rendering would not match the server's HTML.
    */
   const [starters, setStarters] = useState<NaamStarter[]>([])
+  const usedStarters = useRef<Set<string>>(new Set())
   useEffect(() => {
     setStarters(pickStarters(3))
   }, [])
@@ -2068,12 +2075,8 @@ export default function NaamApp({ seed }: NaamAppProps) {
           composer sits against the layout viewport and ends up underneath the
           iOS keyboard permanently. */}
       <div className="nm-composer" data-typing={ask.trim().length > 0 ? 'true' : undefined}>
-        {/* Only before the first turn. They are a way to START a conversation,
-            and once one is underway the thread itself is the context — leaving
-            them up would be the page interrupting to suggest a different
-            subject. They are also the widest thing in the column on a phone, so
-            reclaiming that space for the hand matters. */}
-        {!asked && starters.length > 0 && (
+        {/* Present for the whole conversation, refreshing as they are used. */}
+        {starters.length > 0 && (
           <ul className="nm-starters" aria-label={C.app.startersLabel}>
             {starters.map((starter) => (
               <li key={starter.id}>
@@ -2083,6 +2086,8 @@ export default function NaamApp({ seed }: NaamAppProps) {
                   onClick={() => {
                     opening.rush()
                     setAsk('')
+                    usedStarters.current.add(starter.id)
+                    setStarters(pickStarters(3, usedStarters.current))
                     runAsk(starter.prompt)
                   }}
                 >

@@ -17,9 +17,9 @@
  *     glosses out of the Vedas and the Sutras. It carries meaning, grammar and
  *     source. It carries no usage frequency at all, so any answer about how
  *     common a name is would be the model guessing.
- *   · nicknames, and hidden-problem checks — same: no diminutive data, and a
- *     teasing-risk review needs a shortlist that does not exist yet on the
- *     first turn, which is the only turn these are shown on.
+ *   · nicknames, and hidden-problem checks — no diminutive data, and a
+ *     teasing-risk review would need cross-language association data the
+ *     document does not carry either.
  *
  * What is left is the eleven the document can actually speak to: sound, shape,
  * register, and meaning.
@@ -122,11 +122,19 @@ export const NAAM_STARTERS: readonly NaamStarter[] = [
 /**
  * Three starters, each a different kind of question.
  *
+ * `used` is the set of ids already asked this session. They stay on screen for
+ * the whole conversation now, so without this the row would keep offering a
+ * question that has already been answered directly above it — which reads as
+ * the page not listening. Once every starter has been used the set is ignored
+ * and the pool opens up again, because three chips is better than none.
+ *
  * Called after mount rather than during render: the island is `client:load`, so
  * a random choice made while rendering would differ from the server's HTML and
  * hydration would tear.
  */
-export function pickStarters(count = 3): NaamStarter[] {
+export function pickStarters(count = 3, used: ReadonlySet<string> = new Set()): NaamStarter[] {
+  const fresh = NAAM_STARTERS.filter((starter) => !used.has(starter.id))
+  const pool = fresh.length >= count ? fresh : NAAM_STARTERS
   /**
    * Shuffle the FLAT list and take greedily, skipping a starter whose kind is
    * already represented.
@@ -140,12 +148,12 @@ export function pickStarters(count = 3): NaamStarter[] {
    * Shuffling the starters weights each kind by how many it actually has, and
    * the skip still guarantees three different kinds of question.
    */
-  const shuffled = [...NAAM_STARTERS].sort(() => Math.random() - 0.5)
-  const used = new Set<string>()
+  const shuffled = [...pool].sort(() => Math.random() - 0.5)
+  const kinds = new Set<string>()
   const out: NaamStarter[] = []
   for (const starter of shuffled) {
-    if (out.length >= count || used.has(starter.dimension)) continue
-    used.add(starter.dimension)
+    if (out.length >= count || kinds.has(starter.dimension)) continue
+    kinds.add(starter.dimension)
     out.push(starter)
   }
 

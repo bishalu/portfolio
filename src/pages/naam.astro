@@ -2395,7 +2395,12 @@ if (!seedRow) {
      two lines tall, because two readable lines beat three cramped ones. */
   .nm-starters {
     display: flex;
+    /* Centred over the box they feed. Left-aligned they read as a list the
+       composer happens to sit under; centred they read as three ways into the
+       one thing below them — and a wrapped row that ends short looks deliberate
+       rather than ragged. */
     flex-wrap: wrap;
+    justify-content: center;
     gap: 0.4rem;
     margin: 0 0 0.5rem;
     padding: 0;
@@ -2420,7 +2425,7 @@ if (!seedRow) {
     font-size: 0.9rem;
     font-family: var(--font-body, inherit);
     line-height: 1.2;
-    text-align: left;
+    text-align: center;
   }
 
   .nm-starter:hover,
