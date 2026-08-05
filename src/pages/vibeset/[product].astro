@@ -2,6 +2,7 @@
 import DefaultLayout from '@layouts/DefaultLayout.astro'
 import { getCollection, render } from 'astro:content'
 import ChoonStressTest from '@components/ChoonStressTest.tsx'
+import ChoonBenchmark from '@components/ChoonBenchmark.astro'
 
 export const prerender = true
 
@@ -254,6 +255,11 @@ const m = media[slug] ?? { type: 'gradient' }
           </div>
         )
       }
+
+      {/* The demo shows it working; this shows where it stands. Below the
+          stress test on purpose — a benchmark table means more once you have
+          watched the thing survive something. */}
+      {slug === 'choon' && <ChoonBenchmark />}
 
       {
         capabilities.length > 0 && (

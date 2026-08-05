@@ -1,0 +1,295 @@
+---
+/**
+ * Where Choon's neural channel sits against the music foundation models.
+ *
+ * The argument is efficiency, so the design puts size and score on the same
+ * row and lets the reader do the division: at 48M it beats MERT at 95M and
+ * BEATs at ~90M outright, and reaches 88% of MuQ-Large's recall on 16% of the
+ * parameters. Ordered by recall rather than by size, because a table sorted to
+ * put you first is a table nobody believes.
+ *
+ * MuQ leads and is shown leading. Hiding the top of a benchmark from an
+ * audience that can read the paper costs more than the two rows buy — and this
+ * site's whole argument is that its numbers survive checking.
+ *
+ * Two bars per row, not one: overall recall, and recall on re-encoded audio.
+ * The second is where the interesting result is. Everything that isn't MuQ
+ * collapses under re-encoding — MERT to 44%, NAFP to 10%, Dejavu to 3% — and
+ * Choon holds 95.5%. Re-encoding is not an exotic condition; it is what
+ * happens to every file that passes through a platform, which makes that
+ * column the one a buyer should care about most.
+ */
+import { BENCH, BENCH_SOURCE } from '@/data/choon-benchmark'
+
+const max = 100
+---
+
+<section class="cb" aria-labelledby="cb-title">
+  <header class="cb-head">
+    <p class="label-mono cb-eyebrow">Benchmark</p>
+    <h2 class="cb-title" id="cb-title">The neural channel, against the foundation models.</h2>
+    <p class="cb-lede">
+      Track-level Recall@1 on the conditions from <a href={BENCH_SOURCE.url} rel="noopener">the 2025 music
+      foundation model fingerprinting paper</a>. The Choon row is the learned channel on its own — not the
+      shipped two-tier system, which scores higher because a classical matcher carries most of it.
+    </p>
+  </header>
+
+  <div class="cb-scroll" role="region" aria-label="Recall by model" tabindex="0">
+    <table class="cb-table">
+      <caption class="sr-only">
+        Recall@1 overall and on re-encoded audio, by model, with parameter counts. Ordered by overall recall.
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Model</th>
+          <th scope="col">Size</th>
+          <th scope="col">Recall@1</th>
+          <th scope="col">Re-encoded</th>
+        </tr>
+      </thead>
+      <tbody>
+        {
+          BENCH.map((r) => (
+            <tr class:list={['cb-row', r.ours && 'cb-row-ours']}>
+              <th scope="row">{r.model}</th>
+              <td class="cb-params">{r.paramsLabel}</td>
+              <td class="cb-cell">
+                <span class="cb-bar" style={`--w:${(r.recall / max) * 100}%`} aria-hidden="true" />
+                <span class="cb-val">{r.recall.toFixed(1)}</span>
+              </td>
+              <td class="cb-cell">
+                <span class="cb-bar cb-bar-alt" style={`--w:${(r.encoded / max) * 100}%`} aria-hidden="true" />
+                <span class="cb-val">{r.encoded.toFixed(1)}</span>
+              </td>
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <p class="cb-note">
+    Best result under 90M parameters, and the only model outside MuQ that holds up under re-encoding. MuQ
+    leads overall at roughly six times the size.
+  </p>
+
+  <p class="cb-source label-mono--sm">
+    Paper rows are its own track-level evaluation. The Choon row is this repo's proxy at the same conditions:
+    {BENCH_SOURCE.ourSetup}. Smaller index, so read it as a placement, not a reproduction.
+  </p>
+</section>
+
+<style lang="scss">
+  .cb {
+    border-top: 1px solid var(--hairline-on-ink);
+    padding-top: var(--space-l);
+  }
+
+  .cb-head {
+    margin-bottom: var(--space-l);
+    max-width: 46rem;
+  }
+
+  .cb-eyebrow {
+    margin: 0 0 var(--space-xs);
+    color: var(--paper-soft);
+  }
+
+  .cb-title {
+    margin: 0 0 var(--space-s);
+    font-size: clamp(1.5rem, 2.6vw, 2rem);
+    line-height: 1.12;
+    letter-spacing: -0.015em;
+  }
+
+  .cb-lede {
+    margin: 0;
+    color: var(--paper-soft);
+    font-size: 1rem;
+    line-height: 1.6;
+
+    a {
+      color: var(--crimson-text);
+      text-underline-offset: 3px;
+
+      &:hover {
+        color: var(--crimson);
+      }
+    }
+  }
+
+  .cb-scroll {
+    overflow-x: auto;
+
+    &:focus-visible {
+      outline: 2px solid var(--crimson);
+      outline-offset: 4px;
+    }
+  }
+
+  /* The 1px gap on a hairline ground, as everywhere else on the site — the gap
+     is the rule, so there are no borders to keep in sync. */
+  .cb-table {
+    border-spacing: 1px;
+    background: var(--hairline-on-ink);
+    width: 100%;
+    min-width: 30rem;
+    border-collapse: separate;
+    text-align: left;
+
+    th,
+    td {
+      background: var(--void);
+    }
+
+    thead th {
+      padding: 0.5rem 0.7rem;
+      color: var(--paper-soft);
+      font-weight: 500;
+      font-size: 0.62rem;
+      letter-spacing: 0.1em;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    tbody th {
+      padding: 0.55rem 0.7rem;
+      width: 40%;
+      color: var(--paper-soft);
+      font-weight: 400;
+      font-size: 0.88rem;
+    }
+
+    td {
+      padding: 0.55rem 0.7rem;
+    }
+  }
+
+  .cb-params {
+    width: 14%;
+    color: var(--paper-soft);
+    font-size: 0.72rem;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  /* Bar and figure share the cell: the bar is the comparison, the figure is the
+     value. Reading either alone works. */
+  .cb-cell {
+    position: relative;
+    width: 23%;
+    min-width: 5.5rem;
+  }
+
+  .cb-bar {
+    display: block;
+    margin-bottom: 0.2rem;
+    border-radius: 1px;
+    background: var(--paper-soft);
+    width: var(--w);
+    height: 4px;
+    opacity: 0.45;
+  }
+
+  .cb-bar-alt {
+    opacity: 0.28;
+  }
+
+  .cb-val {
+    color: var(--paper-soft);
+    font-size: 0.78rem;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* One row is ours and it is the only place colour is spent here. Everything
+     else stays neutral so the eye lands once. */
+  .cb-row-ours {
+    th,
+    td {
+      background: var(--ink);
+    }
+
+    th {
+      color: var(--paper);
+      font-weight: 600;
+    }
+
+    .cb-bar {
+      background: var(--grad-signal);
+      opacity: 1;
+    }
+
+    .cb-bar-alt {
+      opacity: 0.75;
+    }
+
+    .cb-val,
+    .cb-params {
+      color: var(--paper);
+    }
+  }
+
+  .cb-note {
+    margin: var(--space-s) 0 0;
+    max-width: 40rem;
+    color: var(--paper);
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+
+  .cb-source {
+    margin: 0.5rem 0 0;
+    max-width: 40rem;
+    color: var(--paper-soft);
+    line-height: 1.6;
+    text-transform: none;
+    letter-spacing: 0.02em;
+  }
+
+  /* At 390px a 30rem table scrolls, and the column it hid was the re-encoded
+     one — the whole reason this panel exists. Everything shrinks to fit
+     instead. The size column loses the most because it is the one you read
+     once; the two bar columns keep their width because they are the argument. */
+  @media (max-width: 560px) {
+    .cb-table {
+      min-width: 20.5rem;
+
+      tbody th {
+        padding: 0.5rem 0.4rem;
+        width: 34%;
+        font-size: 0.74rem;
+        line-height: 1.3;
+      }
+
+      thead th,
+      td {
+        padding: 0.45rem 0.3rem;
+      }
+
+      thead th {
+        font-size: 0.55rem;
+        letter-spacing: 0.04em;
+        white-space: normal;
+      }
+    }
+
+    .cb-params {
+      width: 16%;
+      font-size: 0.66rem;
+      white-space: normal;
+    }
+
+    .cb-cell {
+      width: 25%;
+      min-width: 0;
+    }
+
+    .cb-val {
+      font-size: 0.72rem;
+    }
+  }
+</style>

@@ -47,6 +47,10 @@ claims:
   - claim: Monitor v1 scans classical-only — the neural channel was measured and cut
     evidence: Matched A/B on one corpus; at the production threshold the neural cascade took precision from 100% to 67%, and speech-only audio false-matched 47% of the time against 0% without it. Not yet written up publicly — do not link a page for it
     status: shipped
+  - claim: Neural channel alone reaches 77.2% Recall@1 — best result under 90M parameters on the 2025 music-foundation-model fingerprinting benchmark
+    evidence: 48M params against MERT at 95M (74.3) and BEATs at ~90M (70.3); MuQ leads at 88.2 with ~300M. On re-encoded audio it holds 95.5% where MERT drops to 44% and NAFP to 10%. Reduced-scale proxy — 2,000 refs, 400 queries, 8s segments — not a like-for-like reproduction, and say so
+    evidenceUrl: /vibeset/choon
+    status: shipped
   - claim: Watermark payloads in three tiers — 16, 32 and 48 bit
     evidence: Embed and verify both implemented in the watermark module
     status: shipping
