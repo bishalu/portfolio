@@ -522,13 +522,47 @@
     }
 
     closeBtn.addEventListener('click', closeChat)
-    backdrop.addEventListener('click', closeChat)
+
+    // Clicking away steps aside; it does not end the conversation. The console
+    // shrinks to the pill bottom-right and the transcript is one tap away —
+    // the same move it already makes when you follow one of its links. Closing
+    // outright is still available, deliberately: the X, and Escape.
+    backdrop.addEventListener('click', () => {
+      if (balgoPortal.classList.contains('overlay')) void dockOverlay()
+      else closeChat()
+    })
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') closeChat()
     })
 
+    /* Balgo's reply is model output going into innerHTML, so it is escaped
+       before anything else touches it — the emphasis pass then reintroduces
+       exactly the two tags it is allowed to.
+
+       Paragraphs and lists are new. The old renderer understood bold and
+       italic and nothing else, so a three-paragraph answer arrived as one
+       unbroken wall and the prompt's instruction to write in short paragraphs
+       had no effect anyone could see. */
+    const esc = (t: string) =>
+      t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+
+    const inline = (t: string) =>
+      esc(t)
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/(^|[^*])\*(?!\s)([^*]+?)\*/g, '$1<em>$2</em>')
+
     const markdownToHtml = (text: string) =>
-      text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>')
+      String(text ?? '')
+        .trim()
+        .split(/\n\s*\n/)
+        .map((block) => {
+          const lines = block.split('\n')
+          if (lines.every((l) => /^\s*[-*]\s+/.test(l))) {
+            return `<ul>${lines.map((l) => `<li>${inline(l.replace(/^\s*[-*]\s+/, ''))}</li>`).join('')}</ul>`
+          }
+          return `<p>${lines.map(inline).join('<br />')}</p>`
+        })
+        .join('')
 
     const smoothScrollChat = () =>
       chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: rm ? 'auto' : 'smooth' })
@@ -627,9 +661,9 @@
         linksEl.innerHTML = data.links
           .map(
             (link: any) => `
-          <a href="${link.href}" class="msg-link smooth-scroll" data-target="${link.href}">
+          <a href="${esc(String(link.href ?? ''))}" class="msg-link smooth-scroll" data-target="${esc(String(link.href ?? ''))}">
             <span class="msg-link-glyph" aria-hidden="true">↳</span>
-            <span>${link.title}</span>
+            <span>${esc(String(link.title ?? 'Open'))}</span>
           </a>
         `,
           )
@@ -1206,6 +1240,39 @@
 
   :global(.msg-bubble-ai strong) {
     color: var(--paper);
+  }
+
+  /* The reply arrives as paragraphs now, so it needs the spacing of prose:
+     a gap between paragraphs and none at either end of the bubble. */
+  :global(.msg-text p) {
+    margin: 0 0 0.7em;
+  }
+
+  :global(.msg-text > :last-child) {
+    margin-bottom: 0;
+  }
+
+  :global(.msg-text ul) {
+    margin: 0 0 0.7em;
+    padding-left: 1.1rem;
+    list-style: none;
+  }
+
+  :global(.msg-text li) {
+    position: relative;
+    margin-bottom: 0.3em;
+
+    /* The site's mark, not a bullet — the same signal rule that ticks the
+       phrases under the hero and the capability list on /about. */
+    &::before {
+      position: absolute;
+      top: 0.62em;
+      left: -1.1rem;
+      background: var(--grad-signal);
+      width: 10px;
+      height: 2px;
+      content: '';
+    }
   }
 
   :global(.msg-bubble-loading) {

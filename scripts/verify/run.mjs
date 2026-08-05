@@ -2,8 +2,10 @@
  * Site verification runner — see .claude/skills/verify-site/SKILL.md
  *
  * Usage:  node scripts/verify/run.mjs <shots|a11y|console|widgets|responsive|all> [baseUrl]
- * Default baseUrl: http://localhost:8888 (netlify dev) — pass another if using
- * `netlify serve` (8899) or a deploy preview URL.
+ * Default baseUrl: http://localhost:4321 (`npm run dev`). Netlify is for
+ * production deploys only — `netlify serve` keeps serving a stale unzipped
+ * function bundle after a rebuild, so it silently verifies old code. Pass a
+ * deploy preview URL explicitly when you want to check production.
  *
  * Output goes to scripts/verify/out/ (gitignored).
  */
@@ -11,7 +13,7 @@ import { chromium } from 'playwright'
 import { AxeBuilder } from '@axe-core/playwright'
 import { mkdirSync } from 'node:fs'
 
-const [cmd = 'all', base = 'http://localhost:8888'] = process.argv.slice(2)
+const [cmd = 'all', base = 'http://localhost:4321'] = process.argv.slice(2)
 const OUT = new URL('./out/', import.meta.url).pathname
 mkdirSync(OUT, { recursive: true })
 
