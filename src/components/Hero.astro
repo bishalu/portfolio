@@ -11,7 +11,7 @@
 
 <section class="hero on-ink" id="hero">
   <div class="hero-container">
-    <p class="hero-kicker label-mono" id="hero-kicker">AI systems architect · research → production</p>
+    <p class="hero-kicker label-mono" id="hero-kicker">Applied AI · audio, video, voice, multimodal</p>
 
     <h1 class="hero-name" id="hero-name">
       <span class="name-line"><span class="name-word">Bishal</span></span>
@@ -25,9 +25,9 @@
     <div class="hero-split" id="split-layout">
       <div class="hero-left-column" id="hero-left">
         <p class="hero-tagline">
-          I build AI systems, start to finish.<br />
-          Research becomes something people use.<br />
-          <strong>Right now, that's Vibeset.</strong>
+          I take AI systems from research to production.<br />
+          Audio and video are where I learned to.<br />
+          <strong>The agent on this page is one of mine.</strong>
         </p>
       </div>
 
@@ -35,7 +35,8 @@
         <div class="balgo-portal" id="balgo-portal" data-state="collapsed">
           <div class="portal-header" id="portal-header">
             <span class="live-dot" aria-hidden="true"></span>
-            <span class="portal-status label-mono">Available for work</span>
+            <span class="portal-status label-mono">Balgo</span>
+            <span class="portal-role">It read the site. Ask, and it takes you to the part that answers.</span>
           </div>
 
           <button type="button" class="portal-close" id="portal-close" aria-label="Close chat">
@@ -57,7 +58,7 @@
             <textarea
               id="kinetic-input"
               class="balgo-input"
-              placeholder="What are we building today?"
+              placeholder="Ask it something"
               rows="1"
               aria-label="Ask Balgo a question"></textarea>
             <button type="submit" class="balgo-send" id="kinetic-send-btn" aria-label="Send message">
@@ -77,9 +78,9 @@
           </form>
 
           <div class="balgo-starters" id="balgo-starters" aria-label="Suggested questions">
-            <button type="button" class="balgo-starter btn" data-prompt="What is Vibeset?">What is Vibeset?</button>
-            <button type="button" class="balgo-starter btn" data-prompt="Tell me about the research behind this site.">The research</button>
-            <button type="button" class="balgo-starter btn" data-prompt="How do I work with Bishal?">Work with Bishal</button>
+            <button type="button" class="balgo-starter btn" data-prompt="What has Bishal actually shipped?">What's shipped?</button>
+            <button type="button" class="balgo-starter btn" data-prompt="Does this work outside music?">Outside music?</button>
+            <button type="button" class="balgo-starter btn" data-prompt="I have a problem involving audio, video or voice. Where would Bishal start?">I have a problem</button>
           </div>
         </div>
       </div>
@@ -914,9 +915,17 @@
 
   .portal-header {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.35rem 0.6rem;
     margin-bottom: 0.75rem;
+  }
+
+  .portal-role {
+    flex-basis: 100%;
+    color: var(--paper-soft);
+    font-size: 0.82rem;
+    line-height: 1.45;
   }
 
   .portal-status {

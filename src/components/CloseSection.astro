@@ -5,7 +5,6 @@
  * terminates here: a final trace runs into the form's submit button.
  */
 import { Icon } from 'astro-icon/components'
-import { NAAM_COPY } from '@/lib/naam/copy'
 ---
 
 <section class="cs on-ink" id="contact">
@@ -87,14 +86,6 @@ import { NAAM_COPY } from '@/lib/naam/copy'
           </li>
         </ul>
 
-        <!-- One quiet line, not a section. The home page has already spent its
-             density budget (docs/design/DESIGN.md §2), and this is personal
-             rather than professional — so it sits at the foot of the direct
-             column as an aside: a text link, no button. -->
-        <p class="cs-naam">
-          {NAAM_COPY.invite.line}{' '}
-          <a href="/naam">{NAAM_COPY.invite.cta}</a>
-        </p>
       </div>
     </div>
   </div>
@@ -243,14 +234,6 @@ import { NAAM_COPY } from '@/lib/naam/copy'
     line-height: 1.6;
   }
 
-  .cs-naam {
-    margin: var(--space-m) 0 0;
-    border-top: 1px solid var(--border-color-subtle);
-    padding-top: var(--space-s);
-    color: var(--paper-soft);
-    font-size: 0.92rem;
-    line-height: 1.6;
-  }
 
   .cs-balgo-link {
     font-weight: 700;
