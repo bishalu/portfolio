@@ -130,15 +130,18 @@ const choon = bySlug['choon']
     <!-- ── The pipeline underneath all three ───────────────────────────── -->
     <aside class="vs-pipe" data-reveal>
       <p class="label-mono vs-pipe-title">Underneath</p>
-      <!-- tabindex: the strip scrolls horizontally on narrow viewports, so it
-           needs to be reachable and scrollable by keyboard. -->
-      <ol class="vs-pipe-flow" aria-label="The pipeline underneath" tabindex="0">
-        <li><span class="vs-pipe-node">setlist scrapers</span></li>
-        <li><span class="vs-pipe-node">ETL + LLM enrichment</span></li>
-        <li><span class="vs-pipe-node vs-pipe-node-em">licensed pgvector catalog</span></li>
-        <li><span class="vs-pipe-node">LLM ensemble</span></li>
-        <li><span class="vs-pipe-node">three products</span></li>
-      </ol>
+      <!-- Not a pipeline. It was drawn as one, ending in "three products", and
+           that is false: Choon does not come out of the catalogue, it IS the
+           model. These are the layers the three products draw on, in different
+           proportions — so no arrows and no order.
+           tabindex: the strip scrolls horizontally on narrow viewports. -->
+      <ul class="vs-pipe-flow" aria-label="What the products are built on" tabindex="0">
+        <li><span class="vs-pipe-node">music data at scale</span></li>
+        <li><span class="vs-pipe-node">ETL and LLM enrichment</span></li>
+        <li><span class="vs-pipe-node vs-pipe-node-em">models we fine-tune and serve</span></li>
+        <li><span class="vs-pipe-node">search: exact, keyword, vector, diversity</span></li>
+      </ul>
+      <p class="vs-pipe-note">Each product leans on a different part. Choon is mostly the model.</p>
     </aside>
   </div>
 </section>
@@ -299,6 +302,13 @@ const choon = bySlug['choon']
     margin: 0 0 var(--space-s);
   }
 
+  .vs-pipe-note {
+    margin: 0.6rem 0 0;
+    color: var(--paper-soft);
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+
   .vs-pipe-flow {
     display: flex;
     align-items: center;
@@ -314,12 +324,15 @@ const choon = bySlug['choon']
       align-items: center;
       gap: 0.75rem;
 
+      /* A separator, not a connector: these layers have no order, and a
+         gradient arrow between them claimed one. */
       &:not(:last-child)::after {
         display: block;
-        border-radius: 999px;
-        background: var(--grad-signal);
-        width: clamp(1.25rem, 3vw, 3rem);
-        height: 2px;
+        border-radius: 50%;
+        background: var(--paper-soft);
+        width: 3px;
+        height: 3px;
+        opacity: 0.5;
         content: '';
       }
     }
