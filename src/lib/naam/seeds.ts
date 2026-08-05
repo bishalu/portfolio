@@ -18,7 +18,10 @@
  *   Satwik   `Sattvika` is in the document (p.56); this spelling is not.
  *   Sanskar  `Samskara` is in the document (p.83); this spelling is not.
  *   Bishnu   not a row. Vishnu appears only *inside* meanings.
- *   Brihut   not as spelled — the document has Brihanta, Brihata, Brihaka.
+ *   Brihat   not as spelled — the document has Brihanta, Brihata, Brihaka.
+ *            (Corrected from `Brihut` on 2026-08-05: the family's spelling is
+ *            Brihat. Devanagari updated to बृहत् — bṛhat, "great" — which is
+ *            the standard form and the one closest to the document's Brihata.)
  *   Soham    not present at all.
  *
  * So the five carry no meaning, no etymology and no source badge — there is
@@ -48,7 +51,7 @@ const SEEDS: readonly SeedSpec[] = [
   { latin: 'Satwik', letter: 'S', devanagari: 'सात्विक', syllableSplit: ['sa', 'twik'] },
   { latin: 'Sanskar', letter: 'S', devanagari: 'संस्कार', syllableSplit: ['sa', 'nskar'] },
   { latin: 'Bishnu', letter: 'B', devanagari: 'बिष्णु', syllableSplit: ['bi', 'shnu'] },
-  { latin: 'Brihut', letter: 'B', devanagari: 'बृहुत', syllableSplit: ['bri', 'hut'] },
+  { latin: 'Brihat', letter: 'B', devanagari: 'बृहत्', syllableSplit: ['bri', 'hat'] },
   { latin: 'Soham', letter: 'S', devanagari: 'सोहम्', syllableSplit: ['so', 'ham'] },
 ]
 

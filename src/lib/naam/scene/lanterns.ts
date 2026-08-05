@@ -249,3 +249,85 @@ export function lanternSpots(
 
   return placed
 }
+
+/**
+ * ─── HOW A LANTERN MOVES ───────────────────────────────────────────────────
+ *
+ * A sky lantern is not a pendulum. It has almost no mass against a lot of
+ * surface, so it does not oscillate — it WANDERS: carried by whatever the air
+ * is doing, rising and settling as the air inside it cools, never returning to
+ * quite the same place. The first version bobbed on a single sine and read
+ * exactly like what it was, a thing on a spring.
+ *
+ * Three summed sines at incommensurate frequencies per axis is the cheapest
+ * honest wander. The lowest has a period near 57s and carries most of the
+ * amplitude; the two above it are progressively faster and smaller, so the
+ * path has large slow arcs with small irregularities on top and no repeat a
+ * viewer could ever notice. That is a balloon's pace: metres per minute, not
+ * per second.
+ *
+ * IT IS A PURE FUNCTION OF (index, time) AND THAT IS THE POINT. The canvas
+ * draws the paper and the DOM writes the name on it, and if those two ever
+ * disagree the paper slides out from under its own name. Publishing per-frame
+ * offsets from the renderer into React would mean a callback, a ref and state
+ * churn sixty times a second; a pure function needs none of it and cannot
+ * desync, because there is nothing to keep in sync.
+ *
+ * THE THIRD DIMENSION IS REAL. `scale` is depth: a lantern drifting toward the
+ * viewer grows and brightens, one drifting away shrinks and dims, and because
+ * the DOM label takes the same scale the name recedes with its own paper.
+ */
+
+/** How far a lantern may wander, as fractions of the frame and of its size. */
+const DRIFT = { x: 0.075, y: 0.055, z: 0.17 }
+
+/**
+ * Three octaves of sine, roughly ±1.
+ *
+ * The frequencies are the pace, and the first cut had them three times too
+ * fast: measured, the labels moved at 15.6 px/s, which is a twitch. A sky
+ * lantern crosses a frame in minutes. At 0.038 the slowest component has a
+ * period near three minutes and carries most of the amplitude, which puts the
+ * peak speed around 6 px/s — slow enough that you notice a lantern has moved
+ * rather than watching it move.
+ */
+function wander(time: number, seed: number): number {
+  return (
+    Math.sin(time * 0.038 + seed) * 0.6 +
+    Math.sin(time * 0.066 + seed * 1.7) * 0.28 +
+    Math.sin(time * 0.105 + seed * 2.9) * 0.12
+  )
+}
+
+export interface LanternDrift {
+  dx: number
+  dy: number
+  /** Depth, as a multiplier on the resting size. */
+  scale: number
+  alpha: number
+}
+
+/**
+ * Where lantern `index` has drifted to at `time` seconds, in px against a
+ * frame of `width` x `height`.
+ *
+ * Lanterns are allowed to leave the frame. The range below is wide enough that
+ * the outermost ones sometimes will, and that is correct — a sky with a hard
+ * invisible wall at its edges is a diorama, not a sky.
+ */
+export function lanternDrift(
+  index: number,
+  time: number,
+  width: number,
+  height: number,
+): LanternDrift {
+  const seed = index * 12.9898
+  const z = wander(time, seed + 23)
+  return {
+    dx: wander(time, seed) * width * DRIFT.x,
+    // Slightly biased upward: they are buoyant, and they are cooling.
+    dy: (wander(time, seed + 11) - 0.16) * height * DRIFT.y,
+    scale: 1 + z * DRIFT.z,
+    alpha: 0.84 + z * 0.16,
+  }
+}

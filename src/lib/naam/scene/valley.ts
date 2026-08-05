@@ -37,7 +37,7 @@
  */
 import { Container, FillGradient, Graphics, WebGLRenderer } from 'pixi.js'
 import { lampSpots } from './lamps'
-import { LANTERN_ASPECT, lanternSpots } from './lanterns'
+import { LANTERN_ASPECT, lanternDrift, lanternSpots } from './lanterns'
 import { drive, type LivingLayer } from './living'
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -263,7 +263,19 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
   // supposed to read through the paper — a light seen from inside a room is not
   // dimmed by the wall it is beyond, and on a phone the veil is heavy enough
   // over the town that lamps under it would simply not be visible.
-  stage.addChild(still2, cords, flags, lanterns, veil, lamps)
+  /**
+   * LANTERNS ABOVE THE VEIL, with the lamps.
+   *
+   * The veil fades the left of the frame back to paper so dark ink stays
+   * readable over it, and the lanterns sat underneath it — so the leftmost was
+   * washed almost to nothing while its NAME, drawn in the DOM above
+   * everything, stayed fully legible. A name floating over a lantern nobody
+   * can see reads as a missing lantern, which is exactly how it was reported.
+   *
+   * They belong with the lamps, for the lamps' own reason: a light seen from
+   * inside a room is not dimmed by the wall it is beyond.
+   */
+  stage.addChild(still2, cords, flags, veil, lanterns, lamps)
 
   const noise = RIDGES.map((_, i) => ridgeNoise(0x5eed + i * 977))
   const ridgeGraphics = RIDGES.map(() => new Graphics())
@@ -838,9 +850,8 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
     y: number
     scale: number
     glow: number
-    /** Per-lantern drift, so no two rise on the same beat. */
-    phase: number
-    rate: number
+    /** Feeds lanternDrift, which owns the motion for canvas and label alike. */
+    index: number
   }
   let lanternList: Lantern[] = []
   /** Support counts, newest set wins. Drives how many and how near. */
@@ -861,6 +872,14 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
      * two happened to cross.
      */
     const order = spots.map((_, i) => i).sort((a, z) => spots[a].depth - spots[z].depth)
+    /**
+     * DEPTH IS NOW DYNAMIC, so paint order has to be too. Sorting once at build
+     * time ordered them by RESTING depth, but the drift moves each lantern
+     * toward and away from the viewer independently — so one that had drifted
+     * forward could still be painted behind one that had drifted back, which
+     * is the single thing that would give the third dimension away.
+     */
+    lanterns.sortableChildren = true
 
     for (const i of order) {
       const spot = spots[i]
@@ -945,24 +964,22 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
         y: spot.y,
         scale: spot.scale,
         glow: spot.glow,
-        phase: (i * 2.399) % 6.283,
-        // Near lanterns drift a little faster, which is the parallax cue that
-        // sells the depth the size alone only suggests.
-        rate: 0.1 + spot.depth * 0.12,
+        index: i,
       })
     }
   }
 
   function animateLanterns(time: number) {
     for (const l of lanternList) {
-      // Rise and sway on incommensurate periods so the field never visibly
-      // loops — the same trick the flame uses.
-      const bob = Math.sin(time * l.rate + l.phase) * h * 0.012
-      const sway = Math.cos(time * l.rate * 0.63 + l.phase * 1.7) * w * 0.004
-      l.g.x = l.x * w + sway
-      l.g.y = l.y * h + bob
-      // A lantern turning in the air catches the light differently.
-      l.g.alpha = 0.82 + Math.sin(time * l.rate * 1.31 + l.phase) * 0.18
+      // The same function the DOM label reads, so the name rides its own paper
+      // rather than watching it drift away. See lanterns.ts.
+      const drift = lanternDrift(l.index, time, w, h)
+      l.g.x = l.x * w + drift.dx
+      l.g.y = l.y * h + drift.dy
+      // The third dimension: nearer is bigger, brighter, and in front.
+      l.g.scale.set(drift.scale)
+      l.g.alpha = drift.alpha
+      l.g.zIndex = drift.scale
     }
   }
 
@@ -1202,7 +1219,14 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
 
   function frame() {
     if (!alive) return
-    clock += 1 / 60
+    /**
+     * WALL CLOCK, NOT A FRAME COUNT. This was `clock += 1/60`, which runs slow
+     * whenever frames drop and — the reason it had to change — is unshareable:
+     * the DOM lantern labels compute the same drift from the same time and
+     * cannot see this loop's private counter. performance.now() is a base both
+     * sides already have.
+     */
+    clock = performance.now() / 1000
     living.animate(clock)
     renderer.render(stage)
     raf = requestAnimationFrame(frame)

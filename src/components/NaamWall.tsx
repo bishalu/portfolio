@@ -57,7 +57,7 @@
  */
 import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { NAAM_COPY } from '@/lib/naam/copy'
-import { LANTERN_ASPECT, lanternSpots } from '@/lib/naam/scene/lanterns'
+import { LANTERN_ASPECT, lanternDrift, lanternSpots } from '@/lib/naam/scene/lanterns'
 
 /** Kept in CSS custom properties so the stylesheet can size the paper. */
 const ASPECT = LANTERN_ASPECT
@@ -179,6 +179,45 @@ export default function NaamWall({ notes }: NaamWallProps) {
       window.removeEventListener('resize', read)
     }
   }, [])
+
+  /**
+   * THE NAME RIDES ITS OWN BALLOON.
+   *
+   * The canvas drifts each lantern; the label used to sit perfectly still at
+   * the resting position, so the paper slid out from under the name written on
+   * it — the one thing a lantern carrying a name must never do.
+   *
+   * Same pure function, same clock, applied as a transform. Deliberately NOT
+   * React state: this runs every frame, and re-rendering six list items sixty
+   * times a second to move them turns a compositor job into a layout job. The
+   * style is written straight onto the node.
+   *
+   * `transform` is free here — .nm-lamp does its centring with the `translate`
+   * property, which is a separate one and is left alone.
+   */
+  useEffect(() => {
+    const list = shelfRef.current
+    if (!list || stacked || frame.ch === 0) return undefined
+    // Reduced motion gets the resting composition, drawn once and left still.
+    if (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return undefined
+    }
+
+    let raf = 0
+    const tick = () => {
+      const time = performance.now() / 1000
+      list.querySelectorAll<HTMLElement>('.nm-lamp').forEach((el, i) => {
+        const drift = lanternDrift(i, time, frame.cw, frame.ch)
+        el.style.transform = `translate(${drift.dx.toFixed(2)}px, ${drift.dy.toFixed(2)}px) scale(${drift.scale.toFixed(3)})`
+        // The label stacks by the same depth its paper does, so a name that has
+        // drifted forward is not overlapped by one that has drifted back.
+        el.style.zIndex = String(Math.round(drift.scale * 1000))
+      })
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [stacked, frame.cw, frame.ch, notes.length])
 
   /**
    * Canvas fractions to px offsets inside this panel.
