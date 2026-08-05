@@ -2,39 +2,62 @@
 export const prerender = true
 
 import DefaultLayout from '@layouts/DefaultLayout.astro'
-import PageHero from '@components/PageHero.astro'
 ---
 
 <DefaultLayout title="About - Bishal Upadhyaya">
-  <PageHero
-    title="About Me"
-    subtitle="I build vibes within AI systems. Here's the story."
-    size="medium"
-    accent="teal"
-  />
+  <!--
+    The photograph is the header.
+
+    Before this, the page opened with a generic band titled "About Me" over a
+    subtitle that said nothing, and then a snapshot boxed inside the 700px text
+    column with a hairline around it. Three separate objects, two seams, and the
+    picture — the only thing on the page that is actually about the person — was
+    the smallest of them.
+
+    Now there is one object. Two facts about the material decided the shape:
+
+    1. The sky in this photograph is deep blue and --void is deep navy-black.
+       They are neighbours. So the image can dissolve into the page instead of
+       being framed by it, and the dissolve is nearly invisible where the sky
+       meets the dark.
+
+    2. The source is 880×586. Stretched edge to edge on a 1920px display it
+       would be upscaled 2.2× and look it. Letting it occupy the right side of
+       the viewport instead of the whole width keeps it near 1:1 — the crop is
+       what makes it sharp AND what makes room for the words.
+
+    So: he comes out of the dark on the right, the words sit in the dark on the
+    left. No scrim over the type, which means no contrast gamble — the text is
+    on genuine --void, and the image begins where the text ends.
+  -->
+  <header class="ab-hero">
+    <div class="ab-media">
+      <img
+        src="/about-portrait.webp"
+        alt="Bishal Upadhyaya on the south rim of the Grand Canyon in winter"
+        width="880"
+        height="586"
+        loading="eager"
+        fetchpriority="high"
+      />
+    </div>
+
+    <div class="container">
+      <div class="ab-intro" data-reveal="settle">
+        <p class="label-mono ab-eyebrow">About</p>
+        <h1 class="ab-name">Bishal Upadhyaya.</h1>
+        <p class="ab-lead">
+          I started in neuroscience, recording electrical signals in living neural circuits. Now I build AI
+          systems that ship. Research on one end, products people use on the other.
+        </p>
+      </div>
+    </div>
+  </header>
 
   <section class="about-content">
     <div class="container">
-      <div class="content-wrapper animate-in fade-in slide-in-from-bottom-4 delay-200 duration-700">
-        <figure class="portrait" data-reveal="settle">
-          <img
-            src="/about-portrait.webp"
-            alt="Bishal Upadhyaya"
-            width="880"
-            height="586"
-            loading="eager"
-            fetchpriority="high"
-          />
-        </figure>
-
-        <div class="intro">
-          <p class="lead">
-            I'm Bishal Upadhyaya. I started in neuroscience, recording electrical signals in living neural
-            circuits. Now I build AI systems that ship. Research on one end, products people use on the other.
-          </p>
-        </div>
-
-        <div class="section">
+      <div class="content-wrapper">
+        <div class="section" data-reveal="settle">
           <h2>What I do</h2>
           <p>
             Data pipelines, models, infrastructure, and the product on top. The bar is that it feels effortless
@@ -59,7 +82,7 @@ import PageHero from '@components/PageHero.astro'
           </ul>
         </div>
 
-        <div class="section">
+        <div class="section" data-reveal="settle">
           <h2>Current focus</h2>
           <p>
             I cofounded <a href="/#vibeset" class="inline-link">Vibeset</a>. Three products: Curation for
@@ -81,52 +104,139 @@ import PageHero from '@components/PageHero.astro'
 </DefaultLayout>
 
 <style lang="scss">
+  /* ── The header ─────────────────────────────────────────────────────────── */
+
+  .ab-hero {
+    display: flex;
+    position: relative;
+    align-items: center;
+    /* Capped in px as well as vh: past ~760px the 880px-wide source starts to
+       show its resolution, and a header taller than the screen is a header the
+       reader has to scroll past to reach the point. */
+    min-height: clamp(480px, 68vh, 720px);
+    overflow: hidden;
+  }
+
+  .ab-media {
+    position: absolute;
+    inset: 0 0 0 auto;
+    width: min(64%, 1180px);
+
+    img {
+      display: block;
+      /* 62% keeps his face above the vertical centre, clear of the lede. */
+      object-position: 62% 38%;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* The dissolve. Left edge goes first and goes furthest, because that is the
+       side the words come from; the bottom follows it into the section below so
+       there is no line between the header and the page. The top is barely
+       touched — the sky is already almost --void up there, and fading what is
+       already dark just makes it muddy. */
+    mask-image:
+      linear-gradient(to right, transparent, #000 46%),
+      linear-gradient(to bottom, transparent 0%, #000 15%, #000 62%, transparent 97%);
+    mask-composite: intersect;
+    -webkit-mask-composite: source-in;
+  }
+
+  .ab-intro {
+    position: relative;
+    z-index: 1;
+    max-width: 32rem;
+  }
+
+  .ab-eyebrow {
+    margin: 0 0 var(--space-s);
+    color: var(--paper-soft);
+  }
+
+  .ab-name {
+    margin: 0 0 var(--space-m);
+    color: var(--paper);
+    font-weight: 800;
+    font-size: clamp(2.4rem, 5.4vw, 4rem);
+    line-height: 1.02;
+    font-family: var(--font-heading);
+    letter-spacing: -0.03em;
+  }
+
+  .ab-lead {
+    margin: 0;
+    max-width: 30rem;
+    color: var(--paper-soft);
+    font-size: clamp(1.02rem, 1.5vw, 1.2rem);
+    line-height: 1.6;
+  }
+
+  /* Below the fold the composition can't hold — a 32rem column and a photograph
+     do not both fit. The image becomes a band the page opens with, still
+     dissolving downward into the text, and the words follow it. */
+  @media (max-width: 900px) {
+    .ab-hero {
+      display: block;
+      min-height: 0;
+      padding-bottom: var(--space-l);
+    }
+
+    .ab-media {
+      position: relative;
+      inset: auto;
+      margin-bottom: var(--space-l);
+      width: 100%;
+      height: clamp(260px, 42vh, 380px);
+
+      img {
+        object-position: center 34%;
+      }
+
+      mask-image: linear-gradient(to bottom, #000 52%, transparent 99%);
+    }
+
+    .ab-intro {
+      max-width: none;
+    }
+  }
+
+  /* ── The page ───────────────────────────────────────────────────────────── */
+
   .about-content {
     padding: var(--space-xl) 0 var(--space-3xl);
   }
 
+  /* Left rag, not centred. The header's type starts at the container gutter,
+     and a centred body column started 230px to the right of it on a wide
+     screen — two left edges, neither of them deliberate. One column now. */
   .content-wrapper {
-    margin: 0 auto;
+    margin: 0;
     max-width: 700px;
   }
 
-  .portrait {
-    margin: 0 0 var(--space-xl);
-
-    img {
-      display: block;
-      border: 1px solid var(--hairline-on-paper);
-      border-radius: 16px;
-      width: 100%;
-      height: auto;
+  @media (max-width: 900px) {
+    .content-wrapper {
+      max-width: none;
     }
   }
 
-  .intro {
-    margin-bottom: var(--space-xl);
-  }
-
-  .lead {
-    color: var(--foreground-color);
-    font-weight: 500;
-    font-size: 1.35rem;
-    line-height: 1.5;
-  }
-
   .section {
-    margin-bottom: var(--space-xl);
+    margin-bottom: var(--space-2xl);
 
     h2 {
       margin-bottom: var(--space-m);
-      color: var(--foreground-color);
-      font-weight: 600;
-      font-size: 1.5rem;
+      color: var(--paper);
+      font-weight: 700;
+      font-size: clamp(1.5rem, 2.4vw, 1.9rem);
+      line-height: 1.15;
       font-family: var(--font-heading);
+      letter-spacing: -0.015em;
     }
 
     p {
       margin-bottom: var(--space-m);
-      color: var(--color-warm-gray);
+      color: var(--paper-soft);
       font-size: 1.1rem;
       line-height: 1.7;
     }
@@ -137,21 +247,28 @@ import PageHero from '@components/PageHero.astro'
 
       li {
         position: relative;
-        margin-bottom: var(--space-s);
-        padding-left: var(--space-m);
-        color: var(--color-warm-gray);
+        margin-bottom: var(--space-m);
+        padding-left: 2rem;
+        color: var(--paper-soft);
         font-size: 1.05rem;
         line-height: 1.7;
 
+        /* The same signal rule that marks the phrases in the strip under the
+           home page's hero — one mark for "here is a thing I do", used in both
+           places. An arrow was doing a different job here: → means "leads to",
+           and these three don't lead anywhere, they sit side by side. */
         &::before {
           position: absolute;
+          top: 0.82em;
           left: 0;
-          content: '→';
-          color: var(--color-living-teal);
+          background: var(--grad-signal);
+          width: 14px;
+          height: 2px;
+          content: '';
         }
 
         strong {
-          color: var(--foreground-color);
+          color: var(--paper);
         }
       }
     }

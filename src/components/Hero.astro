@@ -27,7 +27,20 @@
         <p class="hero-tagline">
           I take AI systems from research to production.<br />
           Started with images, then 3D, then audio, then video.<br />
-          <strong>Now agents. One of them is here.</strong>
+          <strong>Now agents, wired into real products. Meet Balgo.</strong><svg
+            class="sig-mark"
+            viewBox="0 0 400 300"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <defs>
+              <linearGradient id="sig-mark-grad" x1="8" y1="0" x2="392" y2="0" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stop-color="#d64553"></stop>
+                <stop offset="1" stop-color="#efa33b"></stop>
+              </linearGradient>
+            </defs>
+            <path d="M8 150 H120 L184 30 L240 270 L294 150 H392"></path>
+          </svg>
         </p>
       </div>
 
@@ -36,7 +49,10 @@
           <div class="portal-header" id="portal-header">
             <span class="live-dot" aria-hidden="true"></span>
             <span class="portal-status label-mono">Balgo</span>
-            <span class="portal-role">It read the site. Ask, and it takes you to the part that answers.</span>
+            <span class="portal-role"
+            >I've read everything here — papers, benchmarks, the parts that didn't work. Ask, and I'll take you
+            there.</span
+          >
           </div>
 
           <button type="button" class="portal-close" id="portal-close" aria-label="Close chat">
@@ -189,14 +205,17 @@
          It is an invitation, so it is spent once it works. On the first send it
          retires for the rest of the visit — the console has been found, and a
          thing that keeps asking for attention it already has is just noise. */
-      const portal = document.getElementById('balgo-portal')
       let inviting = false
       try {
-        inviting = portal !== null && sessionStorage.getItem('balgo-asked') !== '1'
+        inviting = sessionStorage.getItem('balgo-asked') !== '1'
       } catch {
-        inviting = portal !== null
+        inviting = true
       }
-      if (inviting) portal!.setAttribute('data-invite', '')
+      // Under reduced motion the loop never runs, so the attribute never goes
+      // on and both the spike and the ring fall back to their static styles.
+      // One condition, no per-component reduced-motion block (MOTION.md).
+      if (rm) inviting = false
+      if (inviting) hero.setAttribute('data-invite', '')
       let lastFlow = -1
 
       const publishFlow = () => {
@@ -206,14 +225,14 @@
         const v = Math.round(rise * 20) / 20
         if (v === lastFlow) return
         lastFlow = v
-        portal!.style.setProperty('--flow', String(v))
+        hero.style.setProperty('--flow', String(v))
       }
 
       const retireInvite = () => {
         if (!inviting) return
         inviting = false
-        portal!.removeAttribute('data-invite')
-        portal!.style.removeProperty('--flow')
+        hero.removeAttribute('data-invite')
+        hero.style.removeProperty('--flow')
         try {
           sessionStorage.setItem('balgo-asked', '1')
         } catch {
@@ -853,6 +872,40 @@
       color: var(--paper);
       font-weight: 700;
     }
+
+    /* The same glyph as the tab icon: rest, spike, undershoot, rest. It closes
+       the sentence that names Balgo and it lights with the wave overhead, so
+       the eye is handed from the line to the console beside it. Decorative —
+       the sentence is complete without it. */
+    .sig-mark {
+      display: inline-block;
+      transform: translateY(0.08em);
+      margin-left: 0.5em;
+      width: 2.2em;
+      height: 0.82em;
+      overflow: visible;
+      vertical-align: baseline;
+
+      path {
+        fill: none;
+        stroke: url(#sig-mark-grad);
+        stroke-width: 34;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+    }
+  }
+
+  /* Resting: present, quiet, no motion. This is what reduced motion and no-JS
+     get, and what remains after the invitation is spent. */
+  .sig-mark {
+    opacity: 0.55;
+  }
+
+  /* Riding the wave. Only while the invitation stands. */
+  :global(#hero[data-invite]) .sig-mark {
+    opacity: calc(0.4 + var(--flow, 0) * 0.6);
+    filter: drop-shadow(0 0 calc(var(--flow, 0) * 7px) rgb(239 163 59 / 0.55));
   }
 
   /* ── Balgo console — quiet glass on ink ─────────────────────────────────── */
@@ -886,7 +939,7 @@
        Under reduced motion the rAF never starts, so --flow is never written and
        this stays at zero. Inert without a second reduced-motion block, which
        MOTION.md forbids anyway. */
-    &[data-invite]::before {
+    :global(#hero[data-invite]) &::before {
       position: absolute;
       inset: -1px;
       opacity: calc(var(--flow, 0) * 0.5);

@@ -1,9 +1,36 @@
-<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-<mask id="mask0_907_31" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
-<rect width="512" height="512" rx="80" fill="#161618"/>
-</mask>
-<g mask="url(#mask0_907_31)">
-<path d="M166.892 69.3845H390.357L226.065 315.018H2.6001L166.892 69.3845Z" fill="#42E0CE"/>
-<path d="M176.677 337.783L113.043 432.923H347.108L511.4 187.29H338.645L237.988 337.783H176.677Z" fill="#A14FD6"/>
-</g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="bishal.ai">
+  <title>bishal.ai</title>
+  <!--
+    One action potential.
+
+    The site is an instrument reading a signal — the hero oscilloscope, the
+    spike-train rail on the publications, the sig-* motion vocabulary, and a
+    neuroscience record of recording electrical signals in living circuits.
+    The mark is that, reduced until it survives 16px: rest, a fast rise, an
+    overshoot past baseline, and back to rest.
+
+    The undershoot is the point. A line that rises and returns is a stock
+    growth chart; the hyperpolarising dip after the spike is what makes this
+    one specific, and it costs a single vertex.
+
+    Two vertices of detail is the budget at this size. Anything more turns to
+    grey mush in a tab strip.
+  -->
+  <defs>
+    <linearGradient id="signal" x1="56" y1="0" x2="456" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#d64553" />
+      <stop offset="1" stop-color="#efa33b" />
+    </linearGradient>
+  </defs>
+  <!-- The tile carries its own field, so the mark holds on a light tab strip
+       as well as a dark one. --void, the site's deepest surface. -->
+  <rect width="512" height="512" rx="112" fill="#0e1124" />
+  <path
+    d="M56 300 H176 L240 120 L296 392 L350 300 H456"
+    fill="none"
+    stroke="url(#signal)"
+    stroke-width="52"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
 </svg>

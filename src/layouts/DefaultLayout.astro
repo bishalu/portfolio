@@ -26,8 +26,12 @@ const {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
 
-    <!-- favicon -->
+    <!-- favicon — SVG first for anything modern, a 32px raster for the rest,
+         and a square-cornered 180px for iOS, which masks its own corners and
+         ignores SVG icons entirely. -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
     <SiteMeta title={title} description={description.substring(0, 160)} url={url} image={image} author={author} />
 

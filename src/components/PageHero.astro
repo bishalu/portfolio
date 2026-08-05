@@ -82,9 +82,12 @@ const accentClasses = {
       min-height: 45vh;
     }
 
+    /* No min-height. A compact hero holds a title and sometimes one line, and
+       30vh of viewport was reserving room for content that isn't there —
+       pushing the first real thing on the page below the fold. Padding sets
+       the rhythm; the content sets the height. */
     &.hero--compact {
-      padding: var(--space-xl) 0;
-      min-height: 30vh;
+      padding: var(--space-l) 0 var(--space-m);
     }
   }
 
@@ -133,6 +136,13 @@ const accentClasses = {
     position: absolute;
     z-index: 0;
     inset: 0;
+    /* The blobs are 90px-blurred circles, and `overflow: hidden` on the hero
+       cut them off dead straight at its bottom edge — blob-2 sits at
+       `bottom: -80px`, so its glow ended in a hard horizontal line across the
+       page. That line was the whole reason the header read as a separate
+       panel. Fading the layer out before the edge lets the glow run into the
+       page instead of stopping at it. */
+    mask-image: linear-gradient(to bottom, #000 45%, transparent 96%);
     overflow: hidden;
     pointer-events: none;
   }
