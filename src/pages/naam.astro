@@ -1432,6 +1432,11 @@ if (!seedRow) {
      ──────────────────────────────────────────────────────────────────────── */
   .nm-shelfwrap {
     position: absolute;
+    /* BEHIND THE CARDS, and stated rather than left to DOM order. This and
+       .nm-tray were both z-index 1, so which one won was decided by source
+       position — which is not a decision, it is a coincidence that happens to
+       hold. The lanterns are part of the world; a dealt hand is the thing the
+       visitor is being asked to act on, and it always paints over the world. */
     z-index: 1;
     inset: 0;
     pointer-events: none;
@@ -1486,14 +1491,26 @@ if (!seedRow) {
 
   .nm-lamp {
     position: absolute;
+    /* THE PAPER'S BOX LIVES HERE, not on the button inside it. A percentage
+       height on .nm-lamp-hit resolved against a parent that had no height of
+       its own, so every lantern measured 0x0 and every name sat outside a box
+       with no size. This li is absolutely positioned inside .nm-lamps, which is
+       inset:0 over the panel — so a percentage here resolves against the panel,
+       whose height equals the canvas's exactly. */
+    height: var(--lantern-h, 44px);
+    aspect-ratio: var(--lantern-aspect, 1.28);
+    /* Size container, so the inscription can be set in cqh — type scaled to
+       the lantern that carries it rather than to the viewport. */
+    container-type: size;
     /* Positioned from the SAME lanternSpots() the canvas draws from, so the
        hit target is exactly on the light rather than near it. */
     translate: -50% -50%;
   }
 
-  /* The hit target. Bigger than the light it sits on, because a 6px glow is not
-     a 44px touch target and the WCAG minimum is not negotiable on the one
-     control that carries other people's choices. */
+  /* The hit target IS the paper now. It used to be a fixed 44px square over an
+     8px glyph; the lantern is larger than 44px at every depth, so the control
+     can simply be the object — which is also what makes the name inside it
+     clickable rather than decorative. */
   .nm-lamp-hit {
     display: grid;
     position: relative;
@@ -1503,79 +1520,76 @@ if (!seedRow) {
       opacity var(--dur-base) ease;
     cursor: pointer;
     border: 0;
-    border-radius: 999px;
     background: transparent;
     padding: 0;
-    width: 44px;
-    height: 44px;
+    width: 100%;
+    height: 100%;
     pointer-events: auto;
   }
 
-  /* THE NAME IS READ, NOT HUNTED FOR.
-     This used to be opacity 0 until hover, on the argument that six names
-     floating over the valley would be the old shelf again in a worse place.
-     Audited on the built page, the cost of that argument was total: every label
-     computed opacity 0, all six sat in one band down among the rooftops, and
-     the names the family had chosen were — as far as anyone looking at the page
-     could tell — simply not there.
+  /* ── THE NAME IS WRITTEN ON THE PAPER ────────────────────────────────────
+     Two faults, one after the other. First the label was opacity 0 until hover,
+     so the family's choices were invisible on the built page. Then it was
+     legible but floating well above an 8px glyph — a caption beside a marker,
+     not a name on a lantern.
 
-     They are legible by default now. What keeps them from becoming the shelf
-     again is not hiding them, it is DEPTH: they are spread through the sky at
-     different distances, sized and dimmed by how far back they sit, so the
-     field reads as a place with things in it rather than a list laid over a
-     picture. Hover and focus still bring one forward. */
+     It sits INSIDE the paper now. The lantern is sized to hold two lines of
+     type (see LANTERN_H), the label is centred in that box, and the type scales
+     with the lantern rather than with the viewport — so a distant lantern
+     carries smaller writing, which is what distance does to writing.
+
+     The ink is a warm brown rather than the page's near-black: this is a mark
+     made on lit paper, and black on a glowing amber ground is a sticker. */
   .nm-lamp-name {
     display: flex;
     position: absolute;
-    bottom: 100%;
-    /* CENTRED OVER ITS OWN LANTERN. The scale() below replaced the transform
-       that was doing the centring, and every name drifted right of the light it
-       belongs to — measured at ~130px, which on a field of six reads as labels
-       belonging to the wrong lanterns. Both transforms have to be on one
-       declaration; the second would silently win. */
+    /* Centred in the paper, sitting slightly high — the mouth of the lantern
+       is the bottom fifth and nobody writes across the opening. */
+    top: 42%;
     left: 50%;
     flex-direction: column;
     align-items: center;
-    gap: 0.05rem;
-    transform: translateX(-50%) scale(var(--lantern-scale, 1));
-    /* Scaled about its own bottom edge so a distant name shrinks toward its
-       lantern rather than drifting off it. */
-    transform-origin: 50% 100%;
+    gap: 0.02em;
+    transform: translate(-50%, -50%);
     transition:
       opacity 220ms ease,
       transform 220ms cubic-bezier(0.34, 1.2, 0.64, 1);
-    /* Far lanterns are hazier, the way distance actually works — but the floor
-       is high enough that the least-supported name is still readable. Losing a
-       name to atmosphere is the bug this whole rework exists to fix. */
-    opacity: calc(0.62 + var(--lantern-glow, 1) * 0.38);
-    border-radius: 6px;
-    /* No card and no shadow: a chip per name turns the sky back into a list.
-       The type sits on the air, and legibility comes from the veil behind it. */
-    background: transparent;
-    padding: 0.1rem 0.3rem;
+    opacity: calc(0.68 + var(--lantern-glow, 1) * 0.32);
+    /* Type scaled to the lantern's own height. `calc()` on the percentage did
+       not work — a percentage font-size resolves against the PARENT's font
+       size, so `calc(11% * 0.2)` asked for 2.2% of the body text rather than a
+       fifth of the paper. cqh is the unit that means what was intended, and the
+       px value below it is the fallback where it is unsupported. */
+    font-size: 13px;
+    font-size: 19cqh;
+    line-height: 1.15;
     pointer-events: none;
     white-space: nowrap;
   }
 
   .nm-lamp-hit:hover .nm-lamp-name,
   .nm-lamp-hit:focus-visible .nm-lamp-name {
-    transform: translateX(-50%) scale(calc(var(--lantern-scale, 1) * 1.12));
+    /* The centring translate only. The old rule also re-applied the scale that
+       used to size the label, which now belongs to the paper. */
+    transform: translate(-50%, -50%);
     opacity: 1;
   }
 
+  /* Both in em, off .nm-lamp-name's cqh size, so the whole inscription scales
+     with its own lantern as one block. They were in rem, which is why every
+     name measured the same 37px tall no matter how big the paper under it was —
+     the label scaled and the two lines inside it did not. */
   .nm-lamp-deva {
-    color: var(--nm-text);
-    font-size: 0.95rem;
-    line-height: 1.45;
-    /* The sky behind is a gradient, not a flat fill, so the type carries its
-       own small halo rather than relying on where it happens to land. */
-    text-shadow: 0 1px 6px var(--nm-canvas);
+    color: #5c3a1c;
+    font-size: 1em;
+    line-height: 1.28;
   }
 
   .nm-lamp-latin {
-    color: var(--nm-text-soft);
-    font-size: 0.78rem;
-    text-shadow: 0 1px 6px var(--nm-canvas);
+    color: #7a5330;
+    font-size: 0.7em;
+    line-height: 1.2;
+    letter-spacing: 0.01em;
   }
 
   /* Yours, in the same valley. A ring rather than a different colour: the
@@ -2926,7 +2940,8 @@ if (!seedRow) {
     flex: 1 1 auto;
     flex-direction: column;
     gap: 0.5rem;
-    z-index: 1;
+    /* Above .nm-shelfwrap's 1: the cards win over the lanterns. */
+    z-index: 2;
     min-height: 0;
     background: transparent;
     padding: 0.6rem clamp(0.75rem, 2.4vw, 1.4rem);

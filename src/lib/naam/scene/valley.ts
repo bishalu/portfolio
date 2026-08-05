@@ -37,7 +37,7 @@
  */
 import { Container, FillGradient, Graphics, WebGLRenderer } from 'pixi.js'
 import { lampSpots } from './lamps'
-import { lanternSpots } from './lanterns'
+import { LANTERN_ASPECT, lanternSpots } from './lanterns'
 import { drive, type LivingLayer } from './living'
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -104,7 +104,25 @@ const RIDGES = [
 
 /** Cap the device pixel ratio. Above 1.5 the cost is real and the gain on a
  *  soft-edged dusk scene is not visible. */
-const MAX_DPR = 1.5
+/**
+ * Backing-store resolution cap.
+ *
+ * Was 1.5, which on a 1280x841 canvas gives a 1920x1262 buffer — every curve in
+ * the scene resolved at three-quarters of the display's own grid, on top of
+ * antialiasing being off. 2 is the standard ceiling: it covers every retina
+ * class, and above it the memory cost doubles again for a difference nobody has
+ * ever been able to point at.
+ */
+const MAX_DPR = 2
+
+/** Blend two packed RGB colours. `t` 0 gives `a`, 1 gives `b`. */
+function mixRgb(a: number, b: number, t: number): number {
+  const k = Math.max(0, Math.min(1, t))
+  const r = Math.round(((a >> 16) & 255) + (((b >> 16) & 255) - ((a >> 16) & 255)) * k)
+  const g = Math.round(((a >> 8) & 255) + (((b >> 8) & 255) - ((a >> 8) & 255)) * k)
+  const c = Math.round((a & 255) + ((b & 255) - (a & 255)) * k)
+  return (r << 16) | (g << 8) | c
+}
 
 /* ────────────────────────────────────────────────────────────────────────────
    DETERMINISTIC NOISE
@@ -171,7 +189,21 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
   const renderer = new WebGLRenderer()
   await renderer.init({
     canvas,
-    antialias: false,
+    /**
+     * ON, and it should never have been off.
+     *
+     * The scene is ridges, a dome, flag corners and lamp discs — diagonals and
+     * curves in almost every shape it draws. Without multisampling every one of
+     * those resolved to a hard stair-step, which is most of what "the graphics
+     * look poor" was: the stupa's dome had visible stepping, and so did every
+     * ridge line behind it.
+     *
+     * The cost is real but small here: the static half of the scene is cached
+     * to a texture and only the flags, lanterns and lamps are redrawn, so
+     * multisampling is paid on a handful of small shapes per frame rather than
+     * on the whole frame.
+     */
+    antialias: true,
     resolution: Math.min(window.devicePixelRatio || 1, MAX_DPR),
     autoDensity: true,
     background: PAPER,
@@ -195,6 +227,9 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
    * console gate counted it, and the message was invisible because Pixi puts
    * the text in console.groupCollapsed and only the stack in console.warn.
    */
+  /** The cords the flags hang from. Redrawn per frame — it is three polylines
+   *  and it has to follow the same wave the flags ride. */
+  const cords = new Graphics()
   const lanterns = new Container()
   const veil = new Graphics()
   const lamps = new Container()
@@ -228,7 +263,7 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
   // supposed to read through the paper — a light seen from inside a room is not
   // dimmed by the wall it is beyond, and on a phone the veil is heavy enough
   // over the town that lamps under it would simply not be visible.
-  stage.addChild(still2, flags, lanterns, veil, lamps)
+  stage.addChild(still2, cords, flags, lanterns, veil, lamps)
 
   const noise = RIDGES.map((_, i) => ridgeNoise(0x5eed + i * 977))
   const ridgeGraphics = RIDGES.map(() => new Graphics())
@@ -546,7 +581,16 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
   const FLAGS_PER_LINE = 16
 
   /** Sky, air, fire, water, earth — in that order, always. */
-  const FLAG_COLORS = [0x3b6fb0, 0xf2f2ef, 0xc0392b, 0x3d8b56, 0xe0a52b] as const
+  /**
+   * Lungta order, and it is fixed: blue, white, red, green, yellow — sky, air,
+   * fire, water, earth. It repeats in that sequence on every real line, so
+   * getting it wrong is the kind of mistake a Nepali visitor sees instantly.
+   *
+   * Muted from the primaries they were. Cotton that has been on a rooftop
+   * through a monsoon is not poster paint, and at full saturation these five
+   * were the loudest thing in a frame whose whole palette is dusk.
+   */
+  const FLAG_COLORS = [0x4a6f9e, 0xe8e6df, 0xb05043, 0x5f8a63, 0xd0a24e] as const
 
   function paintStupa() {
     stupa.clear()
@@ -589,7 +633,34 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
     for (let a = Math.PI; a <= Math.PI * 2 + 0.01; a += Math.PI / 24) {
       stupa.lineTo(cx + Math.cos(a) * s, domeY - s * 0.28 + Math.sin(a) * s * 0.78)
     }
-    stupa.fill({ color: white, alpha: 0.97 })
+    /**
+     * THE DOME IS THE BIGGEST OBJECT IN THE FRAME AND IT WAS FLAT.
+     *
+     * A single white fill on a hemisphere gives a white circle: the shape says
+     * dome and the shading says sticker. Whitewashed lime is bright but not
+     * luminous — it takes a soft terminator and picks up the sky on the side
+     * away from the light.
+     *
+     * A GRADIENT, not overlaid ellipses. The first attempt drew a light blob
+     * and a dark blob on top of the fill, reasoning they would sit inside the
+     * silhouette. They did not: both spilled past the curve and read as two
+     * bubbles stuck to the dome, which was worse than the flat fill it
+     * replaced. A gradient is bounded by the path it fills, which is the
+     * property that was actually needed.
+     */
+    domeFill?.destroy()
+    domeFill = new FillGradient({
+      type: 'linear',
+      start: { x: cx - s, y: domeY - s },
+      end: { x: cx + s, y: domeY + s * 0.5 },
+      textureSpace: 'global',
+      colorStops: [
+        { offset: 0, color: 0xfffdf8 },
+        { offset: 0.52, color: white },
+        { offset: 1, color: 0xc9ccdb },
+      ],
+    })
+    stupa.fill(domeFill)
 
     // Harmika: the square block above the dome that the eyes are painted on.
     const hY = domeY - s * 1.06
@@ -644,12 +715,41 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
     const add = (x1: number, y1: number, x2: number, y2: number, sag: number) => {
       const per: Flag[] = []
       for (let i = 0; i < FLAGS_PER_LINE; i++) {
-        // One rect, drawn once. Well under the ~100-point threshold where Pixi
-        // stops batching Graphics as efficiently as Sprites.
-        const g = new Graphics().rect(-fw / 2, 0, fw * 0.86, fh).fill({
-          color: FLAG_COLORS[i % 5],
-          alpha: 0.82,
-        })
+        const g = new Graphics()
+        const base = FLAG_COLORS[i % 5]
+
+        /**
+         * CLOTH, NOT A SWATCH.
+         *
+         * These were flat rects, axis-aligned, with no string — five primaries
+         * floating in a curve, which at 4x read as confetti rather than as
+         * flags on a line. Three things fix that and none of them is expensive:
+         *
+         *   · the top edge is pinched to the cord and the bottom edge hangs
+         *     free, so the shape is a trapezoid rather than a rectangle;
+         *   · a darker band down the hoist, where cloth gathers at the
+         *     stitching and light never reaches;
+         *   · the free edge lifts slightly, drawn as a curve rather than a
+         *     straight cut.
+         *
+         * Built once each; the wind below only ever transforms them.
+         */
+        g.moveTo(-fw * 0.43, 0)
+          .lineTo(fw * 0.43, 0)
+          .lineTo(fw * 0.43, fh * 0.92)
+          .quadraticCurveTo(0, fh * 1.06, -fw * 0.43, fh * 0.9)
+          .closePath()
+          .fill({ color: base, alpha: 0.88 })
+
+        // The hoist: the fold nearest the cord, always in its own shadow.
+        g.rect(-fw * 0.43, 0, fw * 0.2, fh * 0.94).fill({ color: mixRgb(base, 0x2b2a33, 0.34), alpha: 0.5 })
+
+        // And the top seam, which is what makes it look tied on rather than
+        // stuck on.
+        g.moveTo(-fw * 0.43, 0)
+          .lineTo(fw * 0.43, 0)
+          .stroke({ color: mixRgb(base, 0x2b2a33, 0.5), width: Math.max(0.6, fw * 0.09), alpha: 0.55 })
+
         flags.addChild(g)
         per.push({ g, u: i / FLAGS_PER_LINE })
       }
@@ -667,16 +767,52 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
    *  wave rather than a uniform sway: a line where every flag moves together is
    *  a rendering, and one where the motion runs along it is cloth. */
   function animateFlags(time: number) {
+    /**
+     * THE CORD WAS MISSING ENTIRELY.
+     *
+     * The flags rode a catenary and nothing was ever drawn along it, so they
+     * hung on nothing — the single biggest reason the line read as confetti.
+     * Worse, every flag was axis-aligned no matter how steeply the line fell,
+     * which no hanging cloth does.
+     *
+     * The same sampled curve now draws the string AND rotates each flag to sit
+     * square to it. `cords` is cleared and redrawn each frame, which is the one
+     * per-frame geometry rebuild in this file that is justified: it is three
+     * polylines of a dozen points, and it has to track the same travelling wave
+     * the flags do or the flags come off the string.
+     */
+    cords.clear()
+
     for (const line of flagLines) {
       const { flags: per, x1, y1, x2, y2, sag, phase } = line
+
+      const at = (u: number) => {
+        const droop = Math.sin(u * Math.PI) * sag
+        const wave = Math.sin(time * 1.6 + u * 5 + phase) * (h * 0.004) * Math.sin(u * Math.PI)
+        return { x: x1 + (x2 - x1) * u, y: y1 + (y2 - y1) * u + droop + wave }
+      }
+
+      // The string first, so the flags sit on it.
+      const SAMPLES = 22
+      const first = at(0)
+      cords.moveTo(first.x, first.y)
+      for (let k = 1; k <= SAMPLES; k++) cords.lineTo(at(k / SAMPLES).x, at(k / SAMPLES).y)
+      // Thin and low-contrast: it is a string, and at 0.5 alpha in near-black
+      // it drew as the most prominent line in the frame — heavier than the
+      // ridges behind it and heavier than the flags it carries.
+      cords.stroke({ color: 0x5c5870, width: Math.max(0.6, h * 0.0009), alpha: 0.3 })
+
       for (const f of per) {
         const u = f.u
-        const droop = Math.sin(u * Math.PI) * sag
-        // A travelling wave, not a uniform sway: a line where every flag moves
-        // together is a rendering; one where the motion runs along it is cloth.
-        const wave = Math.sin(time * 1.6 + u * 5 + phase) * (h * 0.004) * Math.sin(u * Math.PI)
-        f.g.x = x1 + (x2 - x1) * u
-        f.g.y = y1 + (y2 - y1) * u + droop + wave
+        const here = at(u)
+        f.g.x = here.x
+        f.g.y = here.y
+        // Square to the cord: sampled either side rather than differentiated,
+        // because the wave makes the analytic slope longer than the whole
+        // function it corrects.
+        const ahead = at(Math.min(1, u + 0.02))
+        const behind = at(Math.max(0, u - 0.02))
+        f.g.rotation = Math.atan2(ahead.y - behind.y, ahead.x - behind.x)
       }
     }
   }
@@ -716,53 +852,91 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
     lanterns.removeChildren()
     if (lanternCounts.length === 0) return
 
-    const spots = lanternSpots(lanternCounts, w < 600)
-    spots.forEach((spot, i) => {
+    const spots = lanternSpots(lanternCounts, w < 600, h)
+
+    /**
+     * FAR FIRST. The lanterns are large enough now to overlap each other, and a
+     * sky of them at different distances should occlude — but only in the right
+     * order. Painting in list order put a far lantern over a near one wherever
+     * two happened to cross.
+     */
+    const order = spots.map((_, i) => i).sort((a, z) => spots[a].depth - spots[z].depth)
+
+    for (const i of order) {
+      const spot = spots[i]
       const g = new Graphics()
-      // Size is set here and never recomputed; depth arrives as a scale.
-      const r = Math.max(3.4, h * 0.011) * spot.scale
 
       /**
-       * WARM AND OPAQUE, NOT ADDITIVE.
+       * ─── A LANTERN THE NAME IS WRITTEN ON ───────────────────────────────
        *
-       * The first cut set blendMode 'add' on these, copying the lamps. The
-       * lamps' own comment in this file says exactly why that is wrong up
-       * here: additive light works over the town because the town is the
-       * darkest part of the frame, and "additive light on the pale sky above
-       * would blow straight out to white". It did. Six lanterns came out as
-       * pale grey blobs on a pale blue sky.
+       * It was an 8px hexagon with the name floating well above it. What the
+       * page is actually describing is a sky lantern with a name written on
+       * its paper, so the paper has to be big enough to hold two lines of
+       * type — see LANTERN_H in lanterns.ts.
        *
-       * Against a light ground a lantern reads by being WARMER and DARKER than
-       * what is behind it, not brighter. So these are ordinary alpha, in amber,
-       * with an edge — a lit paper shell seen from outside.
+       * The silhouette is built from curves rather than the straight segments
+       * the small version used: a dome that swells past its widest point and
+       * draws back in to a narrow mouth, which is what gives paper its
+       * inflated look. A polygon at this size reads as a shed.
        */
-      const shell = 0.5 + spot.glow * 0.42
+      const hh = spot.size * h
+      const ww = hh * LANTERN_ASPECT
+      const top = -hh * 0.5
+      const bot = hh * 0.5
+      const half = ww * 0.5
 
-      // The halo first, so everything else sits inside it.
-      g.ellipse(0, r * 0.1, r * 1.9, r * 2.1).fill({ color: 0xf0a54e, alpha: 0.06 + spot.glow * 0.07 })
+      const silhouette = (gfx: Graphics) =>
+        gfx
+          .moveTo(0, top)
+          .bezierCurveTo(half * 0.86, top, half, top + hh * 0.3, half, top + hh * 0.46)
+          .bezierCurveTo(half, bot - hh * 0.24, half * 0.62, bot - hh * 0.04, half * 0.34, bot)
+          .lineTo(-half * 0.34, bot)
+          .bezierCurveTo(-half * 0.62, bot - hh * 0.04, -half, bot - hh * 0.24, -half, top + hh * 0.46)
+          .bezierCurveTo(-half, top + hh * 0.3, -half * 0.86, top, 0, top)
+          .closePath()
 
-      // The paper shell: a squat lantern, wider at the shoulder than the mouth.
-      g.moveTo(-r * 0.52, -r * 0.86)
-        .lineTo(r * 0.52, -r * 0.86)
-        .lineTo(r * 0.74, r * 0.18)
-        .lineTo(r * 0.44, r * 0.92)
-        .lineTo(-r * 0.44, r * 0.92)
-        .lineTo(-r * 0.74, r * 0.18)
-        .closePath()
-        .fill({ color: 0xf2b165, alpha: shell })
+      // The halo the paper throws, before the paper itself.
+      g.ellipse(0, hh * 0.08, ww * 0.78, hh * 0.86).fill({
+        color: 0xffb765,
+        alpha: 0.05 + spot.glow * 0.07,
+      })
 
-      // An edge, so the shape survives against a sky close to it in value.
-      g.moveTo(-r * 0.52, -r * 0.86)
-        .lineTo(r * 0.52, -r * 0.86)
-        .lineTo(r * 0.74, r * 0.18)
-        .lineTo(r * 0.44, r * 0.92)
-        .lineTo(-r * 0.44, r * 0.92)
-        .lineTo(-r * 0.74, r * 0.18)
-        .closePath()
-        .stroke({ color: 0xb4703a, width: Math.max(0.7, r * 0.1), alpha: 0.34 + spot.glow * 0.3 })
+      // The paper. Pale and warm, because the NAME has to be legible on it —
+      // this is the one surface in the scene that carries type.
+      silhouette(g).fill({ color: 0xfbeacd, alpha: 0.72 + spot.glow * 0.2 })
 
-      // The flame, low in the shell where the fuel sits.
-      g.ellipse(0, r * 0.42, r * 0.24, r * 0.32).fill({ color: 0xfff1cd, alpha: 0.6 + spot.glow * 0.4 })
+      // Lit from within and from BELOW, where the flame is: the base of a sky
+      // lantern is always the brightest part of it.
+      g.ellipse(0, bot - hh * 0.18, ww * 0.34, hh * 0.26).fill({
+        color: 0xffd79a,
+        alpha: 0.3 + spot.glow * 0.34,
+      })
+
+      // Two ribs. Paper stretched over a frame creases along it, and this is
+      // the cheapest thing that says "paper" rather than "balloon".
+      for (const k of [-0.34, 0.34]) {
+        g.moveTo(half * k * 0.92, top + hh * 0.14)
+          .bezierCurveTo(half * k, top + hh * 0.42, half * k, bot - hh * 0.3, half * k * 0.5, bot - hh * 0.02)
+          .stroke({ color: 0xd8a463, width: Math.max(0.5, hh * 0.012), alpha: 0.3 })
+      }
+
+      // The edge, so the shape holds against a sky close to it in value.
+      silhouette(g).stroke({
+        color: 0xc98a4c,
+        width: Math.max(0.6, hh * 0.016),
+        alpha: 0.4 + spot.glow * 0.25,
+      })
+
+      // The mouth ring and the flame hanging in it.
+      g.ellipse(0, bot, ww * 0.34, hh * 0.045).stroke({
+        color: 0xb4703a,
+        width: Math.max(0.5, hh * 0.014),
+        alpha: 0.5,
+      })
+      g.ellipse(0, bot - hh * 0.05, ww * 0.07, hh * 0.06).fill({
+        color: 0xfff1cd,
+        alpha: 0.55 + spot.glow * 0.45,
+      })
 
       lanterns.addChild(g)
       lanternList.push({
@@ -776,7 +950,7 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
         // sells the depth the size alone only suggests.
         rate: 0.1 + spot.depth * 0.12,
       })
-    })
+    }
   }
 
   function animateLanterns(time: number) {
@@ -793,6 +967,8 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
   }
 
   let veilFill: FillGradient | null = null
+  /** The dome's shading. Held so it can be released with the others. */
+  let domeFill: FillGradient | null = null
 
   /**
    * THE ROOM. The left of the frame veils back to paper so dark ink stays
@@ -934,11 +1110,29 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
     const r = Math.max(2.2, h * 0.0042)
     for (const spot of spots) {
       const g = new Graphics()
-      // A wide dim halo, a brighter core, and the flame. Alphas are low because
-      // the container blends additively and summed light needs less of it.
-      g.circle(0, 0, r * 6).fill({ color: 0xff9b3d, alpha: 0.07 })
-      g.circle(0, 0, r * 2.6).fill({ color: 0xffb85c, alpha: 0.16 })
-      g.circle(0, 0, r * 1.05).fill({ color: 0xffdca8, alpha: 0.5 })
+      /**
+       * A REAL FALLOFF, NOT THREE DISCS.
+       *
+       * Three concentric circles at three alphas produce three hard edges, and
+       * at 4x they read exactly as what they are: a bullseye sticker with two
+       * visible rings. Light does not have edges.
+       *
+       * Sampled falloff instead — a stack of rings whose alpha follows an
+       * inverse-square-ish curve, which is what a small source actually does.
+       * Twelve steps is where the banding stops being visible at 4x; the cost
+       * is twelve circles built ONCE per lamp, never per frame.
+       */
+      const STEPS = 12
+      for (let k = STEPS; k >= 1; k--) {
+        const t = k / STEPS
+        // Warmer toward the core, as a real flame is: the outer haze is orange
+        // where the centre is nearly white.
+        const warm = 1 - t
+        const color = mixRgb(0xff8a2e, 0xfff0cc, warm * warm)
+        g.circle(0, 0, r * 6.2 * t).fill({ color, alpha: 0.055 * (1 - t) ** 1.6 + 0.012 })
+      }
+      // The source itself, small and bright, sitting inside its own light.
+      g.circle(0, 0, r * 0.85).fill({ color: 0xfff4d8, alpha: 0.65 })
       // Additive, per lamp. Summed light is why the alphas above are so low.
       g.blendMode = 'add'
       g.x = spot.x * w
@@ -974,6 +1168,13 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
     },
   }
 
+  const cordLayer: LivingLayer = {
+    // Nothing to build: the cord is a per-frame polyline (see animateFlags).
+    build: () => {},
+    animate: () => {},
+    destroy: () => cords.destroy(),
+  }
+
   const lanternLayer: LivingLayer = {
     // build() takes the viewport and is called on mount and resize, which is
     // exactly when a lantern's pixel size changes. The COUNTS arrive separately
@@ -995,7 +1196,7 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
     },
   }
 
-  const living = drive([flagLayer, lanternLayer, lampLayer])
+  const living = drive([flagLayer, cordLayer, lanternLayer, lampLayer])
 
   let clock = 0
 
@@ -1065,6 +1266,7 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
       skyFill?.destroy()
       veilFill?.destroy()
       floorFill?.destroy()
+      domeFill?.destroy()
       living.destroy()
       renderer.destroy()
     },

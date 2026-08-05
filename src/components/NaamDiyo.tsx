@@ -74,6 +74,30 @@ export default function NaamDiyo({ state, onFlareEnd }: NaamDiyoProps) {
             <stop offset="0%" stopColor="var(--nm-keep)" stopOpacity="0.55" />
             <stop offset="100%" stopColor="var(--nm-keep)" stopOpacity="0" />
           </radialGradient>
+          {/* ── The clay ──────────────────────────────────────────────────
+              The bowl was two flat fills with a uniform grey outline, which is
+              why it read as a plastic dish rather than as fired clay: real
+              earthenware is unglazed, so it takes light softly across a curve
+              and never has a hard even edge.
+
+              Lit from the top-left like everything else on this page, warming
+              toward the rim where the flame is closest. */}
+          <linearGradient id="nm-diyo-clay" x1="0.15" y1="0" x2="0.85" y2="1">
+            <stop offset="0%" stopColor="#e6d3c2" />
+            <stop offset="46%" stopColor="#cdb49f" />
+            <stop offset="100%" stopColor="#a78a72" />
+          </linearGradient>
+          <linearGradient id="nm-diyo-rim" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#f2e4d6" />
+            <stop offset="100%" stopColor="#c4a992" />
+          </linearGradient>
+          {/* The flame spills onto the clay it stands in. Without this the lamp
+              is lit and the thing holding it is not, which is the tell that the
+              two were drawn separately. */}
+          <radialGradient id="nm-diyo-bounce" cx="50%" cy="0%" r="80%">
+            <stop offset="0%" stopColor="#ffb765" stopOpacity="0.5" />
+            <stop offset="100%" stopColor="#ffb765" stopOpacity="0" />
+          </radialGradient>
           <linearGradient id="nm-diyo-flame" x1="0" y1="1" x2="0" y2="0">
             {/* --nm-ember, not --nm-accent. The latter does not exist; see the
                 token's own comment in naam.astro. */}
@@ -124,16 +148,24 @@ export default function NaamDiyo({ state, onFlareEnd }: NaamDiyoProps) {
         <path
           className="nm-diyo-body"
           d="M7.5 34h29c0 7.4-6.1 12.6-14.5 12.6S7.5 41.4 7.5 34z"
-          fill="var(--nm-surface-2)"
-          stroke="var(--nm-hair-strong)"
-          strokeWidth="1"
+          fill="url(#nm-diyo-clay)"
+          stroke="#9c8069"
+          strokeWidth="0.7"
+          strokeOpacity="0.55"
+        />
+
+        {/* The flame's light landing on the clay below it. */}
+        <path
+          d="M7.5 34h29c0 7.4-6.1 12.6-14.5 12.6S7.5 41.4 7.5 34z"
+          fill="url(#nm-diyo-bounce)"
         />
         <path
           className="nm-diyo-lip"
           d="M5.5 33.6c0-1 1-1.6 2.4-1.6h28.2c1.4 0 2.4.6 2.4 1.6 0 1-1 1.7-2.4 1.7H7.9c-1.4 0-2.4-.7-2.4-1.7z"
-          fill="var(--nm-surface)"
-          stroke="var(--nm-hair-strong)"
-          strokeWidth="1"
+          fill="url(#nm-diyo-rim)"
+          stroke="#9c8069"
+          strokeWidth="0.7"
+          strokeOpacity="0.6"
         />
       </svg>
     </div>

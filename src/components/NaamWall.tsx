@@ -57,7 +57,10 @@
  */
 import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { NAAM_COPY } from '@/lib/naam/copy'
-import { lanternSpots } from '@/lib/naam/scene/lanterns'
+import { LANTERN_ASPECT, lanternSpots } from '@/lib/naam/scene/lanterns'
+
+/** Kept in CSS custom properties so the stylesheet can size the paper. */
+const ASPECT = LANTERN_ASPECT
 
 const C = NAAM_COPY
 
@@ -102,15 +105,6 @@ export default function NaamWall({ notes }: NaamWallProps) {
     return () => q.removeEventListener('change', read)
   }, [])
   /**
-   * The SAME geometry the canvas draws the lanterns from, so a name always sits
-   * on its own light. Depth carries support — see lanterns.ts.
-   */
-  const spots = lanternSpots(
-    notes.map((note) => note.count),
-    stacked,
-  )
-
-  /**
    * ─── THE TWO BOXES ARE NOT THE SAME BOX ────────────────────────────────
    *
    * lanternSpots returns fractions of the CANVAS, which is the full width of
@@ -127,7 +121,7 @@ export default function NaamWall({ notes }: NaamWallProps) {
    * `roomWidth`, and hard-coding 0.44 here would make this silently wrong the
    * day that option changes.
    */
-  const [frame, setFrame] = useState({ dx: 0, cw: 1, pw: 1 })
+  const [frame, setFrame] = useState({ dx: 0, dy: 0, cw: 1, ch: 0, pw: 1 })
   useLayoutEffect(() => {
     const read = () => {
       const panel = shelfRef.current
@@ -143,7 +137,13 @@ export default function NaamWall({ notes }: NaamWallProps) {
       // panel as the frame, which keeps the names spread over their own box
       // rather than collapsing them into a corner.
       const cb = canvas ? canvas.getBoundingClientRect() : pb
-      setFrame({ dx: cb.left - pb.left, cw: cb.width || 1, pw: pb.width || 1 })
+      setFrame({
+        dx: cb.left - pb.left,
+        dy: cb.top - pb.top,
+        cw: cb.width || 1,
+        ch: cb.height || 0,
+        pw: pb.width || 1,
+      })
     }
     read()
 
@@ -180,8 +180,31 @@ export default function NaamWall({ notes }: NaamWallProps) {
     }
   }, [])
 
-  /** A canvas x-fraction, as a percentage of this panel. */
-  const toPanelX = (x: number) => ((frame.dx + x * frame.cw) / frame.pw) * 100
+  /**
+   * Canvas fractions to px offsets inside this panel.
+   *
+   * Both axes, and in pixels rather than percentages. The first version
+   * converted only x and left y and the lantern's size as percentages of the
+   * PANEL, on the assumption that the panel and the canvas share a height. They
+   * do at 1280 — which is where it was checked — and they do not at 1024 and
+   * below, so the pixel floor on lantern size silently did nothing at exactly
+   * the widths that needed it and the responsive gate kept reporting 19x15
+   * tap targets.
+   */
+  const toPanelX = (x: number) => frame.dx + x * frame.cw
+  const toPanelY = (y: number) => frame.dy + y * frame.ch
+
+  /**
+   * The SAME geometry the canvas draws the lanterns from, so a name always sits
+   * on its own light. Depth carries support — see lanterns.ts.
+   */
+  const spots = lanternSpots(
+    notes.map((note) => note.count),
+    stacked,
+    // The canvas's own height, measured. See `frame`.
+    frame.ch,
+  )
+
 
   /**
    * PARALLAX, which is the cheapest real depth cue there is.
@@ -324,7 +347,13 @@ export default function NaamWall({ notes }: NaamWallProps) {
         focus and assistive tech. Nothing here depends on seeing light.
       */}
       {/* eslint-disable-next-line jsx-a11y/no-redundant-roles */}
-      <ul className="nm-lamps" role="list" aria-labelledby="nm-shelf-label" ref={shelfRef}>
+      <ul
+        className="nm-lamps"
+        role="list"
+        aria-labelledby="nm-shelf-label"
+        ref={shelfRef}
+        style={{ '--lantern-aspect': ASPECT } as CSSProperties}
+      >
         {notes.map((note, i) => {
           const spot = spots[i]
           if (!spot) return null
@@ -335,10 +364,8 @@ export default function NaamWall({ notes }: NaamWallProps) {
               data-mine={note.mine ? 'true' : undefined}
               style={
                 {
-                  left: `${toPanelX(spot.x).toFixed(3)}%`,
-                  // Heights already agree: the canvas and this panel share a
-                  // top edge and a height, so only x needed converting.
-                  top: `${(spot.y * 100).toFixed(3)}%`,
+                  left: `${toPanelX(spot.x).toFixed(1)}px`,
+                  top: `${toPanelY(spot.y).toFixed(1)}px`,
                   // Support now drives DEPTH, and depth drives size — but the
                   // label's own scale is floored well above nothing, because a
                   // name too small to read is not a quieter answer, it is a
@@ -346,6 +373,15 @@ export default function NaamWall({ notes }: NaamWallProps) {
                   '--support': Math.min(note.count, 5),
                   '--lantern-scale': spot.scale.toFixed(3),
                   '--lantern-glow': spot.glow.toFixed(3),
+                  /* The lantern's own box, from the SAME number the canvas
+                     draws it with — so the name is laid inside the paper rather
+                     than parked above a glyph.
+
+                     Height only. The panel and the canvas share a height
+                     exactly, so a percentage resolves correctly; width then
+                     comes from aspect-ratio in CSS rather than from px maths
+                     that would need the canvas width and get it wrong. */
+                  '--lantern-h': `${(spot.size * frame.ch).toFixed(1)}px`,
                   '--i': i,
                 } as CSSProperties
               }

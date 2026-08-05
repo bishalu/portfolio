@@ -59,9 +59,31 @@ export interface LanternSpot {
   depth: number
   /** Multiplier on the drawn lantern and on the label's type size. */
   scale: number
+  /**
+   * The lantern's HEIGHT as a fraction of the canvas box, so the canvas and the
+   * DOM can draw and fill the same object without either measuring the other.
+   * Width is this times LANTERN_ASPECT.
+   */
+  size: number
   /** 0..1, for the glow and the label's ink. */
   glow: number
 }
+
+/**
+ * A lantern's height at full size, as a fraction of the canvas height, and its
+ * width relative to that.
+ *
+ * These are big — far bigger than the 8px glyph they replace — because THE NAME
+ * IS WRITTEN ON THE PAPER. A lantern that only marks where a label floats can
+ * be a dot; a lantern the name sits inside has to be at least as large as the
+ * two lines of type it carries, which at full scale is about 90x44px. 0.1 of an
+ * 841px canvas gives 84px of height and 108px of width, which holds the
+ * Devanagari and the Latin beneath it with room to breathe.
+ */
+const LANTERN_H = 0.1
+export const LANTERN_ASPECT = 1.28
+/** No lantern smaller than this, in px — see `size` below. */
+const MIN_PX = 52
 
 /**
  * The sky the lanterns may occupy, in fractions of the canvas height.
@@ -86,8 +108,13 @@ const RANGE = 1
  * 46px apart while their labels are ~90px wide, so a collision was always
  * reachable. Separation has to be a guarantee, not a probability — the pass
  * below enforces it after placement.
+ *
+ * Raised from 0.085 when the lanterns grew to carry their own names: the widest
+ * is now ~124px, and 0.085 of 1280 is 109. Lanterns MAY overlap — a sky of them
+ * at different distances should occlude, and valley.ts paints far before near
+ * so it does so correctly — but two names may never touch.
  */
-const MIN_GAP = 0.085
+const MIN_GAP = 0.1
 
 /** Deterministic 0..1 from an integer — a lantern must not move between renders. */
 function hash(n: number): number {
@@ -117,7 +144,11 @@ function hash(n: number): number {
  * So on a phone the names stay in the DOM and stay available to assistive tech,
  * and nothing is drawn over the copy. See the note on .nm-lamps in naam.astro.
  */
-export function lanternSpots(counts: readonly number[], stacked: boolean): LanternSpot[] {
+export function lanternSpots(
+  counts: readonly number[],
+  stacked: boolean,
+  frameHeight = 0,
+): LanternSpot[] {
   if (counts.length === 0 || stacked) return []
 
   const distinct = [...new Set(counts)].sort((a, b) => b - a)
@@ -128,8 +159,21 @@ export function lanternSpots(counts: readonly number[], stacked: boolean): Lante
   const bottom = SKY_BOTTOM
   // The left of the frame stays clear — that side is the room the visitor is
   // standing in, and it is where the type lives.
-  const from = 0.52
-  const to = 0.97
+  /**
+   * Inset by half a lantern, because the lantern now has real width — 124px at
+   * full scale. Running the lane to 0.99 put the rightmost one half off the
+   * frame with its name cut down the middle. The left edge is held clear of the
+   * room as well: 0.46 plus the inset keeps the paper off the column the type
+   * lives in.
+   */
+  // LANTERN_H is a fraction of HEIGHT and x is a fraction of WIDTH, so the
+  // conversion needs the canvas's own aspect. 1.52 is 1280/841 — the desktop
+  // frame this field only ever renders in (lanternSpots returns nothing when
+  // stacked), so it is a constant here rather than a measurement.
+  const CANVAS_ASPECT = 1.52
+  const halfWidth = (LANTERN_H * 1.2 * LANTERN_ASPECT) / 2 / CANVAS_ASPECT
+  const from = 0.46 + halfWidth
+  const to = 0.99 - halfWidth
 
   const placed = counts.map((count, i) => {
     const rank = rankOf.get(count) ?? 0
@@ -148,13 +192,30 @@ export function lanternSpots(counts: readonly number[], stacked: boolean): Lante
     const lane = counts.length === 1 ? 0.5 : i / (counts.length - 1)
     const x = from + (to - from) * (lane * 0.9 + hash(i * 13 + 5) * 0.1)
 
+    /**
+     * The floor is 0.78, not 0.62. The name is written ON the paper now, so the
+     * lantern's size IS the type size — and at 0.62 the furthest lanterns set
+     * their names at about 8.7px, which is not distance, it is unreadable.
+     * Perspective is worth less than a name somebody can read.
+     */
+    const scale = 0.78 + depth * 0.42
+
     return {
       x,
       y,
       depth,
-      // Near is bigger, but never so small that the name under it stops being
-      // readable — legibility outranks the perspective.
-      scale: 0.62 + depth * 0.58,
+      scale,
+      /**
+       * A FLOOR IN PIXELS, because a fraction of a short frame is a small
+       * object. The responsive gate caught this at 768, 1000 and 1024, where
+       * the canvas is short enough that 0.1 of its height came out at 15-28px:
+       * under the 24px tap minimum, and far too small to write a name on.
+       *
+       * Clamped HERE rather than in either renderer, because the canvas draws
+       * the paper and the DOM writes on it — a minimum applied in one and not
+       * the other would put the name back outside the lantern.
+       */
+      size: frameHeight > 0 ? Math.max(LANTERN_H * scale, MIN_PX / frameHeight) : LANTERN_H * scale,
       glow: 0.45 + depth * 0.55,
     }
   })
