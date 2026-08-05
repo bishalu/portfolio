@@ -1,34 +1,40 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="bishal.ai">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="78 78 356 356" role="img" aria-label="bishal.ai">
   <title>bishal.ai</title>
   <!--
     One stroke, doing both jobs: it is a trace and it is the b.
 
-    The line rests, spikes to the ascender, falls down the stem, and rounds
-    into the bowl — an action potential that happens to spell the first letter
-    of the name. The site is an instrument reading a signal (the hero
-    oscilloscope, the spike-train rail on the publications, the sig-* motion
-    vocabulary, a neuroscience record of recording electrical signals in living
-    circuits), so the mark is that, reduced until it survives 16px.
+    The line rests, spikes to the ascender, falls down the stem, and rounds into
+    the bowl — an action potential that happens to spell the first letter of the
+    name. The site is an instrument reading a signal (the hero oscilloscope, the
+    spike-train rail on the publications, the sig-* motion vocabulary, a
+    neuroscience record of recording electrical signals in living circuits), so
+    the mark is that, reduced until it survives 16px.
 
-    The flat lead-in on the left is what keeps it from being a plain letter: it
+    The flat lead-in on the left is what keeps it from being a plain letter. It
     is the resting baseline the spike departs from. Without it this is a "b";
     with it, it is a reading.
 
-    The bowl is drawn wider than a typeface would draw it. At 16px a normal
-    counter closes up and the glyph becomes a blob, and an open counter is the
-    whole difference between a letter and a smudge.
+    Two things were wrong with the first cut, and both were geometry. The stem
+    leaned — it ran from (168,78) to (186,402), eighteen units of drift that
+    read as a wobble rather than a letter. It is vertical now. And the bowl was
+    a lopsided curve; it is drawn as a balanced 174×174 square of extent, so the
+    counter is round and the weight is even all the way through.
+
+    No tile. The rounded-square container showed four light corners on any tab
+    strip that wasn't dark, which framed the mark instead of presenting it. The
+    viewBox is cropped to the glyph's own bounding square instead, so the letter
+    fills the frame edge to edge and sits on whatever the browser's chrome is.
+    It reads on white, on light grey and on dark, and at 16px it reads larger
+    than the tiled version did.
   -->
   <defs>
-    <linearGradient id="signal" x1="84" y1="0" x2="452" y2="0" gradientUnits="userSpaceOnUse">
+    <linearGradient id="signal" x1="89" y1="0" x2="423" y2="0" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#d64553" />
       <stop offset="1" stop-color="#efa33b" />
     </linearGradient>
   </defs>
-  <!-- The tile carries its own field, so the mark holds on a light tab strip
-       as well as a dark one. --void, the site's deepest surface. -->
-  <rect width="512" height="512" rx="112" fill="#0e1124" />
   <path
-    d="M84 270 H152 L204 96 L226 414 C492 414 492 196 226 220"
+    d="M115 276 H175 L223 104 V408 C455 408 455 234 223 234"
     fill="none"
     stroke="url(#signal)"
     stroke-width="52"

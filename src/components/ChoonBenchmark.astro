@@ -206,16 +206,33 @@ const max = 100
   }
 
   /* One row is ours and it is the only place colour is spent here. Everything
-     else stays neutral so the eye lands once. */
+     else stays neutral so the eye lands once.
+
+     Four channels carry it, because a single one is too easy to scan past in a
+     nine-row table: a lifted ground, a signal rule down the leading edge, full
+     weight on the bars where every other row is held at 45% and 28%, and the
+     figures in --paper against everyone else's --paper-soft. */
   .cb-row-ours {
     th,
     td {
-      background: var(--ink);
+      background: var(--ink-2);
     }
 
     th {
+      position: relative;
+      padding-left: 1rem;
       color: var(--paper);
       font-weight: 600;
+
+      &::before {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        background: var(--grad-signal);
+        width: 3px;
+        content: '';
+      }
     }
 
     .cb-bar {
@@ -227,9 +244,14 @@ const max = 100
       opacity: 0.75;
     }
 
-    .cb-val,
+    .cb-val {
+      color: var(--paper);
+      font-weight: 600;
+    }
+
     .cb-params {
       color: var(--paper);
+      font-weight: 600;
     }
   }
 
@@ -261,6 +283,10 @@ const max = 100
       tbody th {
         padding: 0.5rem 0.4rem;
         width: 34%;
+      }
+
+      .cb-row-ours th {
+        padding-left: 0.7rem;
         font-size: 0.74rem;
         line-height: 1.3;
       }
