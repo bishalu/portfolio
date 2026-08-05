@@ -235,8 +235,18 @@ export class Mala {
 
     // Counting beads, spaced along the rope's real length so the density is the
     // same in a short gap as in a long one.
-    const r = Math.max(2.4, markerRadius * 0.29)
-    const n = Math.max(4, Math.floor(total / (r * 2.5)))
+    /**
+     * BIG ENOUGH TO BE A BEAD. At 0.29 of the marker these came out ~2.5px in
+     * radius, and every cue that makes a bead read as round — the rim light,
+     * the tight specular, the terminator falling off the edge — is sub-pixel at
+     * that size. The shading was all being computed and none of it was visible,
+     * so the strand still looked like a dotted line.
+     *
+     * 0.46 is also closer to a real mala: counting beads are smaller than the
+     * markers that divide them, but not by six times.
+     */
+    const r = Math.max(3.2, markerRadius * 0.46)
+    const n = Math.max(4, Math.floor(total / (r * 2.45)))
     for (let i = 1; i < n; i++) {
       const t = i / n
       if (pinnedT.some((pt) => Math.abs(pt - t) < clearance)) continue
@@ -336,24 +346,64 @@ export class Mala {
     ctx.stroke()
 
     /**
-     * Each bead drawn individually, which is the entire point — the gradient
-     * this replaces could only ever produce one bead repeated, and the repeat
-     * was visible. Three ellipses each: the wood, the shade on the far side,
-     * and the highlight where the light lands. Lit consistently from the
-     * top-left, like everything else on this page.
+     * ─── WHAT MAKES A BEAD LOOK LIKE A BEAD ───────────────────────────────
+     *
+     * The first version was three flat ellipses: a body, a dark blob offset
+     * down-right, and a soft pale patch up-left. It read as plastic, and the
+     * reason is that none of those three is how a round object actually meets
+     * light. A sphere is not a disc with a smudge on it.
+     *
+     * Four things carry roundness, in the order they matter:
+     *
+     *   TERMINATOR — the dark side is a CRESCENT hugging the far edge, not a
+     *     blob near the middle. A centred shadow flattens a sphere into a
+     *     dish; the shadow has to fall off the edge to imply the surface
+     *     turning away.
+     *   RIM LIGHT — a thin bright arc on the extreme shadow-side edge, bounced
+     *     off the paper the mala lies on. This is the single strongest cue,
+     *     and its absence is why the old beads looked like holes. Real light
+     *     comes back off a ground; a bead with a dark side and no bounce reads
+     *     as cut out rather than lit.
+     *   SPECULAR — small and TIGHT, not broad and soft. Polished wood has a
+     *     hard highlight; a wide one says matte plastic. The old one was 0.34r
+     *     and hazy, which is exactly the plastic look.
+     *   HUE, not just value. The old beads varied in brightness alone, so they
+     *     were the same bead at different exposures. Real sandalwood varies in
+     *     TONE — some redder, some more olive — and that variation is what
+     *     stops a strand looking machined.
      */
     for (const bead of this.beads) {
       const p = this.at(bead.t)
-      const warm = 0.86 + bead.tone * 0.28
+      const r = bead.r
 
-      ctx.fillStyle = tint(0x9a7846, warm)
-      ellipse(ctx, p.x, p.y, bead.r * 1.06, bead.r)
+      // Body. Hue walks between a red sandalwood and a darker rosewood rather
+      // than one brown at two brightnesses.
+      ctx.fillStyle = wood(bead.tone)
+      ellipse(ctx, p.x, p.y, r * 1.05, r)
 
-      ctx.fillStyle = 'rgba(93, 67, 38, 0.42)'
-      ellipse(ctx, p.x + bead.r * 0.26, p.y + bead.r * 0.22, bead.r * 0.72, bead.r * 0.62)
+      // Terminator, hugging the lower-right edge and running off it.
+      ctx.save()
+      ctx.beginPath()
+      ctx.ellipse(p.x, p.y, r * 1.05, r, 0, 0, Math.PI * 2)
+      ctx.clip()
+      ctx.fillStyle = 'rgba(46, 26, 12, 0.5)'
+      ellipse(ctx, p.x + r * 0.52, p.y + r * 0.46, r * 0.98, r * 0.94)
+      ctx.restore()
 
-      ctx.fillStyle = 'rgba(230, 199, 149, 0.7)'
-      ellipse(ctx, p.x - bead.r * 0.3, p.y - bead.r * 0.3, bead.r * 0.34, bead.r * 0.28)
+      // Rim light: bounce off the paper, on the shadow side ONLY. The arc used
+      // to run to 0.78π, which carries it round past the bottom onto the lit
+      // side — light arriving from both directions, which flattens the bead
+      // again. It stops at the bottom now.
+      ctx.beginPath()
+      ctx.ellipse(p.x, p.y, r * 0.9, r * 0.86, 0, Math.PI * -0.04, Math.PI * 0.52)
+      ctx.strokeStyle = 'rgba(226, 178, 122, 0.55)'
+      ctx.lineWidth = Math.max(0.45, r * 0.2)
+      ctx.stroke()
+
+      // Specular, small and tight, up-left with everything else on this page.
+      ctx.fillStyle = 'rgba(255, 240, 214, 0.85)'
+      ellipse(ctx, p.x - r * 0.34, p.y - r * 0.36, r * 0.2, r * 0.16)
+
       void bead.tilt
     }
   }
@@ -371,11 +421,22 @@ function ellipse(ctx: CanvasRenderingContext2D, x: number, y: number, rx: number
   ctx.fill()
 }
 
-/** Multiply a packed RGB toward or away from white, clamped per channel, as a
- *  CSS colour — Canvas 2D takes strings where Pixi took packed ints. */
-function tint(rgb: number, k: number): string {
-  const r = Math.min(255, Math.round(((rgb >> 16) & 255) * k))
-  const g = Math.min(255, Math.round(((rgb >> 8) & 255) * k))
-  const b = Math.min(255, Math.round((rgb & 255) * k))
-  return `rgb(${r} ${g} ${b})`
+/**
+ * Bead colour for a 0..1 seed: a walk between two real woods rather than one
+ * brown at two brightnesses.
+ *
+ * Sandalwood at the warm end, rosewood at the dark end. Interpolating between
+ * two different HUES is the point — varying a single brown's lightness gives
+ * you the same bead under different exposures, which is what the strand looked
+ * like before and why it read as moulded rather than strung.
+ */
+function wood(seed: number): string {
+  // Widened from [166,108,62]..[116,66,38] over 0.18..1: that range was narrow
+  // enough that the strand read as one dark chocolate tone throughout, which is
+  // the machined look the hue walk exists to avoid.
+  const warm = [182, 124, 74]
+  const deep = [104, 58, 33]
+  const k = 0.06 + seed * 0.94
+  const mix = warm.map((c, i) => Math.round(deep[i] + (c - deep[i]) * k))
+  return `rgb(${mix[0]} ${mix[1]} ${mix[2]})`
 }

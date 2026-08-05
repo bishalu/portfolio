@@ -50,14 +50,23 @@ export async function mountMala(options: MountMalaOptions): Promise<MalaHandle |
   host.style.position = host.style.position || 'relative'
   host.prepend(canvas)
 
-  const ctx = canvas.getContext('2d')
-  if (!ctx) {
+  /**
+   * Bound to a non-null const AFTER the guard, and not used directly.
+   *
+   * `relayout` and `frame` below are hoisted function declarations, so
+   * TypeScript will not carry a narrowing into them — it cannot prove they run
+   * after the check. Reading the raw result inside them is `possibly null` and
+   * was three real type errors.
+   */
+  const maybeCtx = canvas.getContext('2d')
+  if (!maybeCtx) {
     // No 2D context at all is vanishingly rare, but the caller only hides the
     // CSS cord on a non-null return, so bailing here leaves the old rail intact
     // rather than an empty gutter.
     canvas.remove()
     return null
   }
+  const ctx: CanvasRenderingContext2D = maybeCtx
 
   const mala: Mala = new MalaClass()
 

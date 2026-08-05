@@ -1458,10 +1458,36 @@ if (!seedRow) {
     list-style: none;
   }
 
+  /* ── No lanterns on a phone ───────────────────────────────────────────────
+     Measured on the built page: at 375x667 the occupied bands are 0.039-0.73
+     (the invitation), 0.366-0.49 (the lamp), 0.502-0.605 (the slots) and
+     0.651-1 (the starters and the box). The biggest empty strip in the whole
+     frame is 3.9% of its height. There is no sky to float anything in.
+
+     Floating them anyway put six names across "look through them with you",
+     which is the sentence asking the visitor to do the thing the page is for.
+
+     So the list keeps its semantics and its labels for assistive tech — the
+     family's choices are still announced — and draws nothing over the copy.
+     This is a real limitation of the stacked layout, not a decision that the
+     names matter less on a phone. */
+  @media (max-width: 599px) {
+    .nm-lamps {
+      position: absolute;
+      clip-path: inset(50%);
+      margin: -1px;
+      border: 0;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+  }
+
   .nm-lamp {
     position: absolute;
-    /* Positioned from the SAME lampSpots() the canvas draws from, so the hit
-       target is exactly on the light rather than near it. */
+    /* Positioned from the SAME lanternSpots() the canvas draws from, so the
+       hit target is exactly on the light rather than near it. */
     translate: -50% -50%;
   }
 
@@ -1485,44 +1511,71 @@ if (!seedRow) {
     pointer-events: auto;
   }
 
-  /* THE NAME IS NOT PRINTED OVER THE VALLEY UNTIL IT IS ASKED FOR. Six names
-     floating in the sky is the shelf again, in a worse place. It appears on
-     hover and on focus, which is also the only way a keyboard reaches it. */
+  /* THE NAME IS READ, NOT HUNTED FOR.
+     This used to be opacity 0 until hover, on the argument that six names
+     floating over the valley would be the old shelf again in a worse place.
+     Audited on the built page, the cost of that argument was total: every label
+     computed opacity 0, all six sat in one band down among the rooftops, and
+     the names the family had chosen were — as far as anyone looking at the page
+     could tell — simply not there.
+
+     They are legible by default now. What keeps them from becoming the shelf
+     again is not hiding them, it is DEPTH: they are spread through the sky at
+     different distances, sized and dimmed by how far back they sit, so the
+     field reads as a place with things in it rather than a list laid over a
+     picture. Hover and focus still bring one forward. */
   .nm-lamp-name {
     display: flex;
     position: absolute;
     bottom: 100%;
+    /* CENTRED OVER ITS OWN LANTERN. The scale() below replaced the transform
+       that was doing the centring, and every name drifted right of the light it
+       belongs to — measured at ~130px, which on a field of six reads as labels
+       belonging to the wrong lanterns. Both transforms have to be on one
+       declaration; the second would silently win. */
+    left: 50%;
     flex-direction: column;
     align-items: center;
-    gap: 0.1rem;
-    transform: translateY(4px);
-    opacity: 0;
+    gap: 0.05rem;
+    transform: translateX(-50%) scale(var(--lantern-scale, 1));
+    /* Scaled about its own bottom edge so a distant name shrinks toward its
+       lantern rather than drifting off it. */
+    transform-origin: 50% 100%;
     transition:
       opacity 220ms ease,
       transform 220ms cubic-bezier(0.34, 1.2, 0.64, 1);
-    box-shadow: var(--nm-shadow);
+    /* Far lanterns are hazier, the way distance actually works — but the floor
+       is high enough that the least-supported name is still readable. Losing a
+       name to atmosphere is the bug this whole rework exists to fix. */
+    opacity: calc(0.62 + var(--lantern-glow, 1) * 0.38);
     border-radius: 6px;
-    background: color-mix(in srgb, var(--nm-surface) 94%, transparent);
-    padding: 0.28rem 0.5rem;
+    /* No card and no shadow: a chip per name turns the sky back into a list.
+       The type sits on the air, and legibility comes from the veil behind it. */
+    background: transparent;
+    padding: 0.1rem 0.3rem;
     pointer-events: none;
     white-space: nowrap;
   }
 
   .nm-lamp-hit:hover .nm-lamp-name,
   .nm-lamp-hit:focus-visible .nm-lamp-name {
-    transform: none;
+    transform: translateX(-50%) scale(calc(var(--lantern-scale, 1) * 1.12));
     opacity: 1;
   }
 
   .nm-lamp-deva {
     color: var(--nm-text);
     font-size: 0.95rem;
-    line-height: 1.5;
+    line-height: 1.45;
+    /* The sky behind is a gradient, not a flat fill, so the type carries its
+       own small halo rather than relying on where it happens to land. */
+    text-shadow: 0 1px 6px var(--nm-canvas);
   }
 
   .nm-lamp-latin {
     color: var(--nm-text-soft);
     font-size: 0.78rem;
+    text-shadow: 0 1px 6px var(--nm-canvas);
   }
 
   /* Yours, in the same valley. A ring rather than a different colour: the
@@ -2231,38 +2284,41 @@ if (!seedRow) {
      and the arrival both animate `transform` and a static translate on the same
      element is simply overwritten by them. */
   .nm-doodle {
-    --nm-doodle-w: clamp(58px, 6.5vw, 88px);
-
     position: absolute;
-    bottom: 0.4rem;
+    /* `top` and `height` are written by NaamApp from the measured gap between
+       the last line of the invitation and the composer. Nothing here may set
+       either, or the arrow goes back to floating. */
     left: 50%;
-    margin-left: calc(var(--nm-doodle-w) / -2);
-    transform-origin: 50% 6%;
+    /* 90px because the viewBox is 90 units wide: at 1:1 there is no scaling, so
+       the generated height IS the height on screen and the arrow lands exactly
+       where it was measured to. The old clamp() width scaled the drawing, which
+       silently shortened it by the same factor. */
+    margin-left: -45px;
+    width: 90px;
     z-index: 3;
-    /* IT WAITS BEFORE IT POINTS. A hint that arrives with the page is a hint
-       nobody needed yet, and NN/g's work on coach marks is blunt about the cost
-       of over-hinting: people dismiss them faster and rate the product as more
-       complicated. 3.4s is long enough that it only ever meets somebody who has
-       read the invitation and not moved, and it leaves for good on the first
-       keystroke. (A considered starting point, not a measured optimum — there
-       is no published figure for idle-hint delay on a chat composer.) */
-    animation:
-      /* NO SWAY. The arrow used to breathe on a slow loop forever after it
-         drew. With two real loops and a 2.2s draw that is one motion too many
-         on a page whose designated always-alive element is the flame — and the
-         flame is the thing that should hold that job. It draws, it points, it
-         stops. */
-      nm-doodle-in 400ms ease 900ms backwards;
-    /* WIDER AGAIN. It was clamp(72px, 9vw, 108px) and got cut to 62px in the
-       same pass that lengthened it, which left a 224px drop through a 62px
-       channel — the wander had nowhere to go and the three changes of mind
-       flattened into a wavy line. The curve needs room across to read as a hand
-       rather than as a squiggle drawn down a corridor. */
-    width: var(--nm-doodle-w);
-    height: clamp(132px, 30vh, 224px);
+    animation: nm-doodle-in 400ms ease 900ms backwards;
     pointer-events: none;
-    color: color-mix(in srgb, var(--nm-keep) 74%, var(--nm-text-soft));
+
+    /* ── The colour, and why the old one looked dirty ──────────────────────
+       It was `color-mix(in srgb, var(--nm-keep) 74%, var(--nm-text-soft))` —
+       marigold #b87413 mixed with a dark navy. Those sit on opposite sides of
+       the warm/cool axis, and sRGB interpolation runs the blend through the
+       desaturated middle, so the result was khaki: the exact mud you get
+       mixing complementary poster paints.
+
+       The fix is not a nicer brown. It is to stop crossing the axis at all,
+       and to pick a hue with a reason. This page's source document is a pothi
+       manuscript, and that tradition rules its margins and marks its
+       annotations in RED — so a red annotation on the paper is what this
+       gesture actually is. It also pulls the arrow clear of the mala's brown,
+       which is the other half of "these two feel the same".
+
+       Mixed in oklab and toward the PAPER rather than toward the ink:
+       lightening a hue against the ground it sits on desaturates it without
+       dulling it. */
+    color: color-mix(in oklab, var(--crimson-text) 74%, var(--nm-canvas));
   }
+
 
   /* The shaft is FILLED, not stroked — it is an outline with real width that
      varies along its length (see NaamApp). The barbs stay strokes: a barb is a

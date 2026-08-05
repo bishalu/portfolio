@@ -55,9 +55,9 @@
  * Every visible string reaches the DOM through JSX interpolation. `from` and
  * `relation` are a stranger's typed text and are never assembled into markup.
  */
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { NAAM_COPY } from '@/lib/naam/copy'
-import { lampSpots } from '@/lib/naam/scene/lamps'
+import { lanternSpots } from '@/lib/naam/scene/lanterns'
 
 const C = NAAM_COPY
 
@@ -101,7 +101,87 @@ export default function NaamWall({ notes }: NaamWallProps) {
     q.addEventListener('change', read)
     return () => q.removeEventListener('change', read)
   }, [])
-  const spots = lampSpots(notes.length, stacked)
+  /**
+   * The SAME geometry the canvas draws the lanterns from, so a name always sits
+   * on its own light. Depth carries support — see lanterns.ts.
+   */
+  const spots = lanternSpots(
+    notes.map((note) => note.count),
+    stacked,
+  )
+
+  /**
+   * ─── THE TWO BOXES ARE NOT THE SAME BOX ────────────────────────────────
+   *
+   * lanternSpots returns fractions of the CANVAS, which is the full width of
+   * the shell. This list is not: it sits in the right-hand panel, which starts
+   * where the room ends. Measured at 1280, the canvas is 0..1280 and this list
+   * is 563..1280 — so a spot at x=0.6 meant 768px to the canvas and 993px here,
+   * and every name floated ~225px right of the lantern it belongs to.
+   *
+   * This was true of the lamps before the lanterns, and invisible then only
+   * because their labels were hidden until hover: you could not see that the
+   * tooltip was over the wrong roof.
+   *
+   * Measured rather than assumed. The offset is a consequence of the valley's
+   * `roomWidth`, and hard-coding 0.44 here would make this silently wrong the
+   * day that option changes.
+   */
+  const [frame, setFrame] = useState({ dx: 0, cw: 1, pw: 1 })
+  useLayoutEffect(() => {
+    const read = () => {
+      const panel = shelfRef.current
+      // `.nm-valley` IS the canvas — not a wrapper around one. Querying
+      // '.nm-valley canvas' matched nothing, read() silently took the fallback
+      // branch every time, and the conversion below produced exactly the
+      // unconverted percentages it exists to replace. The fix looked correct
+      // and changed nothing, twice.
+      const canvas = document.querySelector<HTMLCanvasElement>('canvas.nm-valley')
+      if (!panel) return
+      const pb = panel.getBoundingClientRect()
+      // No canvas is the reduced/blocked case: fall back to treating this
+      // panel as the frame, which keeps the names spread over their own box
+      // rather than collapsing them into a corner.
+      const cb = canvas ? canvas.getBoundingClientRect() : pb
+      setFrame({ dx: cb.left - pb.left, cw: cb.width || 1, pw: pb.width || 1 })
+    }
+    read()
+
+    /**
+     * AND READ AGAIN WHEN THE CANVAS ARRIVES.
+     *
+     * The valley is a dynamic import that mounts ~260ms after this list, so the
+     * first read finds no canvas and falls back to this panel — which produces
+     * exactly the un-converted percentages the fallback exists to replace. The
+     * bug therefore survived the fix and looked identical to it: names still
+     * ~225px right of their lanterns, with a correct-looking mapping that had
+     * never been given the canvas.
+     *
+     * The panel's own size does not change when the canvas appears, so the
+     * ResizeObserver below cannot catch it. This watches for the element.
+     */
+    /**
+     * The canvas element exists from the first render; what arrives ~260ms
+     * later is its SIZE, once the dynamic import runs and the renderer sets it.
+     * So this watches the element's box rather than the DOM for a new node.
+     */
+    const canvas = document.querySelector<HTMLCanvasElement>('canvas.nm-valley')
+    const canvasWatcher =
+      typeof ResizeObserver === 'function' && canvas ? new ResizeObserver(read) : null
+    if (canvas) canvasWatcher?.observe(canvas)
+
+    const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(read) : null
+    if (shelfRef.current) observer?.observe(shelfRef.current)
+    window.addEventListener('resize', read)
+    return () => {
+      canvasWatcher?.disconnect()
+      observer?.disconnect()
+      window.removeEventListener('resize', read)
+    }
+  }, [])
+
+  /** A canvas x-fraction, as a percentage of this panel. */
+  const toPanelX = (x: number) => ((frame.dx + x * frame.cw) / frame.pw) * 100
 
   /**
    * PARALLAX, which is the cheapest real depth cue there is.
@@ -225,16 +305,23 @@ export default function NaamWall({ notes }: NaamWallProps) {
         objects competing for the same column.
 
         What the list actually says is "these names are burning somewhere in the
-        family". So it says it in the world: one lamp per name, out across the
-        town at dusk, and the same warm colour as the diyo because they are the
-        same gesture. The count is now light — a name several people chose burns
-        brighter, which needs no legend and no digit beside a child's name.
+        family". So it says it in the world — and then, audited, it said it too
+        quietly to count: every label computed opacity 0 and appeared only on
+        hover, and all of them sat in one flat band down among the rooftops. Six
+        names nobody could read. Whether a name is on the page is not a question
+        of whether a 44px square exists at the right coordinates.
 
-        THE CANVAS DRAWS THE GLOW; THIS DRAWS THE CONTROL. Canvas cannot be
+        They are LANTERNS now, up in the sky the birds used to have, with their
+        names legible without hovering anything. Support is DISTANCE: a name
+        several people chose floats nearer — larger, lower, brighter — and one
+        person's choice hangs further back toward the ridge. No legend, no digit
+        beside a child's name.
+
+        THE CANVAS DRAWS THE LIGHT; THIS DRAWS THE CONTROL. Canvas cannot be
         focused, labelled, or read by a screen reader, and the gate on this page
-        is zero axe violations. So each lamp gets a real <button> positioned
-        over it from the SAME geometry (lampSpots), carrying the name for
-        hover, focus and assistive tech. Nothing here depends on seeing light.
+        is zero axe violations. So each lantern gets a real <button> positioned
+        from the SAME geometry (lanternSpots), carrying the name for hover,
+        focus and assistive tech. Nothing here depends on seeing light.
       */}
       {/* eslint-disable-next-line jsx-a11y/no-redundant-roles */}
       <ul className="nm-lamps" role="list" aria-labelledby="nm-shelf-label" ref={shelfRef}>
@@ -248,12 +335,17 @@ export default function NaamWall({ notes }: NaamWallProps) {
               data-mine={note.mine ? 'true' : undefined}
               style={
                 {
-                  left: `${spot.x * 100}%`,
-                  top: `${spot.y * 100}%`,
-                  // Support drives BRIGHTNESS, capped at five. Size would make
-                  // the least-supported names hardest to see, which is backwards
-                  // on a page asking people to consider them.
+                  left: `${toPanelX(spot.x).toFixed(3)}%`,
+                  // Heights already agree: the canvas and this panel share a
+                  // top edge and a height, so only x needed converting.
+                  top: `${(spot.y * 100).toFixed(3)}%`,
+                  // Support now drives DEPTH, and depth drives size — but the
+                  // label's own scale is floored well above nothing, because a
+                  // name too small to read is not a quieter answer, it is a
+                  // missing one. See lanterns.ts.
                   '--support': Math.min(note.count, 5),
+                  '--lantern-scale': spot.scale.toFixed(3),
+                  '--lantern-glow': spot.glow.toFixed(3),
                   '--i': i,
                 } as CSSProperties
               }

@@ -37,6 +37,7 @@
  */
 import { Container, FillGradient, Graphics, WebGLRenderer } from 'pixi.js'
 import { lampSpots } from './lamps'
+import { lanternSpots } from './lanterns'
 import { drive, type LivingLayer } from './living'
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -155,6 +156,11 @@ export interface ValleyHandle {
    * the wall of notes, moved into the world it was always describing.
    */
   setLamps(count: number): void
+  /**
+   * The chosen names, as support counts in the order the wall lists them.
+   * Depth encodes support — see lanterns.ts.
+   */
+  setLanterns(counts: readonly number[]): void
   resize(): void
   destroy(): void
 }
@@ -189,7 +195,7 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
    * console gate counted it, and the message was invisible because Pixi puts
    * the text in console.groupCollapsed and only the stack in console.warn.
    */
-  const birds = new Container()
+  const lanterns = new Container()
   const veil = new Graphics()
   const lamps = new Container()
   /**
@@ -212,7 +218,7 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
   // here promotes the container to its own render group, which is a heavier
   // object than nine circles need.
   // Order is the composition: sky, range, town, the stupa standing above the
-  // town, flags strung from it, birds in front of everything, then the veil
+  // town, flags strung from it, lanterns in front of everything, then the veil
   // that turns the left half back into paper.
   // The static half — everything that only changes on resize — grouped so it
   // can be cached to a single texture.
@@ -222,7 +228,7 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
   // supposed to read through the paper — a light seen from inside a room is not
   // dimmed by the wall it is beyond, and on a phone the veil is heavy enough
   // over the town that lamps under it would simply not be visible.
-  stage.addChild(still2, flags, birds, veil, lamps)
+  stage.addChild(still2, flags, lanterns, veil, lamps)
 
   const noise = RIDGES.map((_, i) => ridgeNoise(0x5eed + i * 977))
   const ridgeGraphics = RIDGES.map(() => new Graphics())
@@ -514,7 +520,7 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
    * PIXI'S OWN PERFORMANCE GUIDANCE IS EXPLICIT: do not clear and rebuild a
    * Graphics every frame; geometry changes are the expensive part, while
    * transform, alpha and tint are cheap. The first cut of this did exactly the
-   * wrong thing — 48 flag quads and 9 birds torn down and re-tessellated 60
+   * wrong thing — 48 flag quads and every lantern torn down and re-tessellated 60
    * times a second, on a page that also runs an LLM round trip.
    *
    * So every flag is built once as a single-rect Graphics and thereafter only
@@ -676,51 +682,114 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
   }
 
   /**
-   * Pigeons over the stupa. There are always birds up there, and a scene with
-   * nothing alive in it reads as a backdrop no matter how well it is drawn —
-   * which is the whole reason the parallax was there before this replaced it.
+   * THE CHOSEN NAMES, FLOATING.
+   *
+   * This replaces a flock of nine pigeons. The birds were there to stop the
+   * scene reading as a backdrop, and they did that — but they were decoration
+   * occupying the only open sky, while the names the family had actually chosen
+   * sat invisible along the rooftops with `opacity: 0` labels. The sky is worth
+   * more than atmosphere. It is where the answer goes.
+   *
+   * Depth is support: see lanterns.ts, which also owns the placement so the DOM
+   * labels land on their own lights. Each lantern is built ONCE and thereafter
+   * only moved and dimmed — geometry is the expensive thing, and this file has
+   * twice grown a per-frame rebuild by accident.
    */
-  const FLOCK = Array.from({ length: 9 }, (_, i) => {
-    const rand = prng(0xb12d + i * 31)
-    return { r: 0.06 + rand() * 0.1, sp: 0.16 + rand() * 0.2, ph: rand() * 6.28, yr: 0.4 + rand() * 0.5 }
-  })
+  interface Lantern {
+    g: Graphics
+    /** Placement in 0..1, from the shared geometry. */
+    x: number
+    y: number
+    scale: number
+    glow: number
+    /** Per-lantern drift, so no two rise on the same beat. */
+    phase: number
+    rate: number
+  }
+  let lanternList: Lantern[] = []
+  /** Support counts, newest set wins. Drives how many and how near. */
+  let lanternCounts: readonly number[] = []
 
-  const birdShapes = FLOCK.map(() => {
-    const g = new Graphics()
-    birds.addChild(g)
-    return g
-  })
+  function buildLanterns() {
+    for (const l of lanternList) l.g.destroy()
+    lanternList = []
+    lanterns.removeChildren()
+    if (lanternCounts.length === 0) return
 
-  /** Rebuilt only when the viewport changes; per frame these move and scale. */
-  function buildBirds() {
-    const s2 = Math.max(2.5, h * 0.0045)
-    for (const g of birdShapes) {
-      g.clear()
-      g.moveTo(-s2, s2 * 0.5)
-        .lineTo(0, 0)
-        .lineTo(s2, s2 * 0.5)
-        .stroke({ color: 0x4a4658, width: Math.max(1.1, h * 0.0016), alpha: 0.72 })
-    }
+    const spots = lanternSpots(lanternCounts, w < 600)
+    spots.forEach((spot, i) => {
+      const g = new Graphics()
+      // Size is set here and never recomputed; depth arrives as a scale.
+      const r = Math.max(3.4, h * 0.011) * spot.scale
+
+      /**
+       * WARM AND OPAQUE, NOT ADDITIVE.
+       *
+       * The first cut set blendMode 'add' on these, copying the lamps. The
+       * lamps' own comment in this file says exactly why that is wrong up
+       * here: additive light works over the town because the town is the
+       * darkest part of the frame, and "additive light on the pale sky above
+       * would blow straight out to white". It did. Six lanterns came out as
+       * pale grey blobs on a pale blue sky.
+       *
+       * Against a light ground a lantern reads by being WARMER and DARKER than
+       * what is behind it, not brighter. So these are ordinary alpha, in amber,
+       * with an edge — a lit paper shell seen from outside.
+       */
+      const shell = 0.5 + spot.glow * 0.42
+
+      // The halo first, so everything else sits inside it.
+      g.ellipse(0, r * 0.1, r * 1.9, r * 2.1).fill({ color: 0xf0a54e, alpha: 0.06 + spot.glow * 0.07 })
+
+      // The paper shell: a squat lantern, wider at the shoulder than the mouth.
+      g.moveTo(-r * 0.52, -r * 0.86)
+        .lineTo(r * 0.52, -r * 0.86)
+        .lineTo(r * 0.74, r * 0.18)
+        .lineTo(r * 0.44, r * 0.92)
+        .lineTo(-r * 0.44, r * 0.92)
+        .lineTo(-r * 0.74, r * 0.18)
+        .closePath()
+        .fill({ color: 0xf2b165, alpha: shell })
+
+      // An edge, so the shape survives against a sky close to it in value.
+      g.moveTo(-r * 0.52, -r * 0.86)
+        .lineTo(r * 0.52, -r * 0.86)
+        .lineTo(r * 0.74, r * 0.18)
+        .lineTo(r * 0.44, r * 0.92)
+        .lineTo(-r * 0.44, r * 0.92)
+        .lineTo(-r * 0.74, r * 0.18)
+        .closePath()
+        .stroke({ color: 0xb4703a, width: Math.max(0.7, r * 0.1), alpha: 0.34 + spot.glow * 0.3 })
+
+      // The flame, low in the shell where the fuel sits.
+      g.ellipse(0, r * 0.42, r * 0.24, r * 0.32).fill({ color: 0xfff1cd, alpha: 0.6 + spot.glow * 0.4 })
+
+      lanterns.addChild(g)
+      lanternList.push({
+        g,
+        x: spot.x,
+        y: spot.y,
+        scale: spot.scale,
+        glow: spot.glow,
+        phase: (i * 2.399) % 6.283,
+        // Near lanterns drift a little faster, which is the parallax cue that
+        // sells the depth the size alone only suggests.
+        rate: 0.1 + spot.depth * 0.12,
+      })
+    })
   }
 
-  function animateBirds(time: number) {
-    // No birds on a stacked layout: the only open sky is behind the invitation,
-    // and nine drifting chevrons across someone's sentence is not atmosphere.
-    const hidden = w < 600
-    const cx = w * 0.78
-    const cy = h * 0.34
-    FLOCK.forEach((b, i) => {
-      const g = birdShapes[i]
-      g.visible = !hidden
-      if (hidden) return
-      const a = time * b.sp + b.ph
-      g.x = cx + Math.cos(a) * w * b.r
-      g.y = cy + Math.sin(a) * h * b.r * b.yr
-      // The wingbeat is a vertical scale on a fixed chevron rather than a
-      // redrawn one — the only thing that says "alive" at three pixels is that
-      // it flexes, and scale is free where geometry is not.
-      g.scale.y = Math.sin(time * 7 + b.ph) * 0.45 + 0.75
-    })
+  function animateLanterns(time: number) {
+    for (const l of lanternList) {
+      // Rise and sway on incommensurate periods so the field never visibly
+      // loops — the same trick the flame uses.
+      const bob = Math.sin(time * l.rate + l.phase) * h * 0.012
+      const sway = Math.cos(time * l.rate * 0.63 + l.phase * 1.7) * w * 0.004
+      l.g.x = l.x * w + sway
+      l.g.y = l.y * h + bob
+      // A lantern turning in the air catches the light differently.
+      l.g.alpha = 0.82 + Math.sin(time * l.rate * 1.31 + l.phase) * 0.18
+    }
   }
 
   let veilFill: FillGradient | null = null
@@ -747,7 +816,7 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
      * The room-and-window idea is a LEFT/RIGHT split and it only exists while
      * the layout is two columns. At 390 the layout stacks, so a horizontal veil
      * put the sky directly behind the invitation: dark blue under dark ink,
-     * birds drifting across "6,715 names, out of the Vedas and the Sutras", and
+     * lanterns drifting across "6,715 names, out of the Vedas and the Sutras", and
      * the stupa sliced in half by the right edge. It was the worst frame in the
      * pass, and it only appeared at the width most of the family will use.
      *
@@ -828,7 +897,7 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
    * and a window does not pan. The mountains stay where they are.
    *
    * What moves is what actually moves in a valley at dusk — the flags on the
-   * line and the birds over the stupa. That is a place being alive, which is
+   * line and the lanterns over the stupa. That is a place being alive, which is
    * what the parallax was reaching for and never had.
    */
   /**
@@ -846,7 +915,7 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
    * BUILT ONCE, THEN ONLY DIMMED — and I got this wrong here after getting it
    * right everywhere else. Pixi's guidance is that Graphics GEOMETRY is the
    * expensive thing while alpha and transform are cheap, which is why the flags
-   * and the birds are built once and only moved. The lamps were written after
+   * and the lanterns are built once and only moved. The lamps were written after
    * that and still cleared and re-tessellated all 27 circles every frame: 1,620
    * rebuilds a second, plus a fresh lampSpots() array each time, for an effect
    * whose only per-frame change is brightness.
@@ -905,11 +974,15 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
     },
   }
 
-  const birdLayer: LivingLayer = {
-    build: buildBirds,
-    animate: animateBirds,
+  const lanternLayer: LivingLayer = {
+    // build() takes the viewport and is called on mount and resize, which is
+    // exactly when a lantern's pixel size changes. The COUNTS arrive separately
+    // via setLanterns, so both paths funnel into the same builder.
+    build: buildLanterns,
+    animate: animateLanterns,
     destroy: () => {
-      for (const g of birdShapes) g.destroy()
+      for (const l of lanternList) l.g.destroy()
+      lanternList = []
     },
   }
 
@@ -922,7 +995,7 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
     },
   }
 
-  const living = drive([flagLayer, birdLayer, lampLayer])
+  const living = drive([flagLayer, lanternLayer, lampLayer])
 
   let clock = 0
 
@@ -937,7 +1010,7 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
   layout()
 
   if (still) {
-    // One frame, with the flags hung and the birds placed — not an empty sky.
+    // One frame, with the flags hung and the lanterns placed — not an empty sky.
     living.animate(0)
     renderer.render(stage)
   } else {
@@ -963,6 +1036,22 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
       buildLamps()
       if (still) {
         animateLamps(0)
+        renderer.render(stage)
+      }
+    },
+    setLanterns(counts) {
+      // Same length AND same values, or a re-render on every parent update
+      // would rebuild the whole field and reset every lantern's drift.
+      if (
+        counts.length === lanternCounts.length &&
+        counts.every((c, i) => c === lanternCounts[i])
+      ) {
+        return
+      }
+      lanternCounts = [...counts]
+      buildLanterns()
+      if (still) {
+        animateLanterns(0)
         renderer.render(stage)
       }
     },
