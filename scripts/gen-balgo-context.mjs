@@ -120,11 +120,11 @@ for (const p of products) {
         .map((c) => `${c.claim} [${c.evidence}${c.evidenceUrl ? `, see ${c.evidenceUrl}` : ''}]`)
         .join('; ')}.`,
     shipping.length &&
-      `LANDING SOON — real and finished, going live on the date given. Speak in the near future: ${shipping
+      `CORRECTION TO THE DESCRIPTION ABOVE — anything here is NOT live yet. The description is marketing copy written ahead of the work; this is what is true today. Speak of these in the near future, with the date, and never in the present tense: ${shipping
         .map((c) => `${c.claim} (live ${c.eta}) — ${c.evidence}`)
         .join('; ')}.`,
     building.length &&
-      `UNPROVEN — never state these as fact. If asked, say where each one actually stands: ${building
+      `CORRECTION TO THE DESCRIPTION ABOVE — unproven, never state as fact. If asked, say where each one actually stands: ${building
         .map((c) => `${c.claim} — ${c.evidence}`)
         .join('; ')}.`,
   ].filter(Boolean)

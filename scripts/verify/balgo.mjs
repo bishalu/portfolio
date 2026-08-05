@@ -69,6 +69,20 @@ const QUERIES = [
   ['commercial', 'How much does this cost?'],
   ['commercial', 'How do we start?'],
 
+  // ── Everyday. Short, vague, typo'd, lowercase — how people actually type ──
+  ['everyday', 'hey'],
+  ['everyday', 'what is this site'],
+  ['everyday', 'who are you'],
+  ['everyday', 'what do you do'],
+  ['everyday', 'whats vibeset'],
+  ['everyday', 'can he help me'],
+  ['everyday', 'is this legit'],
+  ['everyday', 'how do i contact him'],
+  ['everyday', 'whats the coolest thing hes built'],
+  ['everyday', 'im not technical. explain what he does'],
+  ['everyday', 'do you actually work or are you a demo'],
+  ['everyday', 'show me something impressive'],
+
   // ── Out of scope and adversarial ───────────────────────────────────────
   ['edge', 'Write me a poem about cats.'],
   ['edge', "What is Vibeset's revenue?"],
@@ -111,6 +125,98 @@ const UNSHIPPED = [
     why: 'choon.mdx: benchmarked against an FMA proxy, catalog clearance pending',
   },
 ]
+
+/**
+ * The rubric. Facts were already asserted; this measures whether it sounds like
+ * the site it lives on. Every rule is mechanical — a regex cannot read tone, so
+ * each one is chosen to catch a thing that is wrong regardless of context.
+ *
+ * Scored out of 100 and reported per-answer, so a prompt change can be diffed
+ * on voice as well as on truth.
+ */
+const RUBRIC = [
+  {
+    id: 'ai-tells',
+    weight: 14,
+    test: (r) =>
+      !/\b(delve|leverag\w*|robust|seamless|cutting[- ]edge|game[- ]chang\w*|unlock|elevate|empower\w*|in today's|it's worth noting|dive into|revolutionis\w*|tapestry|realm)\b/i.test(r),
+    fail: 'uses a banned hype word',
+  },
+  {
+    id: 'no-exclaim',
+    weight: 6,
+    test: (r) => !/!/.test(r),
+    fail: 'exclamation mark',
+  },
+  {
+    id: 'no-emoji',
+    weight: 6,
+    // Emoji live above the BMP or in the misc-symbols blocks.
+    test: (r) => !/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(r),
+    fail: 'emoji',
+  },
+  {
+    id: 'no-throat-clearing',
+    weight: 8,
+    test: (r) => !/^\s*(great question|good question|absolutely|certainly|sure thing|of course|i'd be happy|happy to help|thanks for)/i.test(r),
+    fail: 'opens with filler instead of the answer',
+  },
+  {
+    id: 'not-first-person-for-bishal',
+    weight: 12,
+    // Balgo says "I" about itself. It must never say "we" about Bishal's work.
+    test: (r) => !/\b(we|our|us)\b/i.test(r.replace(/\bwe(bsite|b)\b/gi, '')),
+    fail: 'speaks as Bishal ("we"/"our")',
+  },
+  {
+    id: 'paragraphed',
+    weight: 10,
+    // One wall of text over ~45 words means the format instruction was ignored.
+    test: (r) => r.split(/\s+/).length < 45 || /\n\s*\n/.test(r),
+    fail: 'long answer with no paragraph break',
+  },
+  {
+    id: 'length',
+    weight: 14,
+    test: (r) => {
+      const w = r.split(/\s+/).filter(Boolean).length
+      return w > 0 && w <= 130
+    },
+    fail: 'over 130 words',
+  },
+  {
+    id: 'bold-restraint',
+    weight: 8,
+    test: (r) => (r.match(/\*\*/g) || []).length <= 2,
+    fail: 'more than one bold span',
+  },
+  {
+    id: 'no-product-dump',
+    weight: 12,
+    // All three product names in one reply is the brochure failure mode —
+    // except when the question is literally "what is Vibeset", where listing
+    // the three is the answer rather than an evasion of one.
+    test: (r, q) =>
+      /\bvibeset\b/i.test(q) ||
+      ['curation', 'cue', 'choon'].filter((n) => new RegExp(`\\b${n}\\b`, 'i').test(r)).length < 3,
+    fail: 'recites all three products',
+  },
+  {
+    id: 'contact-when-commercial',
+    weight: 10,
+    test: (r, q, links) =>
+      !/(cost|price|pricing|start|hire|engage|budget)/i.test(q) ||
+      /vibeset\.ai/.test(r) ||
+      links.some((l) => l.href === '#contact'),
+    fail: 'commercial question with no way to reach him',
+  },
+]
+
+const score = (reply, q, links) => {
+  const failed = RUBRIC.filter((r) => !r.test(reply, q, links))
+  const lost = failed.reduce((n, r) => n + r.weight, 0)
+  return { points: 100 - lost, failed: failed.map((r) => r.fail) }
+}
 
 const checkLink = (href) => {
   if (!href) return 'empty href'
@@ -155,12 +261,15 @@ for (const [category, q] of QUERIES) {
   const words = reply.split(/\s+/).filter(Boolean).length
   const paras = reply.split(/\n\s*\n/).length
 
-  rows.push({ category, q, reply, links, badLinks, badClaims, words, paras })
+  const { points, failed } = score(reply, q, links)
+  rows.push({ category, q, reply, links, badLinks, badClaims, words, paras, points, failed })
+  const hard = badLinks.length || badClaims.length
   console.log(
-    `${badLinks.length || badClaims.length ? 'FAIL' : ' ok '} [${category}] ${words}w ${paras}¶  ${q.slice(0, 58)}`,
+    `${hard ? 'FAIL' : points === 100 ? ' ok ' : ` ${points} `} [${category}] ${words}w  ${q.slice(0, 52)}`,
   )
   badLinks.forEach((b) => console.log(`        link: ${b}`))
   badClaims.forEach((b) => console.log(`        claim: states "${b.name}" as shipped — ${b.why}`))
+  failed.forEach((f) => console.log(`        voice: ${f}`))
 }
 
 const stamp = process.env.BALGO_EVAL_LABEL || 'run'
@@ -169,11 +278,13 @@ const md = [
   '',
   `${rows.length} queries · ${linkProblems} broken links · ${claimProblems} unshipped-claim statements`,
   `median length ${[...rows].sort((a, b) => a.words - b.words)[Math.floor(rows.length / 2)]?.words ?? 0} words`,
+  `voice score ${Math.round(rows.reduce((n, r) => n + r.points, 0) / rows.length)}/100`,
   '',
   ...rows.flatMap((r) => [
     `## [${r.category}] ${r.q}`,
     '',
-    `*${r.words} words · ${r.paras} paragraph(s)*`,
+    `*${r.words} words · ${r.paras} paragraph(s) · voice ${r.points}/100*`,
+    ...(r.failed.length ? ['', ...r.failed.map((f) => `> voice: ${f}`)] : []),
     ...(r.badLinks.length ? ['', ...r.badLinks.map((b) => `> **BROKEN LINK** — ${b}`)] : []),
     ...(r.badClaims.length ? ['', ...r.badClaims.map((b) => `> **UNSHIPPED CLAIM** — ${b.name}: ${b.why}`)] : []),
     '',
@@ -186,5 +297,12 @@ const md = [
 
 const file = `${OUT}/balgo-${stamp}.md`
 writeFileSync(file, md)
+const avg = Math.round(rows.reduce((n, r) => n + r.points, 0) / rows.length)
+const tally = {}
+rows.forEach((r) => r.failed.forEach((f) => (tally[f] = (tally[f] || 0) + 1)))
 console.log(`\n${rows.length} queries · ${linkProblems} broken links · ${claimProblems} unshipped claims`)
+console.log(`voice score: ${avg}/100 · ${rows.filter((r) => r.points === 100).length} clean`)
+Object.entries(tally)
+  .sort((a, b) => b[1] - a[1])
+  .forEach(([f, n]) => console.log(`  ${String(n).padStart(2)}×  ${f}`))
 console.log(`→ ${file}`)
