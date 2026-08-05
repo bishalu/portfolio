@@ -944,7 +944,16 @@ export default function NaamApp({ seed }: NaamAppProps) {
       // The last turn currently on screen is the one it hangs from — during the
       // opening that is the third block, and after a question it is whatever
       // was said last, which is still the right thing to point away from.
-      const turns = wrap.querySelectorAll<HTMLElement>('.nm-turn .nm-turn-body')
+      /**
+       * VISIBLE turns only. The phone-only wall row is a .nm-turn that is
+       * display:none on this layout, so it reports a 0x0 box — and being LAST
+       * in the list it became the thing the arrow measured from. The arrow
+       * then started at the top of the page and ran a straight line down
+       * through the invitation.
+       */
+      const turns = [...wrap.querySelectorAll<HTMLElement>('.nm-turn .nm-turn-body')].filter(
+        (el) => el.getBoundingClientRect().height > 0,
+      )
       const last = turns[turns.length - 1]
       if (!last) return setDoodle(null)
 

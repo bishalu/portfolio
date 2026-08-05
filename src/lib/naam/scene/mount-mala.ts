@@ -77,10 +77,14 @@ export async function mountMala(options: MountMalaOptions): Promise<MalaHandle |
   /** Read where the DOM has put the marker beads, in host coordinates. */
   function anchors(): { x: number; y: number }[] {
     const box = host.getBoundingClientRect()
-    return [...host.querySelectorAll<HTMLElement>('.nm-bead')].map((el) => {
-      const r = el.getBoundingClientRect()
-      return { x: r.left - box.left + r.width / 2, y: r.top - box.top + r.height / 2 }
-    })
+    // VISIBLE beads only. A bead inside a display:none row measures 0x0, and
+    // the rope would happily hang itself from the top-left corner of the page
+    // to reach it — which is exactly what happened when a phone-only row was
+    // added to this list.
+    return [...host.querySelectorAll<HTMLElement>('.nm-bead')]
+      .map((el) => el.getBoundingClientRect())
+      .filter((r) => r.height > 0)
+      .map((r) => ({ x: r.left - box.left + r.width / 2, y: r.top - box.top + r.height / 2 }))
   }
 
   function relayout() {
