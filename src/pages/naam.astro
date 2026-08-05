@@ -1540,15 +1540,11 @@ if (!seedRow) {
      This is a real limitation of the stacked layout, not a decision that the
      names matter less on a phone. */
   @media (max-width: 599px) {
+    /* Hidden outright, not sr-only. The stream now carries a real, visible row
+       of these names (see .nm-wallrow), so leaving a second copy in the
+       accessibility tree would announce every name twice. */
     .nm-lamps {
-      position: absolute;
-      clip-path: inset(50%);
-      margin: -1px;
-      border: 0;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      white-space: nowrap;
+      display: none;
     }
   }
 
@@ -1990,6 +1986,10 @@ if (!seedRow) {
        leaves the scrolling to .nm-deal, which was already set up for it. */
     .nm-hand > .nm-deal {
       align-items: start;
+    }
+
+    #naam-app .nm-wallrow {
+      display: grid;
     }
 
     /* ── The phone's vertical budget, stated ──────────────────────────────
@@ -2539,6 +2539,75 @@ if (!seedRow) {
      lamplight pools under it. Nothing moves — a field that jumps as you type is
      unusable — the LIGHT changes, which is the same language the rest of this
      page speaks. */
+  /* ── The family's choices, in the transcript ─────────────────────────────
+     Phone only. The wide layout hangs these in the sky as lanterns; a phone has
+     no sky to hang them in, so they take the one axis it has to spare — width.
+     A sideways scroller costs nothing vertically, which is the entire reason
+     this works where the sky version could not.
+
+     Each is a lantern in miniature: the same warm paper, the same amber base
+     glow, the name on it. Small enough to read three at a glance and swipe for
+     the rest. */
+  .nm-wallrow {
+    display: none;
+  }
+
+  .nm-wallrow-lead {
+    margin: 0 0 0.45rem;
+    color: var(--nm-text-soft);
+  }
+
+  .nm-wallrow-list {
+    display: flex;
+    gap: 0.45rem;
+    margin: 0;
+    padding: 0 0 0.2rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    list-style: none;
+    /* The row runs to the edge of the screen rather than stopping at the text
+       measure — a scroller that ends inside the margin looks broken. */
+    scrollbar-width: none;
+  }
+
+  .nm-wallrow-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nm-wallrow-item {
+    display: flex;
+    position: relative;
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.05rem;
+    /* The paper: warm, lit from the base, with the pinched mouth the canvas
+       lanterns have. Drawn in CSS because six of these do not justify a second
+       canvas on the device least able to afford one. */
+    border: 1px solid #c98a4c66;
+    border-radius: 44% 44% 38% 38% / 52% 52% 30% 30%;
+    background:
+      radial-gradient(ellipse 60% 34% at 50% 88%, #ffd79acc, transparent 70%),
+      linear-gradient(180deg, #fbeacd 0%, #f6dfbd 100%);
+    padding: 0.42rem 0.6rem 0.5rem;
+    min-width: 4.6rem;
+    scroll-snap-align: start;
+  }
+
+  .nm-wallrow-deva {
+    color: #5c3a1c;
+    font-size: 0.94rem;
+    line-height: 1.25;
+  }
+
+  .nm-wallrow-latin {
+    color: #7a5330;
+    font-size: 0.68rem;
+    line-height: 1.2;
+  }
+
   /* ── Ways in ──────────────────────────────────────────────────────────────
      Three chips above the box, before the first turn only.
 

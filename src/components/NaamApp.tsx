@@ -1913,6 +1913,49 @@ export default function NaamApp({ seed }: NaamAppProps) {
               </div>
             </li>
           )}
+
+          {/* ── THE FAMILY'S CHOICES, ON A PHONE ──────────────────────────────
+              On the wide layout these hang in the sky as lanterns. On a phone
+              there is no sky: measured at 375x667, the largest empty strip in
+              the whole frame is 3.9% of its height, and floating them anyway
+              put six names across "What kind of name are you looking for?".
+
+              But the transcript SCROLLS, and content inside it costs no layout
+              at all. And these names are conversation — what the family is
+              already holding — rather than scenery, so the stream is where
+              they belong when there is no world to put them in.
+
+              Only before the first question. After that the conversation is
+              the content, and this would be the page talking over it. */}
+          {!asked && notes.length > 0 && (
+            <li className="nm-turn nm-wallrow">
+              <span className="nm-turn-rail" aria-hidden="true">
+                {/* `note`, which already exists and already means exactly
+                    this — a bead for the family's notes. Inventing a `wall`
+                    state gave it no styling at all and it rendered bare
+                    white, the one bead on the thread with no material. */}
+                <span className="nm-bead" data-bead="note"></span>
+              </span>
+              <div className="nm-turn-body">
+                <p className="nm-wallrow-lead label-mono label-mono--sm">{C.app.familyLead}</p>
+                {/* Horizontally scrollable: a phone has width to spare and no
+                    height at all, so the overflow runs sideways. */}
+                <ul className="nm-wallrow-list">
+                  {notes.map((note) => (
+                    <li className="nm-wallrow-item" key={note.key}>
+                      {note.deva && (
+                        <span className="nm-wallrow-deva" lang="sa-Deva">
+                          {note.deva}
+                        </span>
+                      )}
+                      <span className="nm-wallrow-latin">{note.latin}</span>
+                      <span className="sr-only">{C.wall.support(note.count)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </li>
+          )}
         </ol>
 
         {/* THE DOODLE — built to the space it has, not drawn once and hoped.
