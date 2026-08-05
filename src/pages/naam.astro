@@ -962,6 +962,53 @@ if (!seedRow) {
   }
 
   /* ── The stream ───────────────────────────────────────────────────────── */
+  /* ── The invitation stands; the transcript scrolls ────────────────────────
+     Measured at 1440x900: the invitation ended around y=600 and the starter
+     chips began at y=1030, leaving roughly 430px of empty column holding
+     nothing but the arrow. Top-aligned copy in a full-height column dumps all
+     of its whitespace at the bottom, and a void that size under three short
+     paragraphs reads as a page that failed to finish loading.
+
+     Before anything is asked this column holds ONE standing block, so it is
+     placed optically rather than pinned to the top. The moment a question is
+     asked it becomes a transcript, where top-alignment and scroll-to-bottom
+     are the only correct behaviour — and `data-first` is dropped on submit, so
+     the rule stops applying by itself.
+
+     AUTO MARGINS, NOT FLEX SPACERS. The first cut used ::before/::after at
+     flex:1, which claim their share of the column whether or not there is any
+     to spare. On a 375px phone that pushed the second and third paragraphs —
+     including "What kind of name are you looking for?", which is the question
+     the whole page exists to ask — clean off the bottom of the screen. An auto
+     margin only absorbs FREE space, so it centres while the block fits and
+     collapses to zero the instant it does not. Scoped to the side-by-side
+     layout as well, because a phone has no free space to give. */
+  @media (min-width: 900px) {
+    .nm-shell[data-first] .nm-stream {
+      display: flex;
+      /* Turning the list into a flex column let each turn size to its own
+         content on the cross axis, so the shortest paragraph came out narrower
+         than the others and its rail bead sat 45px right of the two above it —
+         the mala visibly kinked. The turns are a grid of rail plus body and
+         must always span the full column. */
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .nm-shell[data-first] .nm-stream > * {
+      flex: 0 0 auto;
+      width: 100%;
+    }
+
+    .nm-shell[data-first] .nm-stream > :first-child {
+      margin-block-start: auto;
+    }
+
+    .nm-shell[data-first] .nm-stream > :last-child {
+      margin-block-end: auto;
+    }
+  }
+
   .nm-streamwrap {
     display: flex;
     /* The doodle hangs off this. */
@@ -1352,13 +1399,29 @@ if (!seedRow) {
     line-height: 1.72;
   }
 
+  /* ── The invitation's own voice ───────────────────────────────────────────
+     Three faults, all of them against the brief this page was written to.
+
+     · It was set in --font-display, and Bricolage is a characterful grotesque
+       whose job on this site is headlines. This is not a headline. It is two
+       people asking their family for help, which is READING text, and Atkinson
+       is the humanist face already in the stack for exactly that.
+     · letter-spacing: -0.02em. Negative tracking is a display device — it
+       tightens a line so it reads as a title. An invitation is not tightened.
+     · line-height: 1.35 on a line that opens in Devanagari. Matras sit both
+       above and below the baseline, so नमस्ते at 1.35 crowds the line above it;
+       1.55 is the floor where the vowel marks get their own air.
+
+     What carries the warmth here is scale and spacing, not ornament: one long
+     measure under 34ch, generous leading, and tracking left alone. */
   .nm-said--lead {
-    max-width: 24ch;
+    max-width: 26ch;
     color: var(--nm-text);
-    font-size: clamp(1.35rem, 3.2vw, 1.7rem);
-    line-height: 1.35;
-    font-family: var(--font-deva), var(--font-display);
-    letter-spacing: -0.02em;
+    font-size: clamp(1.35rem, 3.2vw, 1.72rem);
+    line-height: 1.55;
+    font-family: var(--font-deva), var(--font-body);
+    font-weight: 400;
+    letter-spacing: 0;
   }
 
   /* What the visitor said. It used to carry a 2px crimson rule down its left
@@ -1927,6 +1990,34 @@ if (!seedRow) {
        leaves the scrolling to .nm-deal, which was already set up for it. */
     .nm-hand > .nm-deal {
       align-items: start;
+    }
+
+    /* ── The phone's vertical budget, stated ──────────────────────────────
+       Measured at 375x667: shell 626 = stream 220 + tray 188 + composer 218,
+       exactly. The invitation is 473px, so 253px of it sits below the fold and
+       the visitor has to scroll the stream to reach "What kind of name are you
+       looking for?".
+
+       Two things took that room and both were asked for: the starter chips
+       (94px, two rows) and the tray's floor (188px, so three empty slots read
+       as three sockets rather than one hairline). Neither is worth removing.
+       What IS recoverable is the slack in each:
+
+       What IS recoverable is the tray's floor, WHILE THERE ARE NO CARDS. 188px
+       was sized to hold a dealt hand; the head and slots together are 141px, so
+       before the first deal the floor can sit just above its own content. That
+       is 38px back to the invitation.
+
+       The lead's leading is NOT recoverable and the attempt made it worse: the
+       narrow layout was already resolving to 1.36 from another rule, so setting
+       1.42 here cost 8px rather than saving any. Measured, then reverted.
+
+       The rest is a real constraint rather than an oversight. The stream
+       scrolls, and the composer's own placeholder — "even one word is enough" —
+       carries the same instruction as the paragraph below the fold, so nobody
+       is stranded by it. */
+    #naam-app .nm-shell[data-first] .nm-tray {
+      min-height: min(26%, 150px);
     }
 
     /* Long glosses are the other overflow, and they are the document's words —
