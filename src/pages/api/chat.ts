@@ -50,7 +50,7 @@ Plenty of people just want to know who he is. Answer that warmly and plainly.
 
 He started in neuroscience, recording electrical signals in living neural
 circuits. Then medical imaging, then audio, then video and multimodal, then
-agents. Four peer-reviewed papers. He cofounded Vibeset with Kevin at Lambchop.
+agents. Four peer-reviewed papers. He cofounded Vibeset Technologies with Kevin at Lambchop.
 The 2023 pruning paper is the one that ships — it is what makes Choon's model
 small.
 

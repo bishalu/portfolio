@@ -13,9 +13,14 @@
  *
  * The earlier version of this table used the 2,000-reference proxy and the 48M
  * ep76 checkpoint, which understated the model twice over: wrong checkpoint,
- * and an index scale the paper rows were not measured at. The paper's numbers
- * are at 5k, so this is now the same scale. What still differs is the corpus —
- * ours is FMA — and the panel says so.
+ * and an index scale the paper rows were not measured at.
+ *
+ * The corpus caveat that sat here was also wrong. The paper evaluates on 5,000
+ * FMA reference tracks (SCALING_66K_STRATEGY.md:29) — the same corpus and the
+ * same reference count as this run. What actually differs is query length: the
+ * paper uses 10-second queries, this uses 8-second. Longer queries carry more
+ * evidence per match, so they are easier. The difference runs against Choon,
+ * not for it, which is why it is stated rather than buried.
  *
  * The Choon row is the NEURAL CHANNEL ALONE. That is the whole point of the
  * comparison and it is the thing easiest to get wrong: the shipped identifier
@@ -24,8 +29,8 @@
  * system to a component. The fused number is materially higher and it is not
  * used here.
  *
- * Same eleven conditions and the same 5,000-reference scale, but a different
- * corpus. Stating that is the difference between a benchmark and a claim.
+ * Same corpus, same reference count, same eleven conditions. Shorter queries.
+ * Stating that is the difference between a benchmark and a claim.
  */
 
 export interface BenchRow {
@@ -61,8 +66,28 @@ export const BENCH: readonly BenchRow[] = [
   { model: 'Dejavu', params: null, paramsLabel: 'classical', recall: 49.18, encoded: 3.0 },
 ]
 
+/**
+ * The landing-page subset. Four rows, chosen so each one answers a different
+ * question a reader has:
+ *
+ *   MuQ-Large  what is ahead of it, and how big is that
+ *   Choon      us
+ *   MERT       the nearest larger model it beats — 3.4× the parameters
+ *   NAFP       the nearest model of comparable size, 8 points below
+ *
+ * The five omitted rows are all below MERT and change no conclusion; the full
+ * table is on /vibeset/choon. Picking four is an editorial choice and the panel
+ * links the rest rather than pretending these are all of them.
+ */
+export const BENCH_HOME: readonly BenchRow[] = BENCH.filter((r) =>
+  ['MuQ-Large, unfrozen', 'Choon — neural channel only', 'MERT, unfrozen', 'NAFP'].includes(r.model),
+)
+
 export const BENCH_SOURCE = {
-  paper: 'Robust Neural Audio Fingerprinting using Music Foundation Models (2025), Table 1',
-  url: 'https://openreview.net/pdf/ea1aa2f13377131ac8653e70f015ef224fd9e55d.pdf',
-  ourSetup: '5,000 references · 5,500 queries · 8-second segments',
+  title: 'Robust Neural Audio Fingerprinting using Music Foundation Models',
+  where: 'arXiv:2511.05399, November 2025 — Table 1',
+  url: 'https://arxiv.org/abs/2511.05399',
+  pdf: 'https://openreview.net/pdf/ea1aa2f13377131ac8653e70f015ef224fd9e55d.pdf',
+  theirSetup: '5,000 FMA references · 10-second queries',
+  ourSetup: '5,000 FMA references · 5,500 queries · 8-second queries',
 }

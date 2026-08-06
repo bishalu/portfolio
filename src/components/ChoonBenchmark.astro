@@ -34,8 +34,8 @@ const max = 100
     <h2 class="cb-title" id="cb-title">The neural channel, against the foundation models.</h2>
     <p class="cb-lede">
       Track-level Recall@1 on the eleven conditions from <a href={BENCH_SOURCE.url} rel="noopener">the 2025
-      music foundation model fingerprinting paper</a>, at the same 5,000-reference scale. The Choon row is the
-      learned channel alone. The shipped system pairs it with a classical matcher and scores higher.
+      music foundation model fingerprinting paper</a>, on the same corpus at the same scale. The Choon row is
+      the learned channel alone. The shipped system pairs it with a classical matcher and scores higher.
     </p>
   </header>
 
@@ -79,8 +79,14 @@ const max = 100
   </p>
 
   <p class="cb-source label-mono--sm">
-    Paper rows are the paper's own evaluation. The Choon row runs the same eleven conditions at the same index
-    scale ({BENCH_SOURCE.ourSetup}) on a different corpus. A placement, not a reproduction.
+    Paper rows are the paper's own evaluation: {BENCH_SOURCE.theirSetup}. The Choon row runs the same eleven
+    conditions on the same corpus at the same scale, with {BENCH_SOURCE.ourSetup.split(' · ')[2]} rather than
+    ten. Shorter queries carry less evidence per match, so that difference runs against Choon.
+  </p>
+
+  <p class="cb-cite">
+    {BENCH_SOURCE.title}. <span class="cb-cite-where">{BENCH_SOURCE.where}</span>
+    <a href={BENCH_SOURCE.pdf} rel="noopener">PDF ↳</a>
   </p>
 </section>
 
@@ -265,6 +271,29 @@ const max = 100
     color: var(--paper);
     font-size: 0.95rem;
     line-height: 1.6;
+  }
+
+  .cb-cite {
+    margin: 0.4rem 0 0;
+    max-width: 40rem;
+    color: var(--paper-soft);
+    font-size: 0.78rem;
+    line-height: 1.6;
+
+    a {
+      color: var(--crimson-text);
+      text-underline-offset: 3px;
+      white-space: nowrap;
+
+      &:hover {
+        color: var(--crimson);
+      }
+    }
+  }
+
+  .cb-cite-where {
+    font-size: 0.72rem;
+    font-family: var(--font-mono);
   }
 
   .cb-source {
