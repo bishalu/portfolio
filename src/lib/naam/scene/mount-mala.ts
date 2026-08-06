@@ -48,8 +48,9 @@ export async function mountMala(options: MountMalaOptions): Promise<MalaHandle |
   // Height is set per layout, in px, from the CONTENT height — `100%` inside a
   // scroll port resolves to the PORT, which would squash a content-sized
   // backing store back into the visible strip and undo the fix below.
-  canvas.style.cssText =
-    'position:absolute;left:0;top:0;width:100%;pointer-events:none;z-index:0'
+  // Width and height are both set per layout, in px: the canvas covers only the
+  // rail the rope hangs in, not the whole column.
+  canvas.style.cssText = 'position:absolute;left:0;top:0;pointer-events:none;z-index:0'
   host.style.position = host.style.position || 'relative'
   host.prepend(canvas)
 
@@ -103,7 +104,27 @@ export async function mountMala(options: MountMalaOptions): Promise<MalaHandle |
   }
 
   function relayout() {
-    const w = Math.max(1, host.clientWidth)
+    /**
+     * ONLY AS WIDE AS THE ROPE.
+     *
+     * The canvas spanned the whole conversation column — 704px at 1440 — while
+     * the mala hangs in a ~60px rail at its left edge. Every frame cleared and
+     * composited a surface where more than four fifths of it was empty, and
+     * the fix that made the rope reach the bottom of the transcript multiplied
+     * that waste by the length of the conversation.
+     *
+     * Sized from the beads themselves, plus the bow and a bead's radius, so it
+     * covers the rope and nothing else. On a phone that is roughly a tenth of
+     * the fill it was doing.
+     */
+    const marker = host.querySelector<HTMLElement>('.nm-bead')
+    const markerRadius = marker ? marker.getBoundingClientRect().width / 2 : 8
+    const box = host.getBoundingClientRect()
+    const rightmost = [...host.querySelectorAll<HTMLElement>('.nm-bead')]
+      .map((el) => el.getBoundingClientRect())
+      .filter((r) => r.height > 0)
+      .reduce((max, r) => Math.max(max, r.right - box.left + host.scrollLeft), 0)
+    const w = Math.max(1, Math.min(host.clientWidth, Math.ceil(rightmost + markerRadius + 24)))
     /**
      * THE CONTENT'S HEIGHT, NOT THE PORT'S.
      *
@@ -121,14 +142,10 @@ export async function mountMala(options: MountMalaOptions): Promise<MalaHandle |
     const dpr = Math.min(window.devicePixelRatio || 1, 2)
     canvas.width = Math.round(w * dpr)
     canvas.height = Math.round(h * dpr)
+    canvas.style.width = `${w}px`
     canvas.style.height = `${h}px`
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-    const found = anchors()
-    const marker = host.querySelector<HTMLElement>('.nm-bead')
-    mala.build({
-      anchors: found,
-      markerRadius: marker ? marker.getBoundingClientRect().width / 2 : 8,
-    })
+    mala.build({ anchors: anchors(), markerRadius })
     if (still) {
       // Settle it in one go rather than animating: reduced motion should get a
       // hanging rope, not a rope caught mid-swing.
@@ -136,13 +153,41 @@ export async function mountMala(options: MountMalaOptions): Promise<MalaHandle |
     }
   }
 
+  /**
+   * IT STOPS WHEN IT HAS STOPPED.
+   *
+   * Verlet settles: within a few seconds of a nudge every node is moving less
+   * than a hundredth of a pixel per frame and the drawing is identical from
+   * one frame to the next. This kept redrawing it anyway, for as long as the
+   * page was open. Idle frames now end the loop, and anything that can move
+   * the rope again — a pointer near it, a new turn, a resize — restarts it.
+   *
+   * A few frames of grace after it goes quiet, because a single slow frame can
+   * make a moving rope look momentarily still.
+   */
+  /** Half a device pixel: below this the next frame is the frame on screen. */
+  const STILL = 0.25
+  let quiet = 0
+
   function frame() {
     if (!alive) return
     mala.animate(ctx, pointer)
+    quiet = mala.drift < STILL && !pointer ? quiet + 1 : 0
+    if (quiet > 12) {
+      raf = 0
+      return
+    }
     raf = requestAnimationFrame(frame)
   }
 
+  /** Wake the loop if it has settled. Cheap when it is already running. */
+  function wake() {
+    quiet = 0
+    if (alive && !still && raf === 0) raf = requestAnimationFrame(frame)
+  }
+
   const onPointer = (event: PointerEvent) => {
+    wake()
     const box = host.getBoundingClientRect()
     const x = event.clientX - box.left
     const y = event.clientY - box.top
@@ -154,7 +199,13 @@ export async function mountMala(options: MountMalaOptions): Promise<MalaHandle |
     pointer = null
   }
 
-  const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(relayout) : null
+  const observer =
+    typeof ResizeObserver === 'function'
+      ? new ResizeObserver(() => {
+          relayout()
+          wake()
+        })
+      : null
   observer?.observe(host)
   if (!still) {
     window.addEventListener('pointermove', onPointer, { passive: true })
@@ -175,8 +226,14 @@ export async function mountMala(options: MountMalaOptions): Promise<MalaHandle |
   if (!still) raf = requestAnimationFrame(frame)
 
   return {
-    relayout,
-    nudge: (strength) => mala.nudge(strength),
+    relayout: () => {
+      relayout()
+      wake()
+    },
+    nudge: (strength) => {
+      mala.nudge(strength)
+      wake()
+    },
     destroy() {
       alive = false
       cancelAnimationFrame(raf)

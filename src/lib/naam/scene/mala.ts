@@ -168,6 +168,7 @@ export class Mala {
    * placement all derive from the anchor positions.
    */
   build({ anchors, markerRadius }: MalaOptions) {
+    this.drawn = []
     this.nodes = []
     this.beads = []
     this.rest = []
@@ -273,6 +274,40 @@ export class Mala {
    * a hanging thing you put your hand near moves, and this is the only element
    * on the left column that responds to anything at all.
    */
+  /** Where every node was when the rope was last DRAWN. */
+  private drawn: number[] = []
+
+  /**
+   * How far the rope has moved since it was last drawn, in pixels.
+   *
+   * NOT velocity, which was the first attempt and never settles: Verlet under
+   * constant gravity reaches a steady state where the constraint pass cancels
+   * the fall every frame, so `x - px` stays small but non-zero forever and a
+   * velocity threshold never trips. Measured, the loop ran at 40/s on a phone
+   * with nothing visibly moving.
+   *
+   * What actually matters is whether the next frame would look any different
+   * from the one on screen, so that is what this measures.
+   */
+  get drift(): number {
+    let most = 0
+    for (let i = 0; i < this.nodes.length; i++) {
+      const dx = Math.abs(this.nodes[i].x - (this.drawn[i * 2] ?? Infinity))
+      const dy = Math.abs(this.nodes[i].y - (this.drawn[i * 2 + 1] ?? Infinity))
+      const d = Math.max(dx, dy)
+      if (d > most) most = d
+    }
+    return most
+  }
+
+  /** Remember the drawn pose, so `drift` can be measured against it. */
+  private remember(): void {
+    for (let i = 0; i < this.nodes.length; i++) {
+      this.drawn[i * 2] = this.nodes[i].x
+      this.drawn[i * 2 + 1] = this.nodes[i].y
+    }
+  }
+
   animate(ctx: CanvasRenderingContext2D, pointer: { x: number; y: number } | null) {
     if (this.nodes.length === 0) return
 
@@ -299,6 +334,29 @@ export class Mala {
       }
     }
 
+    /**
+     * COME TO A STOP, PROPERLY.
+     *
+     * Verlet under constant gravity never quite stops: the fall is re-applied
+     * every frame and the constraint pass cancels it, so each node keeps a
+     * small permanent jitter and the rope is redrawn forever for no visible
+     * change. Two thresholds were tried against that and both were fighting
+     * the physics rather than fixing it.
+     *
+     * Below a twentieth of a pixel of movement a node is not going anywhere,
+     * so its velocity is set to exactly zero — in Verlet that means moving the
+     * previous position onto the current one. Gravity still acts next frame,
+     * the constraints still cancel it, and now the residue has nowhere to
+     * accumulate: the rope reaches a true rest and the loop can end.
+     */
+    for (const n of this.nodes) {
+      if (n.pinned) continue
+      if (Math.abs(n.x - n.px) < 0.05 && Math.abs(n.y - n.py) < 0.05) {
+        n.px = n.x
+        n.py = n.y
+      }
+    }
+
     for (let pass = 0; pass < PASSES; pass++) {
       for (let i = 0; i < this.nodes.length - 1; i++) {
         const a = this.nodes[i]
@@ -321,6 +379,7 @@ export class Mala {
     }
 
     this.draw(ctx)
+    this.remember()
   }
 
   private at(t: number): { x: number; y: number; a: number } {

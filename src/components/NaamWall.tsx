@@ -210,20 +210,39 @@ export default function NaamWall({ notes, onKeep }: NaamWallProps) {
     }
 
     let raf = 0
+    /**
+     * The node list is read ONCE, not per frame. querySelectorAll allocates a
+     * fresh NodeList every call, and this runs sixty times a second for the
+     * life of the page; the elements only change when `notes` does, which is
+     * already a dependency of this effect.
+     */
+    const nodes = [...list.querySelectorAll<HTMLElement>('.nm-lamp')]
+    /** Last value written per node, so unchanged frames write nothing. */
+    const lastZ = new Array<number>(nodes.length).fill(-1)
+
     const tick = () => {
       const bodies = lanternField().bodies
-      list.querySelectorAll<HTMLElement>('.nm-lamp').forEach((el, i) => {
+      for (let i = 0; i < nodes.length; i++) {
         const body = bodies[i]
-        if (!body) return
+        if (!body) continue
         // Offset from where this label is already positioned (its resting
         // spot), so the transform carries only what the simulation added.
         const dx = (body.x - body.homeX) * frame.cw
         const dy = (body.y - body.homeY) * frame.ch
-        el.style.transform = `translate(${dx.toFixed(2)}px, ${dy.toFixed(2)}px) scale(${(body.scale / (body.restScale || 1)).toFixed(3)})`
+        nodes[i].style.transform = `translate(${dx.toFixed(2)}px, ${dy.toFixed(2)}px) scale(${(body.scale / (body.restScale || 1)).toFixed(3)})`
         // The label stacks by the same depth its paper does, so a name that has
         // drifted forward is not overlapped by one that has drifted back.
-        el.style.zIndex = String(Math.round(body.scale * 1000))
-      })
+        //
+        // Written only when it CHANGES. z-index is not a compositor-only
+        // property — every write asks the browser to reconsider paint order,
+        // and the depth ordering of eight slow-moving lanterns changes a
+        // handful of times a minute, not sixty times a second.
+        const z = Math.round(body.scale * 1000)
+        if (z !== lastZ[i]) {
+          nodes[i].style.zIndex = String(z)
+          lastZ[i] = z
+        }
+      }
       raf = requestAnimationFrame(tick)
     }
     raf = requestAnimationFrame(tick)
