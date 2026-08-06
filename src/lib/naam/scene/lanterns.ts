@@ -393,6 +393,16 @@ function rand(n: number): number {
  */
 export class LanternField {
   readonly bodies: Body[] = []
+  /**
+   * How many times the simulation has advanced.
+   *
+   * The canvas owns the clock and the DOM labels ride it, and the canvas now
+   * draws at 30fps rather than at the display's rate. Without this the label
+   * loop would keep writing sixty transforms a second, half of them identical
+   * to the ones already on the nodes — a compositor job either way, but a
+   * pointless one. Readers compare it and skip a frame that has nothing in it.
+   */
+  steps = 0
   /** Frame aspect, so a radius in x-fractions can be compared in y. */
   private aspect = 1.5
 
@@ -474,6 +484,7 @@ export class LanternField {
    */
   step(dt: number, time: number): void {
     const h = Math.min(dt, 1 / 30)
+    this.steps++
 
     for (const b of this.bodies) {
       // The air. Two incommensurate components per axis so the path has slow
@@ -582,4 +593,17 @@ let field: LanternField | null = null
 export function lanternField(): LanternField {
   field ??= new LanternField()
   return field
+}
+
+/**
+ * Verification handle, DEV ONLY.
+ *
+ * `steps` is a faithful count of scene draws — the field is stepped once per
+ * draw and never otherwise — which is the only way to check the frame cap
+ * from outside without the page shipping a counter to report on itself.
+ * `import.meta.env.DEV` is statically false in the build, so this whole block
+ * is dropped from production output rather than merely skipped at runtime.
+ */
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  ;(window as unknown as Record<string, unknown>).__lanternFieldProbe = lanternField
 }

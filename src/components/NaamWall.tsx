@@ -219,9 +219,22 @@ export default function NaamWall({ notes, onKeep }: NaamWallProps) {
     const nodes = [...list.querySelectorAll<HTMLElement>('.nm-lamp')]
     /** Last value written per node, so unchanged frames write nothing. */
     const lastZ = new Array<number>(nodes.length).fill(-1)
+    /**
+     * The canvas steps the simulation at 30fps. Reading it at the display's
+     * rate writes every second transform twice with identical numbers, so the
+     * loop stays on rAF — it must, to land in the same frame as the paper it
+     * is written on — and does nothing on a frame the field did not advance.
+     */
+    let lastStep = -1
 
     const tick = () => {
-      const bodies = lanternField().bodies
+      const field = lanternField()
+      if (field.steps === lastStep) {
+        raf = requestAnimationFrame(tick)
+        return
+      }
+      lastStep = field.steps
+      const bodies = field.bodies
       for (let i = 0; i < nodes.length; i++) {
         const body = bodies[i]
         if (!body) continue

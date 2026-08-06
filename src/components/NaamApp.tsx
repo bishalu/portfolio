@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import type { CSSProperties, FormEvent } from 'react'
 import NaamCard from './NaamCard'
-import NaamDiyo, { type DiyoState } from './NaamDiyo'
 import NaamWall, { type WallNote } from './NaamWall'
 import { askNaam, failureNote, readAsk, withReasons } from '@/lib/naam/ask'
 import { OPENING_STEPS, useOpening } from '@/lib/naam/opening'
@@ -377,15 +376,18 @@ export default function NaamApp({ seed }: NaamAppProps) {
   ])
   const [ask, setAsk] = useState('')
   const [asking, setAsking] = useState(false)
-  /**
-   * The lamp reacts rather than reporting: it leans while the model is out and
-   * flares once when a name seats. `flare` is transient and NaamDiyo clears it
-   * through onFlareEnd, so a second Keep mid-flare restarts the animation
-   * instead of being swallowed.
-   */
-  const [flare, setFlare] = useState(0)
-  const diyo: DiyoState = flare > 0 ? 'flare' : asking ? 'thinking' : 'idle'
-  const endFlare = useCallback(() => setFlare(0), [])
+  /* THE DIYO IS GONE. It was the page's one permanently-alive element and
+     the argument for it was continuity — something burning whether or not you
+     touch anything. In place it did not earn that: at tray size it is a small
+     SVG running two offset keyframe animations forever, it was the only thing
+     still animating on a screen the visitor had stopped looking at, and the
+     sky above it already has nine lit lanterns doing the same job at the scale
+     the page actually reads at. What it cost is measurable — see the flame's
+     share of the frame in the perf notes on this commit.
+
+     Two jobs went with it and both had somewhere better to go: it was the
+     thinking state, which the breathing caption already says in words, and it
+     was the ember origin, which is now the slot that just filled. */
   /**
    * The rail badge is a CLAIM, not a status light: before anything has been
    * asked there is nothing to claim, so it starts empty and the only word it
@@ -1105,11 +1107,6 @@ export default function NaamApp({ seed }: NaamAppProps) {
       // a second Keep startable at frame 1 of the first one's flight.
       togglePick(row)
 
-      // The lamp answers the touch. Bumped on every keep and unkeep, before any
-      // frame is scheduled, so it fires even when the flight itself is skipped
-      // under reduced motion — the flare is CSS and that media query stills it.
-      setFlare((n) => n + 1)
-
       // A second click on a kept card takes it back, from wherever it sits.
       if (already) {
         const seat = slotRefs.current[picks.findIndex((p) => p.id === row.id)]
@@ -1173,7 +1170,7 @@ export default function NaamApp({ seed }: NaamAppProps) {
             // two events in a row.
             if (fills) {
               playCue('complete')
-              embers()
+              embers(slot)
             }
             slot.animate(
               [
@@ -1553,19 +1550,21 @@ export default function NaamApp({ seed }: NaamAppProps) {
   /**
    * EMBERS, not confetti — and this is the reason there is no confetti library
    * here at all. `canvas-confetti` is 6 kB for a shape the page would have to
-   * argue with: paper squares raining down belong to a birthday, and the one
-   * light source on this screen is a flame. So the third name lifts a dozen
-   * sparks off the lamp instead. They come from the diyo's own rect, they rise
-   * and cool, and they are warm-only. Twelve of them, once.
+   * argue with: paper squares raining down belong to a birthday, and every
+   * light on this screen is a flame inside paper.
+   *
+   * They used to lift off the diyo. With the lamp gone they lift off the SLOT
+   * THAT JUST FILLED, which is the better origin anyway: the spark leaves the
+   * name the visitor just placed, rather than a decoration standing beside it,
+   * and it rises toward the lanterns that name is about to join.
    *
    * Math.random is safe here in a way it is not in render: this runs from a
    * click, long after hydration, so there is no server frame to disagree with.
    */
-  const embers = useCallback(() => {
+  const embers = useCallback((from: HTMLElement | null) => {
     const host = fxRef.current
-    const lamp = shellRef.current?.querySelector('.nm-diyo')
-    if (!host || !lamp || reducedMotion()) return
-    const lit = lamp.getBoundingClientRect()
+    if (!host || !from || reducedMotion()) return
+    const lit = from.getBoundingClientRect()
     const box = host.getBoundingClientRect()
     for (let i = 0; i < 12; i++) {
       const spark = document.createElement('span')
@@ -1806,14 +1805,14 @@ export default function NaamApp({ seed }: NaamAppProps) {
 
       case 'thinking':
         return (
-          /* THE LAMP IS THE LOADING STATE. NaamDiyo is already leaning and
-             burning hotter for the whole of this turn (§4c), and a travelling
-             spike on a 2px rule beside it would be a second thing saying the
-             same word — so the .pulse-line is gone from here and the caption
-             stays, breathing on its own. It survives where nothing else is
-             animating: the composer's "reading the document…" and the send
-             form's "sending…", neither of which the flame is reporting on.
-             Decorative; the announcement rides the live region. */
+          /* THE CAPTION IS THE LOADING STATE, on its own now.
+             It used to share the job with the diyo, which leaned and burned
+             hotter for the whole turn — so the .pulse-line was dropped from
+             here to stop two things saying the same word. With the lamp gone
+             the caption keeps the job and keeps breathing; it says in words
+             what the flame said in light, which is the more legible of the
+             two on a phone anyway. Decorative; the announcement itself rides
+             the live region. */
           <div className="nm-thinking" aria-hidden="true">
             <p className="pulse-caption nm-caption">{turn.caption}</p>
           </div>
@@ -2229,7 +2228,6 @@ export default function NaamApp({ seed }: NaamAppProps) {
             for; the header nav carries four of those five and the fifth is now
             one quiet link in the rail. */}
         <div className="nm-tray-head">
-          <NaamDiyo state={diyo} onFlareEnd={endFlare} />
           <p className="label-mono label-mono--sm nm-quiet-label">{C.app.tray.label}</p>
         </div>
 

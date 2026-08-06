@@ -35,7 +35,7 @@
  * harness depends on it, and so does anyone trying to tell a real visual
  * regression from noise.
  */
-import { Container, FillGradient, Graphics, WebGLRenderer } from 'pixi.js'
+import { Container, FillGradient, Graphics, Ticker, WebGLRenderer } from 'pixi.js'
 import { lampSpots } from './lamps'
 import { LANTERN_ASPECT, lanternField, lanternSpots } from './lanterns'
 import { drive, type LivingLayer } from './living'
@@ -214,6 +214,25 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
     // The page owns when to draw; a second ticker would fight the rAF loop below.
     powerPreference: 'low-power',
   })
+
+  /**
+   * ── PIXI'S OWN TICKER, THROTTLED ────────────────────────────────────────
+   *
+   * "The page owns when to draw; a second ticker would fight the rAF loop
+   * below" is written above `powerPreference`, and it was half true: nothing
+   * schedules a RENDER but `Ticker.system` runs anyway. Measured on a loaded
+   * page it is started, with two listeners — Pixi's texture and renderable
+   * garbage collectors — and it was calling them at the display's full rate,
+   * uncapped, forever. It showed up in the profile as an unattributed
+   * 0.6–1.0ms per frame on a throttled phone, more than everything this page
+   * writes itself.
+   *
+   * Stopping it outright would take the texture GC with it, and this scene DOES
+   * churn textures — every resize re-bakes the cached static layer. So it is
+   * throttled instead: the collectors are housekeeping on a fixed set of
+   * objects, and four passes a second is many more than they need.
+   */
+  Ticker.system.maxFPS = 4
 
   const stage = new Container()
   const sky = new Graphics()
@@ -800,17 +819,33 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
     for (const line of flagLines) {
       const { flags: per, x1, y1, x2, y2, sag, phase } = line
 
+      /**
+       * SAMPLED INTO SCALARS, NOT INTO OBJECTS.
+       *
+       * This returned a fresh `{x, y}` per call and is called 23 times for the
+       * string plus twice per flag, on three lines, every draw — a few
+       * thousand short-lived objects a second whose only purpose was to carry
+       * two numbers a few lines. That is not a leak, it is GC pressure, and
+       * the phones that feel this page as sticky are the ones where a
+       * collection lands in the middle of a frame.
+       */
+      let ax = 0
+      let ay = 0
       const at = (u: number) => {
-        const droop = Math.sin(u * Math.PI) * sag
-        const wave = Math.sin(time * 1.6 + u * 5 + phase) * (h * 0.004) * Math.sin(u * Math.PI)
-        return { x: x1 + (x2 - x1) * u, y: y1 + (y2 - y1) * u + droop + wave }
+        const swell = Math.sin(u * Math.PI)
+        const wave = Math.sin(time * 1.6 + u * 5 + phase) * (h * 0.004) * swell
+        ax = x1 + (x2 - x1) * u
+        ay = y1 + (y2 - y1) * u + swell * sag + wave
       }
 
       // The string first, so the flags sit on it.
       const SAMPLES = 22
-      const first = at(0)
-      cords.moveTo(first.x, first.y)
-      for (let k = 1; k <= SAMPLES; k++) cords.lineTo(at(k / SAMPLES).x, at(k / SAMPLES).y)
+      at(0)
+      cords.moveTo(ax, ay)
+      for (let k = 1; k <= SAMPLES; k++) {
+        at(k / SAMPLES)
+        cords.lineTo(ax, ay)
+      }
       // Thin and low-contrast: it is a string, and at 0.5 alpha in near-black
       // it drew as the most prominent line in the frame — heavier than the
       // ridges behind it and heavier than the flags it carries.
@@ -818,15 +853,17 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
 
       for (const f of per) {
         const u = f.u
-        const here = at(u)
-        f.g.x = here.x
-        f.g.y = here.y
+        at(u)
+        f.g.x = ax
+        f.g.y = ay
         // Square to the cord: sampled either side rather than differentiated,
         // because the wave makes the analytic slope longer than the whole
         // function it corrects.
-        const ahead = at(Math.min(1, u + 0.02))
-        const behind = at(Math.max(0, u - 0.02))
-        f.g.rotation = Math.atan2(ahead.y - behind.y, ahead.x - behind.x)
+        at(Math.max(0, u - 0.02))
+        const bx = ax
+        const by = ay
+        at(Math.min(1, u + 0.02))
+        f.g.rotation = Math.atan2(ay - by, ax - bx)
       }
     }
   }
@@ -1237,6 +1274,34 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
 
   let clock = 0
 
+  /**
+   * ── THIRTY, NOT SIXTY ────────────────────────────────────────────────────
+   *
+   * This is a backdrop. Nothing in it is a response to a touch: the flags
+   * sway, the lanterns drift on a wander a few percent of the screen wide,
+   * and the lamps breathe. All of it is slow enough that the second half of
+   * every pair of frames drew a picture indistinguishable from the first.
+   *
+   * Measured on a 412px phone at 4x CPU — roughly a mid-range Android against
+   * this host — the loop cost 4.0ms per frame, of which 2.9ms was
+   * renderer.render and 1.1ms the layer animation. At 60fps that is a quarter
+   * of the frame budget spent on scenery, every frame, forever; the page's own
+   * work then has to fit in what is left, which is what makes a phone feel
+   * sticky rather than slow.
+   *
+   * Halving the rate halves both halves of that, and it is the ONLY change
+   * here that costs nothing visually — the alternatives (fewer lanterns,
+   * coarser gradients, a lower backing-store resolution) all take something
+   * off the screen.
+   *
+   * The tolerance matters: a bare `< FRAME_MS` test against 16.67ms frames
+   * lands within a rounding error of the threshold and drops to 20fps
+   * whenever the browser's timestamps jitter the wrong way. Four milliseconds
+   * of slack is far below one frame and immune to that.
+   */
+  const FRAME_MS = 1000 / 30
+  let lastDraw = 0
+
   function frame() {
     if (!alive) return
     /**
@@ -1246,10 +1311,13 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
      * cannot see this loop's private counter. performance.now() is a base both
      * sides already have.
      */
-    clock = performance.now() / 1000
+    raf = requestAnimationFrame(frame)
+    const now = performance.now()
+    if (now - lastDraw < FRAME_MS - 4) return
+    lastDraw = now
+    clock = now / 1000
     living.animate(clock)
     renderer.render(stage)
-    raf = requestAnimationFrame(frame)
   }
 
   layout()
