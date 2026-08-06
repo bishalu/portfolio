@@ -402,6 +402,9 @@ export default function NaamWall({ notes, onKeep }: NaamWallProps) {
             <li
               className="nm-lamp"
               key={note.key}
+              /* The release animation finds its target by this (see
+                 releaseToSky in NaamApp) — a name flies to its own lantern. */
+              data-key={note.key}
               data-mine={note.mine ? 'true' : undefined}
               style={
                 {

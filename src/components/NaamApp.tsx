@@ -1213,6 +1213,65 @@ export default function NaamApp({ seed }: NaamAppProps) {
     setAnnounce(C.app.send.lead)
   }, [formShown])
 
+  /**
+   * ─── THE THREE GO UP ───────────────────────────────────────────────────
+   *
+   * On a successful send each kept name lifts out of its slot and rises to the
+   * lantern that carries it, then fades into it.
+   *
+   * WHAT THIS IS NOT DOING: creating the lantern. A kept name is already a
+   * vote — `notes` walks `picks` — so by the time this runs the sky has
+   * already either grown a new lantern for a name nobody had chosen or added a
+   * voice to one that was up there. The merge and the arrival are data; this
+   * is the gesture that shows them happening, and if it never ran the state
+   * would still be right.
+   *
+   * It flies to the lantern's CURRENT box, read at the moment of release,
+   * because the lanterns drift — a target measured a second earlier is a
+   * target that has moved.
+   */
+  const releaseToSky = useCallback(
+    (sent: readonly { id: string; spelling: string }[]) => {
+      const host = fxRef.current
+      if (!host || reducedMotion()) return
+
+      sent.forEach((pick, i) => {
+        const slot = slotRefs.current[i]
+        const from = slot?.getBoundingClientRect()
+        // A lantern is matched by the row id the wall keys its notes on.
+        const lantern = document.querySelector<HTMLElement>(
+          `.nm-lamp[data-key="${CSS.escape(pick.id)}"]`,
+        )
+        const to = lantern?.getBoundingClientRect()
+        if (!from || !to || from.width === 0) return
+
+        const deva = slot?.querySelector('.nm-token-deva')?.textContent ?? ''
+        const token = nameToken(deva, pick.spelling)
+        placeOn(token, from)
+        host.append(token)
+
+        const dx = to.left + to.width / 2 - (from.left + from.width / 2)
+        const dy = to.top + to.height / 2 - (from.top + from.height / 2)
+        token
+          .animate(
+            [
+              { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+              // Up and out first, the way something buoyant leaves a hand,
+              // then across to the lantern rather than straight at it.
+              { transform: `translate(${dx * 0.3}px, ${dy * 0.55 - 26}px) scale(0.9)`, opacity: 1, offset: 0.45 },
+              { transform: `translate(${dx}px, ${dy}px) scale(0.55)`, opacity: 0 },
+            ],
+            { duration: 900, delay: i * 130, easing: 'cubic-bezier(0.22, 0.7, 0.24, 1)', fill: 'forwards' },
+          )
+          .finished.then(
+            () => token.remove(),
+            () => token.remove(),
+          )
+      })
+    },
+    [],
+  )
+
   const closeForm = useCallback(() => setFormShown(false), [])
 
   /**
@@ -1387,13 +1446,16 @@ export default function NaamApp({ seed }: NaamAppProps) {
           ? C.form.confirmation.body
           : C.form.confirmation.emailOnly
       setSending(false)
+      // Read the slots BEFORE the sheet closes and anything re-renders.
+      const rising = picks.map((pick) => ({ id: pick.id, spelling: pick.spelling }))
       // The sheet closes and the outcome goes to the conversation, which is
       // where the rest of the exchange already lives.
       setFormShown(false)
+      later(() => releaseToSky(rising), 120)
       setTurns((prev) => [...prev, { id: nextId(), kind: 'sent', text: line }])
       setAnnounce(line)
     },
-    [picks, sending],
+    [later, picks, releaseToSky, sending],
   )
 
   /* — render ————————————————————————————————————————————————————————— */

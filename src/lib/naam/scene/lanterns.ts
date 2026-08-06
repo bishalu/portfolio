@@ -256,9 +256,16 @@ export function lanternSpots(
    * entire job — a lantern may be nudged in the sky but never into another
    * tier, so `y` is clamped to its own band.
    */
-  const MIN_X = MIN_GAP
-  const MIN_Y = 0.055
-  for (let pass = 0; pass < 3; pass++) {
+  /**
+   * Both axes, and the gap shrinks as the field fills. Pushing only in y ran
+   * out of room the moment a third name was sent and the sky held ten: y is
+   * bounded by the band, x is not, so a crowded field has to be allowed to
+   * spread sideways as well.
+   */
+  const crowd = Math.max(0.55, Math.min(1, 7 / placed.length))
+  const MIN_X = MIN_GAP * crowd
+  const MIN_Y = 0.055 * crowd
+  for (let pass = 0; pass < 6; pass++) {
     for (let i = 0; i < placed.length; i++) {
       for (let j = i + 1; j < placed.length; j++) {
         const a = placed[i]
@@ -266,19 +273,33 @@ export function lanternSpots(
         const dx = b.x - a.x
         const dy = b.y - a.y
         if (Math.abs(dx) >= MIN_X || Math.abs(dy) >= MIN_Y) continue
-        // Push along y first — it is the axis with room — and only fall back
-        // to x when they are almost exactly stacked.
+
+        // Push along whichever axis is closer to free. y is cheap until the
+        // band edge; past that the only room left is sideways.
         const needY = (MIN_Y - Math.abs(dy)) / 2 + 0.001
         const dirY = dy === 0 ? (i % 2 === 0 ? 1 : -1) : Math.sign(dy)
         a.y -= dirY * needY
         b.y += dirY * needY
+
+        const needX = (MIN_X - Math.abs(dx)) / 2 + 0.001
+        const dirX = dx === 0 ? (i % 2 === 0 ? 1 : -1) : Math.sign(dx)
+        a.x -= dirX * needX * 0.5
+        b.x += dirX * needX * 0.5
       }
     }
   }
 
-  /** Back inside the sky, and inside each lantern's own depth band. */
-  const bandTop = (depth: number) => top + (bottom - top) * Math.min(1, depth + bandWidth * 0.5)
-  const bandBottom = (depth: number) => top + (bottom - top) * Math.max(0, depth - bandWidth * 0.5)
+  /**
+   * Back inside the sky, and roughly inside each lantern's own depth band.
+   *
+   * The band allowance widens as the field fills: with ten up there a hard
+   * clamp leaves the relaxation nowhere to go and they simply overlap. Size and
+   * brightness still carry the ranking exactly — only the height is allowed to
+   * bleed between neighbouring tiers when the sky is full.
+   */
+  const slack = 0.5 + (1 - crowd) * 0.9
+  const bandTop = (depth: number) => top + (bottom - top) * Math.min(1, depth + bandWidth * slack)
+  const bandBottom = (depth: number) => top + (bottom - top) * Math.max(0, depth - bandWidth * slack)
   for (const spot of placed) {
     spot.y = Math.min(bandTop(spot.depth), Math.max(bandBottom(spot.depth), spot.y))
     spot.y = Math.min(bottom, Math.max(top, spot.y))
