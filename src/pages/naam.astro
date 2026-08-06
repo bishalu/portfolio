@@ -476,6 +476,18 @@ if (!seedRow) {
 
     .nm-hand {
       grid-area: hand;
+      /* ── INSIDE THE CONVERSATION, NOT BESIDE IT ─────────────────────────
+         The hand spanned the full 704px column while every line of the thread
+         is inset past the mala rail and held to a measure — so the cards ran
+         wider than anything they were dealt in answer to and read as a
+         separate shelf that happened to be on the left.
+
+         Same left inset as .nm-turn-body: the stream's own padding, plus the
+         rail and its gap. The cards now start on the text's left edge and end
+         where it ends, which is what makes them part of the exchange rather
+         than a tray that moved. */
+      padding-right: clamp(0.75rem, 2.4vw, 1.4rem);
+      padding-left: calc(clamp(0.75rem, 2.4vw, 1.4rem) + var(--nm-rail, 30px) + var(--nm-rail-gap, 0.8rem));
     }
 
     .nm-streamwrap {
@@ -501,6 +513,12 @@ if (!seedRow) {
 
     .nm-hand > .nm-deal {
       max-height: 46vh;
+      /* A row cut flush against the composer reads as broken rather than as
+         scrollable. The padding leaves the clipped row visibly mid-card, which
+         is what says "there is more below" — and the fade makes it a soft edge
+         rather than a guillotine. */
+      mask-image: linear-gradient(to bottom, #000 calc(100% - 1.5rem), transparent 100%);
+      padding-bottom: 0.75rem;
       overflow-y: auto;
     }
 
@@ -2009,7 +2027,62 @@ if (!seedRow) {
        is a hand, because when names are on the table they matter more than the
        empty slots waiting for them. */
     #naam-app .nm-hand {
-      min-height: 14.2rem;
+      min-height: 15.2rem;
+    }
+
+    /* ── THE GLOSS GIVES, NOT THE KEEP ────────────────────────────────────
+       Card height varies with the length of the meaning — measured at 234px
+       and 260px on consecutive deals — so sizing the band to "the card" is
+       chasing a number that changes with every answer. Two nudges in and it
+       was still 7px short, clipping exactly the row that carries KEEP.
+
+       So the card is capped to the band and the GLOSS is the flexible part.
+       It is already clamped to two lines here and it is the one row that can
+       lose a line without losing meaning; the name, the toggle and the button
+       cannot. */
+    #naam-app .nm-hand .nm-card {
+      max-height: 100%;
+    }
+
+    #naam-app .nm-hand .nm-gloss {
+      flex: 0 1 auto;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* Starts on the text's own left edge. The inset is what makes the row read
+       as part of the thread rather than a band bolted underneath it. Padding
+       on the SCROLLER rather than the band, so the last card can still reach
+       the frame edge as the row is swiped. */
+    #naam-app .nm-hand > .nm-deal {
+      /* SCROLL-PADDING TOO, or the padding is cancelled the moment it renders.
+         The row is scroll-snapped, and snap aligns the first card to the SCROLL
+         PORT's edge — which is inside the padding — so the browser immediately
+         scrolls by exactly the inset to satisfy it. Measured: padding-left
+         43.6px, scrollLeft 44, first card at x=0. The inset was applied and
+         undone in the same frame. */
+      scroll-padding-left: calc(
+        clamp(0.75rem, 2.4vw, 1.4rem) + var(--nm-rail, 22px) + var(--nm-rail-gap, 0.6rem)
+      );
+      padding-left: calc(clamp(0.75rem, 2.4vw, 1.4rem) + var(--nm-rail, 22px) + var(--nm-rail-gap, 0.6rem));
+    }
+
+    /* Starts on the text's own left edge, and runs off the right.
+       The inset makes the row read as part of the thread rather than a band
+       bolted under it; letting it bleed off the right is what says there are
+       more cards that way. Padding on the SCROLLER, not the band, so the last
+       card can still reach the edge. */
+    #naam-app .nm-hand > .nm-deal {
+      /* SCROLL-PADDING TOO, or the padding is cancelled the moment it renders.
+         The row is scroll-snapped, and snap aligns the first card to the SCROLL
+         PORT's edge — which is inside the padding — so the browser immediately
+         scrolls by exactly the inset to satisfy it. Measured: padding-left
+         43.6px, scrollLeft 44, first card at x=0. The inset was applied and
+         undone in the same frame. */
+      scroll-padding-left: calc(
+        clamp(0.75rem, 2.4vw, 1.4rem) + var(--nm-rail, 22px) + var(--nm-rail-gap, 0.6rem)
+      );
+      padding-left: calc(clamp(0.75rem, 2.4vw, 1.4rem) + var(--nm-rail, 22px) + var(--nm-rail-gap, 0.6rem));
     }
 
     /* ── THE STARTERS STAND DOWN ONCE THERE IS A HAND, on a phone only ──────
@@ -2027,12 +2100,23 @@ if (!seedRow) {
       display: none;
     }
 
-    /* `.nm-rail`, which is the ticks and the syllable labels. The first
-       attempt hid `.nm-syllables`, a class that does not exist on this card —
-       the rule was valid CSS matching nothing, and the card shrank by the 26px
-       of a different change while appearing to work. */
-    #naam-app .nm-hand .nm-rail {
+    /* THE BEAT MARKS GO; THE व/ब TOGGLE STAYS.
+       Hiding `.nm-rail` wholesale took the swap control with it — measured at
+       0x0 on a phone — and that control is the page's own premise: it is how
+       a visitor sees that Varisha and Barisha are the same name. Losing the
+       syllable dots on a small screen is a trim; losing the toggle is losing
+       the argument.
+
+       (An earlier attempt hid `.nm-syllables`, which is not a class this card
+       has: valid CSS matching nothing, and the card shrank by an unrelated
+       26px while appearing to work.) */
+    #naam-app .nm-hand .nm-tick-dot,
+    #naam-app .nm-hand .nm-tick-syllable {
       display: none;
+    }
+
+    #naam-app .nm-hand .nm-ticks {
+      gap: 0;
     }
 
     #naam-app .nm-shell:has(.nm-card) .nm-tray {
@@ -3061,6 +3145,12 @@ if (!seedRow) {
   }
 
   .nm-swap {
+    /* 24px, measured at 51x22. It is small on purpose — it is an aside, not
+       an action — but it is still a button, and WCAG's floor is not a matter
+       of emphasis. */
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
     transition:
       border-color var(--dur-base) ease,
       color var(--dur-base) ease;
