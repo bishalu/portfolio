@@ -1058,8 +1058,21 @@ if (!seedRow) {
 
        A soft edge fixes every case at once — the row, the cards, a half line
        of the invitation — and doubles as the only cue that there is more to
-       scroll. At 375 the stream hides 324px of content and said nothing. */
-    mask-image: linear-gradient(to bottom, #000 calc(100% - 2.25rem), transparent 100%);
+       scroll. At 375 the stream hides 324px of content and said nothing.
+
+       THE DEEP FADE MOVED TO THE TOP. This transcript is pinned to its end,
+       so the direction it actually continues in is upward — a 36px fade at
+       the bottom was dimming the newest line and pointing at nothing. The
+       bottom keeps a 1rem fade, which lands inside the stream's own padding
+       when pinned and only softens an edge once the visitor has scrolled up
+       and there IS something down there to cut. */
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      #000 2.25rem,
+      #000 calc(100% - 1rem),
+      transparent 100%
+    );
     /* overflow-anchor would fight the scroll-to-bottom on every insertion. */
     overflow-anchor: none;
     overflow-y: auto;
@@ -2154,23 +2167,17 @@ if (!seedRow) {
       display: none;
     }
 
-    /* THE BEAT MARKS GO; THE व/ब TOGGLE STAYS.
-       Hiding `.nm-rail` wholesale took the swap control with it — measured at
-       0x0 on a phone — and that control is the page's own premise: it is how
-       a visitor sees that Varisha and Barisha are the same name. Losing the
-       syllable dots on a small screen is a trim; losing the toggle is losing
-       the argument.
+    /* THE BEAT MARKS GO.
+       An earlier version hid only the dots and syllables, because the rail
+       also carried the व/ब toggle and that control was worth its row. The
+       toggle is gone, so what was left was an empty rule with no beats on
+       it — the rail goes whole.
 
-       (An earlier attempt hid `.nm-syllables`, which is not a class this card
-       has: valid CSS matching nothing, and the card shrank by an unrelated
-       26px while appearing to work.) */
-    #naam-app .nm-hand .nm-tick-dot,
-    #naam-app .nm-hand .nm-tick-syllable {
+       (An even earlier attempt hid `.nm-syllables`, which is not a class this
+       card has: valid CSS matching nothing, and the card shrank by an
+       unrelated 26px while appearing to work.) */
+    #naam-app .nm-hand .nm-rail {
       display: none;
-    }
-
-    #naam-app .nm-hand .nm-ticks {
-      gap: 0;
     }
 
     /* ── The phone's vertical budget, stated ──────────────────────────────
@@ -3099,12 +3106,29 @@ if (!seedRow) {
 
   /* Devanagari gets a fixed block so a late font swap shifts nothing, and
      1.65 line-height because matras collide below about 1.6. */
+  /* Tighter than the page's default box. A card is a small object repeated
+     three across; the padding that suits one wide surface reads as slack when
+     it is paid for six times in a column. */
+  .nm-card {
+    gap: 0.3rem;
+    padding: 0.7rem 0.8rem 0.75rem;
+  }
+
+  /* ── A CARD IS PART OF THE CONVERSATION, NOT LOUDER THAN IT ──────────────
+     The name was set at 1.7rem against 17.9px body text, so every card
+     announced itself more forcefully than the sentence that dealt it — and
+     with the reserved 2.8rem line box it cost 75px of a 324px card before a
+     meaning had been printed.
+
+     1.35rem still leads the card and still carries Devanagari comfortably
+     (matras need the line-height, which is why that stays generous relative to
+     the size), while sitting just above the prose rather than over it. */
   .nm-deva {
     display: block;
-    min-height: 2.8rem;
+    min-height: 2.1rem;
     color: var(--nm-text);
-    font-size: 1.7rem;
-    line-height: 2.8rem;
+    font-size: 1.35rem;
+    line-height: 2.1rem;
     font-family: var(--font-deva), var(--font-body);
   }
 
@@ -3130,11 +3154,11 @@ if (!seedRow) {
   /* ── The sound rail ───────────────────────────────────────────────────
      width: max-content is what makes this an instrument rather than a
      divider: the rule ends at the last tick, so its length IS the syllable
-     count (DESIGN.md P4). The 26px is headroom for the swap control, which
-     hangs above the first tick — so only the rows that HAVE one pay for it. */
-  .nm-rail[data-swap='true'] {
-    padding-top: 26px;
-  }
+     count (DESIGN.md P4).
+
+     It used to reserve 26px above the first tick for the व/ब toggle. The
+     toggle is gone and the headroom went with it — otherwise every card on
+     the page keeps paying for a control none of them have. */
 
   .nm-ticks {
     display: flex;
@@ -3189,42 +3213,6 @@ if (!seedRow) {
 
   .nm-tick[data-cluster='true'] .nm-tick-syllable {
     color: var(--nm-accent-text);
-  }
-
-  .nm-swap-slot {
-    position: absolute;
-    bottom: calc(100% + 6px);
-    left: 50%;
-    transform: translateX(-50%);
-  }
-
-  .nm-swap {
-    /* 24px, measured at 51x22. It is small on purpose — it is an aside, not
-       an action — but it is still a button, and WCAG's floor is not a matter
-       of emphasis. */
-    display: inline-flex;
-    align-items: center;
-    min-height: 24px;
-    transition:
-      border-color var(--dur-base) ease,
-      color var(--dur-base) ease;
-    cursor: pointer;
-    border: 1px solid var(--nm-hair-strong);
-    border-radius: 999px;
-    background: var(--nm-surface-2);
-    padding: 0.15rem 0.5rem;
-    color: var(--nm-text-soft);
-    white-space: nowrap;
-
-    &[aria-pressed='true'] {
-      border-color: var(--crimson);
-      color: var(--nm-text);
-    }
-
-    &:disabled {
-      opacity: 0.55;
-      cursor: default;
-    }
   }
 
   /* The document is speaking, and P5 says mono is the voice of data. Clamped
@@ -4241,6 +4229,39 @@ if (!seedRow) {
     .nm-doodle[data-gone] {
       transform: none;
       transition: opacity 200ms ease;
+    }
+  }
+
+  /* ── THE CARDS FOLLOW THE WORDS THAT DEALT THEM ──────────────────────────
+     Stacked, the DOM order puts the tray between the conversation and the
+     hand, so the reply and the names it is talking about were separated by the
+     lamp, the three slots and the send button. The eye has to cross all of
+     that to get from "keep the ones that sound like him" to the things it can
+     keep.
+
+     Reordered so the hand comes straight after the transcript — the bottom of
+     the text hugging the top of the cards — with the slots below them. That is
+     also what the wide layout already does: stream, then hand, then composer,
+     with the tray off in its own column. Same reading order on both.
+
+     `order` rather than moving the markup, because the DOM order is the right
+     one for a screen reader and for a page with no CSS: what you were told,
+     then what you kept, then what you were dealt. */
+  @media (max-width: 1099px) {
+    .nm-streamwrap {
+      order: 1;
+    }
+
+    .nm-hand {
+      order: 2;
+    }
+
+    .nm-tray {
+      order: 3;
+    }
+
+    .nm-composer {
+      order: 4;
     }
   }
 

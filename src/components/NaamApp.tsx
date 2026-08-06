@@ -29,7 +29,6 @@ import {
   removePick,
   subscribe,
   togglePick,
-  toggleSwap,
   PICK_MAX,
   type NaamPick,
 } from '@/lib/naam/tray'
@@ -762,6 +761,33 @@ export default function NaamApp({ seed }: NaamAppProps) {
     if (!el || !pinned || !asked) return
     el.scrollTo({ top: el.scrollHeight, behavior: reducedMotion() ? 'auto' : 'smooth' })
   }, [turns, pinned, asked])
+
+  /**
+   * The scroll above fires when a TURN arrives. The thing that moves the
+   * bottom of the transcript, though, is the HAND arriving underneath it — on
+   * a phone the cards take their height out of the stream, so the box shrinks
+   * a moment after the last effect has already run and the transcript is left
+   * sitting short of its own end. Measured at 412x915: the last line stopped
+   * 164px above the cards on some runs and 53px on others, which is what a
+   * race looks like from the outside.
+   *
+   * So the pin is re-asserted whenever the box or its contents change size,
+   * not only when the conversation does. `auto`, never smooth: this is a
+   * correction to a layout that has already happened, and animating it would
+   * read as the page scrolling itself for no reason.
+   */
+  useEffect(() => {
+    const el = streamRef.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const settle = () => {
+      if (!pinned) return
+      el.scrollTop = el.scrollHeight
+    }
+    const ro = new ResizeObserver(settle)
+    ro.observe(el)
+    for (const child of el.children) ro.observe(child)
+    return () => ro.disconnect()
+  }, [pinned, turns])
 
   const onStreamScroll = useCallback(() => {
     const el = streamRef.current
@@ -1576,7 +1602,6 @@ export default function NaamApp({ seed }: NaamAppProps) {
             preferB={preferB}
             picked={pickedIds.has(match.row.id)}
             trayFull={picks.length >= PICK_MAX && !pickedIds.has(match.row.id)}
-            onSwap={toggleSwap}
             onPick={() => keep(match.row)}
           />
         </div>

@@ -440,6 +440,10 @@ export const NAAM_COPY = {
      * English preposition between two Devanagari letters rendered as
      * "व TO ब" — a system message where the page's one code-switch should be.
      */
+    /* Uncalled since the card's toggle was removed — kept because the V/B
+       distinction is still the page's own premise and the words for it should
+       not have to be rewritten when a control for it lands somewhere with the
+       room. See the rail comment in NaamCard.tsx. */
     swapGlyph: 'व / ब',
     swapAria: 'Switch between the V and the B spelling',
     /**

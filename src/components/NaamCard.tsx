@@ -66,7 +66,6 @@ export interface NaamCardProps {
   preferB: boolean
   picked?: boolean
   /** Absent = server-rendered; the page script wires it after boot. */
-  onSwap?: () => void
   onPick?: () => void
   /** The tray is at its cap and this name is not in it. */
   trayFull?: boolean
@@ -93,7 +92,6 @@ export default function NaamCard({
   row,
   preferB,
   picked = false,
-  onSwap,
   onPick,
   trayFull = false,
   pickable = true,
@@ -124,7 +122,7 @@ export default function NaamCard({
   const keepFromCard = (event: MouseEvent<HTMLElement>) => {
     if (!onPick || (trayFull && !picked)) return
     const target = event.target as HTMLElement
-    if (target.closest('.nm-swap') || target.closest('.nm-pick')) return
+    if (target.closest('.nm-pick')) return
     onPick()
   }
 
@@ -152,7 +150,15 @@ export default function NaamCard({
           it a screen reader announces "list, 3 items" on all 77 prerendered
           cards; the syllables themselves stay in the reading order, which is
           the part worth hearing. */}
-      <div className="nm-rail" data-swap={row.bVariant ? 'true' : undefined}>
+      {/* THE व/ब TOGGLE IS GONE FROM THIS RAIL.
+          It switched which spelling led, and the card already prints both —
+          "Bardhi Vardhi", primary then alternate — so the information it
+          guarded was never actually behind it. What it cost was a row on the
+          busiest object on the page, plus 26px of reserved headroom on every
+          card whether it had one or not. The stored preference survives; only
+          the control is gone, and copy.ts keeps its strings for whatever
+          picks it up next. */}
+      <div className="nm-rail">
         <ol className="nm-ticks" role="presentation">
           {row.syllableSplit.map((syllable, i) => (
             <li
@@ -160,23 +166,6 @@ export default function NaamCard({
               className="nm-tick"
               data-cluster={marked && opensOnCluster(syllable) ? 'true' : undefined}
             >
-              {i === 0 && row.bVariant && (
-                <span className="nm-swap-slot">
-                  <button
-                    type="button"
-                    className="nm-swap label-mono label-mono--sm"
-                    aria-pressed={preferB}
-                    disabled={!onSwap}
-                    data-nm-swap={onSwap ? undefined : ''}
-                    onClick={onSwap}
-                  >
-                    <span aria-hidden="true">{C.swapGlyph}</span>
-                    <span className="sr-only">
-                      {row.latin} · {C.swapAria}
-                    </span>
-                  </button>
-                </span>
-              )}
               <span className="nm-tick-dot" aria-hidden="true"></span>
               <span className="nm-tick-syllable label-mono label-mono--sm">{syllable}</span>
             </li>

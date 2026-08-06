@@ -135,7 +135,33 @@ export async function mountMala(options: MountMalaOptions): Promise<MalaHandle |
      * with nothing between them. The mala looked broken because most of it was
      * being drawn outside the surface.
      */
-    const h = Math.max(1, host.scrollHeight)
+    /**
+     * ...AND MEASURED FROM THE TEXT, NOT FROM THE SCROLLER.
+     *
+     * An absolutely positioned child still counts toward its scroll
+     * container's overflow, so sizing this canvas from `host.scrollHeight`
+     * made the canvas part of what it was measuring. The height could then
+     * only ratchet upward: one long relayout stretched it, and every later
+     * one measured the canvas rather than the text and kept the figure.
+     *
+     * Measured under prefers-reduced-motion at 1440: 6006px of scroll range
+     * over 454px of conversation. On a 375px phone the milder version of the
+     * same fault parked the last line of chat 143px above the cards — the
+     * stream was pinned to its end correctly and there was simply nothing
+     * down there.
+     *
+     * Collapsing the canvas before the read is the obvious fix and it does
+     * not work here: `relayout` runs from a ResizeObserver, where the write
+     * reads back as `0px` while the box measures its old height. So the
+     * content is measured directly — the bottom of the last row, plus the
+     * padding under it — which needs no flush and cannot include the canvas.
+     */
+    const style = getComputedStyle(host)
+    const padBottom = parseFloat(style.paddingBottom) || 0
+    const content = [...host.children]
+      .filter((el): el is HTMLElement => el instanceof HTMLElement && el !== canvas)
+      .reduce((max, el) => Math.max(max, el.offsetTop + el.offsetHeight), 0)
+    const h = Math.max(1, Math.ceil(content + padBottom), host.clientHeight)
     // Backing store at device resolution, drawing coordinates in CSS pixels —
     // capped at 2 because a 3x buffer on this strip buys nothing visible and
     // costs real memory on the phones that report it.
