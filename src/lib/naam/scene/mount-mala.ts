@@ -45,8 +45,11 @@ export async function mountMala(options: MountMalaOptions): Promise<MalaHandle |
 
   const canvas = document.createElement('canvas')
   canvas.setAttribute('aria-hidden', 'true')
+  // Height is set per layout, in px, from the CONTENT height — `100%` inside a
+  // scroll port resolves to the PORT, which would squash a content-sized
+  // backing store back into the visible strip and undo the fix below.
   canvas.style.cssText =
-    'position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:0'
+    'position:absolute;left:0;top:0;width:100%;pointer-events:none;z-index:0'
   host.style.position = host.style.position || 'relative'
   host.prepend(canvas)
 
@@ -74,9 +77,18 @@ export async function mountMala(options: MountMalaOptions): Promise<MalaHandle |
   let raf = 0
   let pointer: { x: number; y: number } | null = null
 
-  /** Read where the DOM has put the marker beads, in host coordinates. */
+  /**
+   * Read where the DOM has put the marker beads, in CONTENT coordinates.
+   *
+   * `host` is a scroll port, so a bead's viewport rect is relative to what is
+   * currently shown. The canvas spans the scrolled CONTENT, so the scroll
+   * offset has to be added back or every bead below the fold lands in the
+   * wrong place.
+   */
   function anchors(): { x: number; y: number }[] {
     const box = host.getBoundingClientRect()
+    const top = host.scrollTop
+    const left = host.scrollLeft
     // VISIBLE beads only. A bead inside a display:none row measures 0x0, and
     // the rope would happily hang itself from the top-left corner of the page
     // to reach it — which is exactly what happened when a phone-only row was
@@ -84,18 +96,32 @@ export async function mountMala(options: MountMalaOptions): Promise<MalaHandle |
     return [...host.querySelectorAll<HTMLElement>('.nm-bead')]
       .map((el) => el.getBoundingClientRect())
       .filter((r) => r.height > 0)
-      .map((r) => ({ x: r.left - box.left + r.width / 2, y: r.top - box.top + r.height / 2 }))
+      .map((r) => ({
+        x: r.left - box.left + left + r.width / 2,
+        y: r.top - box.top + top + r.height / 2,
+      }))
   }
 
   function relayout() {
     const w = Math.max(1, host.clientWidth)
-    const h = Math.max(1, host.clientHeight)
+    /**
+     * THE CONTENT'S HEIGHT, NOT THE PORT'S.
+     *
+     * This read clientHeight, so the canvas was only ever as tall as the
+     * visible strip while the beads run the length of the whole transcript.
+     * Past the first screenful the cord simply stopped: measured on a 412px
+     * phone mid-conversation, a stub of rope at the top and two beads hanging
+     * with nothing between them. The mala looked broken because most of it was
+     * being drawn outside the surface.
+     */
+    const h = Math.max(1, host.scrollHeight)
     // Backing store at device resolution, drawing coordinates in CSS pixels —
     // capped at 2 because a 3x buffer on this strip buys nothing visible and
     // costs real memory on the phones that report it.
     const dpr = Math.min(window.devicePixelRatio || 1, 2)
     canvas.width = Math.round(w * dpr)
     canvas.height = Math.round(h * dpr)
+    canvas.style.height = `${h}px`
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
     const found = anchors()
     const marker = host.querySelector<HTMLElement>('.nm-bead')

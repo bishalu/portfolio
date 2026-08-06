@@ -1046,6 +1046,17 @@ if (!seedRow) {
     margin: 0;
     padding: var(--space-m) clamp(0.75rem, 2.4vw, 1.4rem) var(--space-s);
     min-height: 0;
+    /* ── THE BOUNDARY FADES ───────────────────────────────────────────────
+       A scroller cuts whatever is at its edge, and for a line of prose that
+       reads as text continuing. For a ROW OF OBJECTS it reads as breakage:
+       measured on a 412px phone, the family's name row spans 464–572 and the
+       stream clips at 541, so five lanterns were sliced through the middle
+       with the lamp sitting directly under their severed tops.
+
+       A soft edge fixes every case at once — the row, the cards, a half line
+       of the invitation — and doubles as the only cue that there is more to
+       scroll. At 375 the stream hides 324px of content and said nothing. */
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 2.25rem), transparent 100%);
     /* overflow-anchor would fight the scroll-to-bottom on every insertion. */
     overflow-anchor: none;
     overflow-y: auto;
@@ -2016,6 +2027,39 @@ if (!seedRow) {
       display: grid;
     }
 
+    /* Shorter chips: at 108px the row was taller than the gap it usually has
+       to fit into, so it straddled the scroll boundary more often than not. */
+    #naam-app .nm-wallrow-item {
+      padding: 0.3rem 0.5rem 0.36rem;
+      min-width: 4.1rem;
+    }
+
+    #naam-app .nm-wallrow-deva {
+      font-size: 0.86rem;
+    }
+
+    #naam-app .nm-wallrow-latin {
+      font-size: 0.62rem;
+    }
+
+    /* ── THE LAMP STANDS BESIDE ITS LABEL ────────────────────────────────
+       On a phone the tray was three stacked bands — lamp, then label, then
+       slots — inside 150px. Set side by side the lamp and its label are one
+       band instead of two, which is ~34px back to the conversation and one
+       fewer horizontal line for the eye to cross on the way down. */
+    #naam-app .nm-tray-head {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    #naam-app .nm-diyo svg {
+      width: 34px;
+      height: 43px;
+    }
+
     /* ── A HAND ON A PHONE ────────────────────────────────────────────────
        Measured with cards dealt at 375x667: stream 132 + tray 188 + hand 88 +
        composer 218. The card is 292px in an 88px band, so the names the page
@@ -2119,10 +2163,6 @@ if (!seedRow) {
       gap: 0;
     }
 
-    #naam-app .nm-shell:has(.nm-card) .nm-tray {
-      min-height: min(24%, 150px);
-    }
-
     /* ── The phone's vertical budget, stated ──────────────────────────────
        Measured at 375x667: shell 626 = stream 220 + tray 188 + composer 218,
        exactly. The invitation is 473px, so 253px of it sits below the fold and
@@ -2209,16 +2249,7 @@ if (!seedRow) {
        flex and min-height were silently losing to it, and had been all along.
        Measured: computed flex `1 1 auto`, min-height `0px`, neither of them
        from here. */
-    #naam-app .nm-tray {
-      flex: 0 1 auto;
-      /* Enough for the three slots to read as three slots. Squeezed below this
-         they collapse into a single hairline bar — which is not a smaller
-         version of the same thing, it is a divider, and the whole point of
-         drawing them before anything is in them is that the visitor can see
-         there are three and that they are empty. */
-      min-height: min(34%, 188px);
-      max-height: 58%;
-    }
+
 
     /* A FLOOR, BUT ONLY ONCE THERE IS A HAND TO PUT ON IT.
        Without a floor a long reply squeezed the tray to 224px, of which the
@@ -2231,11 +2262,24 @@ if (!seedRow) {
        `:has(.nm-card)` says the actual rule: the hand gets a guaranteed share
        of a phone screen exactly when it has something to show, and the
        conversation keeps the whole screen until then. */
-    /* The tray no longer holds the hand — the cards are on the conversation
-       side now — so it stops reserving a hand's worth of height. What is left
-       is the lamp and the three slots, which is what it was always for. */
-    #naam-app .nm-tray:has(.nm-card) {
-      min-height: min(34%, 188px);
+    /* ── THE TRAY TAKES WHAT IT NEEDS, AND NO MORE ────────────────────────
+       It was capped at a fraction of the screen and clipped to it, which is
+       fine until its contents grow: the moment a name is kept a send button
+       appears, and head 43 + slots 64 + send 48 is 155 against a 150px cap.
+       `overflow: clip` then ate the difference — measured, the three slots
+       were sliced through the middle with the Devanagari numerals cut in half.
+       A tray that hides the slots is not a tray.
+
+       So on a phone it sizes to its content and the CONVERSATION gives, which
+       is the right way round: the stream scrolls and can afford to be shorter,
+       while the slots are the state of the whole page and are never optional.
+       This is the same rule the wide layout already follows — the part that
+       varies is the part that yields — applied to the axis a phone actually
+       has. */
+    #naam-app .nm-tray {
+      flex: 0 0 auto;
+      min-height: 0;
+      max-height: none;
     }
 
     .nm-hand {
