@@ -867,7 +867,9 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
     lanterns.removeChildren()
     if (lanternCounts.length === 0) return
 
-    const spots = lanternSpots(lanternCounts, w < 600, h)
+    // 1100 is where the side-by-side layout begins; below it the page is one
+    // column and there is no sky to hang anything in.
+    const spots = lanternSpots(lanternCounts, w < 1100, h)
     // The field is seeded from the resting spots and then simulates. Both this
     // canvas and the DOM labels read it — see lanterns.ts.
     // Keys so a rebuild keeps each lantern where it is — see reset().

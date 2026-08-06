@@ -100,7 +100,8 @@ export default function NaamWall({ notes, onKeep }: NaamWallProps) {
   const [stacked, setStacked] = useState(false)
   useEffect(() => {
     if (typeof matchMedia !== 'function') return
-    const q = matchMedia('(max-width: 599px)')
+    // Matches the CSS: the side-by-side layout begins at 1100.
+    const q = matchMedia('(max-width: 1099px)')
     const read = () => setStacked(q.matches)
     read()
     q.addEventListener('change', read)

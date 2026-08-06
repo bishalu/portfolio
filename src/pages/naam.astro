@@ -1006,8 +1006,11 @@ if (!seedRow) {
      the whole page exists to ask — clean off the bottom of the screen. An auto
      margin only absorbs FREE space, so it centres while the block fits and
      collapses to zero the instant it does not. Scoped to the side-by-side
-     layout as well, because a phone has no free space to give. */
-  @media (min-width: 900px) {
+     layout as well, because a stacked one has no free space to give — and to
+     1100, which is where that layout actually begins. It read 900, so between
+     900 and 1099 the page was stacked and being centred as though it were
+     not. */
+  @media (min-width: 1100px) {
     .nm-shell[data-first] .nm-stream {
       display: flex;
       /* Turning the list into a flex column let each turn size to its own
@@ -1573,8 +1576,15 @@ if (!seedRow) {
      So the list keeps its semantics and its labels for assistive tech — the
      family's choices are still announced — and draws nothing over the copy.
      This is a real limitation of the stacked layout, not a decision that the
-     names matter less on a phone. */
-  @media (max-width: 599px) {
+     names matter less on a phone.
+
+     AND IT IS 1099, NOT 599. The side-by-side layout begins at 1100, so every
+     width below it is stacked — but this stood the sky down only below 600,
+     which left 600–1099 rendering lanterns over a single-column page. Measured
+     at 1024: all eight of them printed across the conversation, one sitting on
+     top of the three slots. There are two layouts, not three, and every rule
+     that follows the layout has to say the same number. */
+  @media (max-width: 1099px) {
     /* Hidden outright, not sr-only. The stream now carries a real, visible row
        of these names (see .nm-wallrow), so leaving a second copy in the
        accessibility tree would announce every name twice. */
@@ -4234,8 +4244,39 @@ if (!seedRow) {
     }
   }
 
-  /* ── Narrow ───────────────────────────────────────────────────────────── */
-  @media (max-width: 599px) {
+  /* ── A TRANSCRIPT SITS AT THE BOTTOM OF ITS BOX ──────────────────────────
+     On the stacked layout the conversation is above the tray, and while it is
+     shorter than its box it was top-aligned — measured at 1024 with two turns
+     showing, a 380px hole between the last thing said and the lamp.
+
+     A conversation grows downward toward the thing you type into, so it should
+     rest against that edge and let the empty space sit above it, where it
+     reads as room rather than as a gap. `margin-block-start: auto` on the
+     first child only absorbs FREE space, so it does nothing once the
+     transcript is long enough to scroll — which is when the scroller takes
+     over and bottom-anchoring is already the behaviour. */
+  @media (max-width: 1099px) {
+    .nm-shell:not([data-first]) .nm-stream {
+      display: flex;
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .nm-shell:not([data-first]) .nm-stream > * {
+      flex: 0 0 auto;
+      width: 100%;
+    }
+
+    .nm-shell:not([data-first]) .nm-stream > :first-child {
+      margin-block-start: auto;
+    }
+  }
+
+  /* ── Stacked ─────────────────────────────────────────────────────────────
+     Everything below the side-by-side breakpoint. This read 599 while the
+     grid begins at 1100, so tablets got a stacked DOM with none of the rules
+     that make a stacked DOM work. */
+  @media (max-width: 1099px) {
     .nm-deal {
       grid-template-columns: 1fr;
     }
