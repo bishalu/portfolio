@@ -462,9 +462,20 @@ if (!seedRow) {
          unrelated columns; under the left column it is plainly the bottom of
          the thing you are talking into, and the plate on the right becomes one
          uninterrupted object from the hand down to the slots. */
+      /* The hand sits between the conversation and the box it is answered in.
+         It is on this side because the names being weighed belong beside the
+         words weighing them — and it is a BAND of its own, not part of the
+         scroller, because inside the scroller a hand of cards pushes the
+         model's reply off the top (measured: 439px of stream, 370px of cards,
+         reply at top:-180). */
       grid-template-areas:
         'stream tray'
+        'hand tray'
         'composer tray';
+    }
+
+    .nm-hand {
+      grid-area: hand;
     }
 
     .nm-streamwrap {
@@ -479,22 +490,17 @@ if (!seedRow) {
       overflow: clip;
     }
 
-    /* THE SLOTS ARE PINNED; THE HAND SCROLLS. `overflow: clip` on the tray was
-       silently eating whichever end of the column ran out of room, and opening
-       "from the document" is enough to do it: the disclosure adds a verbatim
-       block to a card, the hand grows by a couple of hundred pixels, and the
-       three slots — the thing the page is asking the visitor to fill — were
-       pushed off the bottom of their own column with no way to reach them.
-
-       The hand is the part that varies, so the hand is the part that gives.
-       Same arrangement as the stacked layout, for the same reason. */
+    /* THE HAND IS THE PART THAT GIVES. It is the only band whose height varies
+       — opening "from the document" adds a verbatim block to a card — so it
+       takes the slack and scrolls internally rather than pushing the composer
+       down or the conversation off. */
     .nm-hand {
-      flex: 1 1 auto;
       min-height: 0;
+      max-height: 46vh;
     }
 
     .nm-hand > .nm-deal {
-      max-height: 100%;
+      max-height: 46vh;
       overflow-y: auto;
     }
 
@@ -2100,8 +2106,11 @@ if (!seedRow) {
        `:has(.nm-card)` says the actual rule: the hand gets a guaranteed share
        of a phone screen exactly when it has something to show, and the
        conversation keeps the whole screen until then. */
+    /* The tray no longer holds the hand — the cards are on the conversation
+       side now — so it stops reserving a hand's worth of height. What is left
+       is the lamp and the three slots, which is what it was always for. */
     #naam-app .nm-tray:has(.nm-card) {
-      min-height: min(58%, 292px);
+      min-height: min(34%, 188px);
     }
 
     .nm-hand {

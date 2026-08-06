@@ -8,7 +8,7 @@ import { OPENING_STEPS, useOpening } from '@/lib/naam/opening'
 import { NAAM_COPY, NAAM_RELATIONS } from '@/lib/naam/copy'
 import type { NaamMatch } from '@/lib/naam/match'
 import { hydrateSound, playCue, setSound, soundOff, soundOn, subscribeSound } from '@/lib/naam/sound'
-import { NAAM_SEED_ROWS } from '@/lib/naam/seeds'
+import { NAAM_SEED_ROWS, NAAM_SEED_VOTES } from '@/lib/naam/seeds'
 import { pickStarters, type NaamStarter } from '@/lib/naam/starters'
 import { buildDoodle, type Doodle } from '@/lib/naam/doodle'
 
@@ -1469,25 +1469,35 @@ export default function NaamApp({ seed }: NaamAppProps) {
      * names are gathering support.
      */
     const byName = new Map<string, WallNote>()
-    const add = (key: string, note: Omit<WallNote, 'count'>) => {
+    /**
+     * `weight` is how many voices this addition represents. The wall and the
+     * visitor's own picks are worth one each — one person, one name. The family
+     * seeds carry their own count, because that list is one ROW per name and
+     * says nothing on its own about how many people have said it.
+     */
+    const add = (key: string, note: Omit<WallNote, 'count'>, weight = 1) => {
       const found = byName.get(key)
       if (found) {
-        found.count += 1
+        found.count += weight
         // Two supporters and a single signature would credit one of them for
         // both, so the attribution drops the moment it stops being true.
         found.who = undefined
         found.mine = found.mine || note.mine
         return
       }
-      byName.set(key, { ...note, count: 1 })
+      byName.set(key, { ...note, count: weight })
     }
 
     for (const row of family) {
-      add(row.id, {
-        key: row.id,
-        deva: naamPreferredDevanagari(row, preferB),
-        latin: naamPreferredForm(row, preferB),
-      })
+      add(
+        row.id,
+        {
+          key: row.id,
+          deva: naamPreferredDevanagari(row, preferB),
+          latin: naamPreferredForm(row, preferB),
+        },
+        NAAM_SEED_VOTES[row.id] ?? 1,
+      )
     }
     for (const entry of wall) {
       for (const pick of entry.picks) {
@@ -2034,8 +2044,6 @@ export default function NaamApp({ seed }: NaamAppProps) {
             are weighing sit next to the three you have kept, which is the
             comparison the page exists to support and which the old layout put
             a scroll apart. */}
-        {hand && <div className="nm-hand">{dealCards(hand.matches)}</div>}
-
         {/* THE SHELF, and it is on this side for a reason. In the conversation
             it was a thing that had already happened, scrolled past within two
             turns and never seen again. Here it is the surface the visitor is
@@ -2150,6 +2158,23 @@ export default function NaamApp({ seed }: NaamAppProps) {
           </button>
         )}
       </section>
+
+      {/* ── THE HAND, ON THE CHAT SIDE ────────────────────────────────────────
+          Asked for, and it comes with a caveat this file already recorded: the
+          cards used to live INSIDE the conversation and were moved out because
+          they did not fit. Measured at 1280x800, the stream is 439px, a hand is
+          ~370 of it, and the model's own sentence ended up at top:-180 — above
+          the fold, unreachable at any scroll offset.
+
+          So they are on this side but NOT in the scroller. The conversation
+          keeps its own box and the hand gets its own band beneath it, the way
+          the tray used to work — which means a reply can never be pushed off
+          the screen by cards again, and the names being weighed still sit in
+          the column the visitor is reading and typing in.
+
+          The room comes from the tray: with the cards gone it holds only the
+          lamp and the three slots, so it gives back the height this needs. */}
+      {hand && <div className="nm-hand">{dealCards(hand.matches)}</div>}
 
       {/* LAST IN-FLOW ITEM OF THE COLUMN, never position: fixed — a fixed
           composer sits against the layout viewport and ends up underneath the

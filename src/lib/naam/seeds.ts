@@ -8,7 +8,7 @@
  * suggestions append below. No attribution line: they read as a starting
  * shortlist, not as anyone's argument.
  *
- * WHY five of them are hand-written rows: every one of these was checked
+ * WHY seven of them are hand-written rows: every one of these was checked
  * against Boy_Name_Candidates.pdf before it was written down.
  *
  *   Byan     IS in the document — `Vyan / Byan`, Classical, one syllable,
@@ -23,6 +23,9 @@
  *            Brihat. Devanagari updated to बृहत् — bṛhat, "great" — which is
  *            the standard form and the one closest to the document's Brihata.)
  *   Soham    not present at all.
+ *   Brihan   not present. The document has Brihanta and Brihata; this is the
+ *            bare stem, and it is the family's spelling rather than a citation.
+ *   Stambha  not present as a name. `stambha` appears only inside meanings.
  *
  * So the five carry no meaning, no etymology and no source badge — there is
  * nothing to cite, and inventing a citation for a name someone loves would be
@@ -45,15 +48,40 @@ interface SeedSpec {
   letter: NaamLetter
   devanagari: string
   syllableSplit: string[]
+  /** How many people have said this one. Drives how near it floats. */
+  votes: number
 }
 
 const SEEDS: readonly SeedSpec[] = [
-  { latin: 'Satwik', letter: 'S', devanagari: 'सात्विक', syllableSplit: ['sa', 'twik'] },
-  { latin: 'Sanskar', letter: 'S', devanagari: 'संस्कार', syllableSplit: ['sa', 'nskar'] },
-  { latin: 'Bishnu', letter: 'B', devanagari: 'बिष्णु', syllableSplit: ['bi', 'shnu'] },
-  { latin: 'Brihat', letter: 'B', devanagari: 'बृहत्', syllableSplit: ['bri', 'hat'] },
-  { latin: 'Soham', letter: 'S', devanagari: 'सोहम्', syllableSplit: ['so', 'ham'] },
+  { latin: 'Satwik', letter: 'S', devanagari: 'सात्विक', syllableSplit: ['sa', 'twik'], votes: 2 },
+  { latin: 'Sanskar', letter: 'S', devanagari: 'संस्कार', syllableSplit: ['sa', 'nskar'], votes: 2 },
+  { latin: 'Bishnu', letter: 'B', devanagari: 'बिष्णु', syllableSplit: ['bi', 'shnu'], votes: 2 },
+  { latin: 'Brihat', letter: 'B', devanagari: 'बृहत्', syllableSplit: ['bri', 'hat'], votes: 2 },
+  { latin: 'Soham', letter: 'S', devanagari: 'सोहम्', syllableSplit: ['so', 'ham'], votes: 2 },
+  /* Newer, and one voice each so far — which is what puts them furthest back
+     in the sky. Devanagari hand-written like the rest of this list:
+       बृहन्  bṛhan,   the stem of bṛhat — "great, vast"
+       स्तम्भ  stambha, "pillar, post" — the thing that holds a roof up */
+  { latin: 'Brihan', letter: 'B', devanagari: 'बृहन्', syllableSplit: ['bri', 'han'], votes: 1 },
+  { latin: 'Stambha', letter: 'S', devanagari: 'स्तम्भ', syllableSplit: ['sta', 'mbha'], votes: 1 },
 ]
+
+/**
+ * Votes per seed, by the row id the page builds below.
+ *
+ * Support lives here rather than being inferred from how many times a name
+ * appears in the family list, because these five — now seven — are one row
+ * each: the list says WHICH names the family holds, and this says how many of
+ * them have said so. The lantern field reads it straight (see lanterns.ts:
+ * distinct counts set the band width, so two tiers put the twos in front and
+ * the ones behind them).
+ */
+export const NAAM_SEED_VOTES: Readonly<Record<string, number>> = {
+  ...Object.fromEntries(SEEDS.map((seed) => [`seed-${seed.latin.toLowerCase()}`, seed.votes])),
+  /* Byan is the one documented row, resolved from the dataset rather than
+     built here, so it carries its own id and its own count. */
+  vyan: 2,
+}
 
 /**
  * NaamRow-shaped so the one card component renders them, with every

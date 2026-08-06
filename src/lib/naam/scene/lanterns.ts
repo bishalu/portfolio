@@ -94,8 +94,11 @@ const MIN_PX = 52
  * "KEEP UP TO THREE" with the flame behind it. Below the tray is not sky, it is
  * furniture; the lanterns get the part of the frame that is actually empty.
  */
-const SKY_TOP = 0.1
-const SKY_BOTTOM = 0.34
+/* Raised from 0.1: the names sit INSIDE the paper now rather than above it, so
+   nothing overflows the top edge, and a taller band gives depth more room to
+   separate lanterns that are close together horizontally. */
+const SKY_TOP = 0.05
+const SKY_BOTTOM = 0.36
 /** Depth range, before banding. */
 const RANGE = 1
 
@@ -172,15 +175,29 @@ export function lanternSpots(
   // stacked), so it is a constant here rather than a measurement.
   const CANVAS_ASPECT = 1.52
   const halfWidth = (LANTERN_H * 1.2 * LANTERN_ASPECT) / 2 / CANVAS_ASPECT
-  const from = 0.46 + halfWidth
-  const to = 0.99 - halfWidth
+  const from = 0.5 + halfWidth
+  /* Past the right edge on purpose. With eight lanterns the separation pass
+     otherwise falls back to even spacing at 88px while the names are ~100px
+     wide, and they print over each other. A lantern half off the frame is a
+     sky; two names sharing the same pixels is a bug. */
+  const to = 1.04 - halfWidth
 
   const placed = counts.map((count, i) => {
     const rank = rankOf.get(count) ?? 0
     // Band 0 is the most-supported and sits nearest. Within its band a lantern
     // is placed by a seeded fraction, so two names on the same count still sit
     // at slightly different distances instead of on one line.
-    const withinBand = hash(i * 7 + 3)
+    /**
+     * A GAP BETWEEN BANDS, not just adjacent bands.
+     *
+     * Contiguous bands put the bottom of one tier flush against the top of the
+     * next, so the two names on either side of that boundary sit at the same
+     * distance and the tiers blur — and then drift finishes the job. Each band
+     * uses the upper 62% of its slice and leaves the rest as clear air, which
+     * is what makes "these are nearer than those" legible at a glance rather
+     * than only in the numbers.
+     */
+    const withinBand = hash(i * 7 + 3) * 0.62
     const depth = Math.min(1, Math.max(0, 1 - (rank + withinBand) * bandWidth))
 
     // Near lanterns hang low and far ones ride up toward the ridge.
@@ -198,7 +215,7 @@ export function lanternSpots(
      * their names at about 8.7px, which is not distance, it is unreadable.
      * Perspective is worth less than a name somebody can read.
      */
-    const scale = 0.78 + depth * 0.42
+    const scale = 0.72 + depth * 0.56
 
     return {
       x,
@@ -221,30 +238,50 @@ export function lanternSpots(
   })
 
   /**
-   * SEPARATION, ENFORCED. Walk left to right and push any lantern that has
-   * crowded its neighbour out to the minimum gap. Deterministic, so a lantern
-   * still keeps its place between renders.
+   * SEPARATION IN TWO DIMENSIONS, because one ran out.
    *
-   * If there are too many lanterns for the field to hold them all at MIN_GAP,
-   * spacing evenly is the honest fallback — every gap equal and slightly too
-   * small beats a few correct gaps and one collision.
+   * The first pass only pushed sideways, and with eight lanterns there is no
+   * sideways left: the gaps come out around 107px while the names are ~100px
+   * wide and the lateral drift is ±108px, so any gap can close. Measured, two
+   * pairs printed across each other — सोहम् and सात्विक interleaved into one
+   * unreadable word.
+   *
+   * There IS vertical room, so crowded pairs are pushed apart along whichever
+   * axis has slack, biased toward y. A few relaxation passes rather than one
+   * sweep, because moving one lantern out of a collision can put it into the
+   * next; three is enough to settle eight of them and the whole thing runs
+   * once per layout, not per frame.
+   *
+   * Depth is NOT touched. It carries the support ranking, which is the field's
+   * entire job — a lantern may be nudged in the sky but never into another
+   * tier, so `y` is clamped to its own band.
    */
-  const span = to - from
-  const order = placed.map((_, i) => i).sort((a, b) => placed[a].x - placed[b].x)
-  if (placed.length > 1 && (placed.length - 1) * MIN_GAP > span) {
-    order.forEach((idx, seat) => {
-      placed[idx].x = from + (span * seat) / (placed.length - 1)
-    })
-  } else {
-    for (let seat = 1; seat < order.length; seat++) {
-      const prev = placed[order[seat - 1]]
-      const here = placed[order[seat]]
-      if (here.x - prev.x < MIN_GAP) here.x = prev.x + MIN_GAP
+  const MIN_X = MIN_GAP
+  const MIN_Y = 0.055
+  for (let pass = 0; pass < 3; pass++) {
+    for (let i = 0; i < placed.length; i++) {
+      for (let j = i + 1; j < placed.length; j++) {
+        const a = placed[i]
+        const b = placed[j]
+        const dx = b.x - a.x
+        const dy = b.y - a.y
+        if (Math.abs(dx) >= MIN_X || Math.abs(dy) >= MIN_Y) continue
+        // Push along y first — it is the axis with room — and only fall back
+        // to x when they are almost exactly stacked.
+        const needY = (MIN_Y - Math.abs(dy)) / 2 + 0.001
+        const dirY = dy === 0 ? (i % 2 === 0 ? 1 : -1) : Math.sign(dy)
+        a.y -= dirY * needY
+        b.y += dirY * needY
+      }
     }
-    // Pushing rightward can walk the last one off the edge; slide the whole
-    // row back rather than piling them against the frame.
-    const overflow = placed[order[order.length - 1]].x - to
-    if (overflow > 0) for (const spot of placed) spot.x -= overflow
+  }
+
+  /** Back inside the sky, and inside each lantern's own depth band. */
+  const bandTop = (depth: number) => top + (bottom - top) * Math.min(1, depth + bandWidth * 0.5)
+  const bandBottom = (depth: number) => top + (bottom - top) * Math.max(0, depth - bandWidth * 0.5)
+  for (const spot of placed) {
+    spot.y = Math.min(bandTop(spot.depth), Math.max(bandBottom(spot.depth), spot.y))
+    spot.y = Math.min(bottom, Math.max(top, spot.y))
   }
 
   return placed
@@ -278,8 +315,23 @@ export function lanternSpots(
  * the DOM label takes the same scale the name recedes with its own paper.
  */
 
-/** How far a lantern may wander, as fractions of the frame and of its size. */
-const DRIFT = { x: 0.075, y: 0.055, z: 0.17 }
+/**
+ * How far a lantern may wander, as fractions of the frame and of its size.
+ *
+ * ─── WHY Y AND Z ARE SO MUCH SMALLER THAN X ────────────────────────────────
+ *
+ * The first cut used 0.055 and 0.17 and the whole point of the field stopped
+ * working: measured with two tiers of support, a one-vote lantern read 113px
+ * wide against a two-vote one at 93px. The drift range (±17% scale, ±46px of
+ * height) was simply larger than the gap support opens between the tiers, so
+ * the ranking the sky exists to show was being scrambled by its own weather.
+ *
+ * Height and depth CARRY THE MEANING here, so they get a small budget; sideways
+ * carries nothing, so it keeps a generous one. The result still reads as free
+ * drift — 108px of lateral wander over minutes is a lot of travel — while a
+ * name two people chose stays visibly nearer than a name one person chose.
+ */
+const DRIFT = { x: 0.075, y: 0.018, z: 0.04 }
 
 /**
  * Three octaves of sine, roughly ±1.
