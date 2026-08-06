@@ -314,93 +314,272 @@ export function lanternSpots(
  * A sky lantern is not a pendulum. It has almost no mass against a lot of
  * surface, so it does not oscillate — it WANDERS: carried by whatever the air
  * is doing, rising and settling as the air inside it cools, never returning to
- * quite the same place. The first version bobbed on a single sine and read
- * exactly like what it was, a thing on a spring.
+ * quite the same place.
  *
- * Three summed sines at incommensurate frequencies per axis is the cheapest
- * honest wander. The lowest has a period near 57s and carries most of the
- * amplitude; the two above it are progressively faster and smaller, so the
- * path has large slow arcs with small irregularities on top and no repeat a
- * viewer could ever notice. That is a balloon's pace: metres per minute, not
- * per second.
+ * ─── WHY THIS IS A SIMULATION AND NOT A FUNCTION OF TIME ───────────────────
  *
- * IT IS A PURE FUNCTION OF (index, time) AND THAT IS THE POINT. The canvas
- * draws the paper and the DOM writes the name on it, and if those two ever
- * disagree the paper slides out from under its own name. Publishing per-frame
- * offsets from the renderer into React would mean a callback, a ref and state
- * churn sixty times a second; a pure function needs none of it and cannot
- * desync, because there is nothing to keep in sync.
+ * It used to be three summed sines per axis, seeded by index — cheap, pure,
+ * and shareable between the canvas and the DOM without any plumbing. It also
+ * could not do the one thing a field of lanterns has to do: react to the
+ * others. Overlaps were resolved once, at layout, and then the drift walked
+ * straight back through them.
  *
- * THE THIRD DIMENSION IS REAL. `scale` is depth: a lantern drifting toward the
- * viewer grows and brightens, one drifting away shrinks and dims, and because
- * the DOM label takes the same scale the name recedes with its own paper.
+ * So each lantern is a body now. It carries its own velocity, its own mass,
+ * its own drag, and its own wander clock, and every one of those is drawn from
+ * its own seed — nothing shares a period, so nothing moves in step and no two
+ * ever pair up. A collider on each resolves overlaps with a SOFT force rather
+ * than a hard constraint: they push apart in proportion to how deeply they
+ * have met, which lets them touch and slide past each other occasionally
+ * instead of behaving like magnets that can never quite meet.
+ *
+ * ─── ONE FIELD, TWO RENDERERS ──────────────────────────────────────────────
+ *
+ * The canvas draws the paper and the DOM writes the name on it, and if those
+ * two ever disagree the paper slides out from under its own name. A simulation
+ * cannot be recomputed independently on both sides the way a pure function
+ * could, so there is exactly one field: the canvas owns the clock and steps
+ * it, the DOM reads positions out of it, and the label is parented to its
+ * lantern's transform rather than carrying a copy of the motion.
  */
 
-/**
- * How far a lantern may wander, as fractions of the frame and of its size.
- *
- * ─── WHY Y AND Z ARE SO MUCH SMALLER THAN X ────────────────────────────────
- *
- * The first cut used 0.055 and 0.17 and the whole point of the field stopped
- * working: measured with two tiers of support, a one-vote lantern read 113px
- * wide against a two-vote one at 93px. The drift range (±17% scale, ±46px of
- * height) was simply larger than the gap support opens between the tiers, so
- * the ranking the sky exists to show was being scrambled by its own weather.
- *
- * Height and depth CARRY THE MEANING here, so they get a small budget; sideways
- * carries nothing, so it keeps a generous one. The result still reads as free
- * drift — 108px of lateral wander over minutes is a lot of travel — while a
- * name two people chose stays visibly nearer than a name one person chose.
- */
-const DRIFT = { x: 0.075, y: 0.018, z: 0.04 }
+/** How far a lantern may wander from where support put it. */
+const DRIFT = { x: 0.075, y: 0.018 }
+/** Depth swing, as a fraction of resting size. */
+const DRIFT_Z = 0.04
 
-/**
- * Three octaves of sine, roughly ±1.
- *
- * The frequencies are the pace, and the first cut had them three times too
- * fast: measured, the labels moved at 15.6 px/s, which is a twitch. A sky
- * lantern crosses a frame in minutes. At 0.038 the slowest component has a
- * period near three minutes and carries most of the amplitude, which puts the
- * peak speed around 6 px/s — slow enough that you notice a lantern has moved
- * rather than watching it move.
- */
-function wander(time: number, seed: number): number {
-  return (
-    Math.sin(time * 0.038 + seed) * 0.6 +
-    Math.sin(time * 0.066 + seed * 1.7) * 0.28 +
-    Math.sin(time * 0.105 + seed * 2.9) * 0.12
-  )
-}
-
-export interface LanternDrift {
-  dx: number
-  dy: number
-  /** Depth, as a multiplier on the resting size. */
+export interface LanternBody {
+  /** Live position, in fractions of the frame. */
+  x: number
+  y: number
+  /** Depth offset, −1..1, on top of the resting scale. */
+  z: number
+  /** Where support put it. Everything is a spring back toward this. */
+  homeX: number
+  homeY: number
+  /** Collider radius, in fractions of the frame's width. */
+  r: number
   scale: number
   alpha: number
 }
 
+interface Body extends LanternBody {
+  /** The note this body belongs to, so state survives a rebuild. */
+  key: string
+  vx: number
+  vy: number
+  vz: number
+  /** Per-lantern, all seeded independently so nothing shares a beat. */
+  mass: number
+  drag: number
+  wanderRate: number
+  wanderPhase: number
+  wanderGain: number
+  /** Rotates this lantern's wander onto its own axes. */
+  wanderTilt: number
+  restScale: number
+}
+
+/** Deterministic 0..1 from a seed — a lantern must not change character. */
+function rand(n: number): number {
+  const v = Math.sin(n * 127.1 + 11.7) * 43758.5453
+  return v - Math.floor(v)
+}
+
 /**
- * Where lantern `index` has drifted to at `time` seconds, in px against a
- * frame of `width` x `height`.
+ * The field. One instance, owned by the canvas, read by the DOM.
  *
- * Lanterns are allowed to leave the frame. The range below is wide enough that
- * the outermost ones sometimes will, and that is correct — a sky with a hard
- * invisible wall at its edges is a diorama, not a sky.
+ * `reset` is called on layout with the resting spots; `step` advances the
+ * simulation; `bodies` is the live state both renderers read.
  */
-export function lanternDrift(
-  index: number,
-  time: number,
-  width: number,
-  height: number,
-): LanternDrift {
-  const seed = index * 12.9898
-  const z = wander(time, seed + 23)
-  return {
-    dx: wander(time, seed) * width * DRIFT.x,
-    // Slightly biased upward: they are buoyant, and they are cooling.
-    dy: (wander(time, seed + 11) - 0.16) * height * DRIFT.y,
-    scale: 1 + z * DRIFT.z,
-    alpha: 0.84 + z * 0.16,
+export class LanternField {
+  readonly bodies: Body[] = []
+  /** Frame aspect, so a radius in x-fractions can be compared in y. */
+  private aspect = 1.5
+
+  /**
+   * Seed or re-seed the field.
+   *
+   * STATE SURVIVES A REBUILD. This is called whenever the notes change — and
+   * keeping a name changes them — so rebuilding from scratch snapped every
+   * lantern in the sky back to its resting spot the instant somebody voted for
+   * one. Bodies are matched by key: a name that was already up there keeps its
+   * position, its velocity and its wander clock, and only its HOME moves to
+   * the new resting spot, so gaining a voice makes it drift nearer over the
+   * next few seconds instead of teleporting.
+   */
+  reset(spots: readonly LanternSpot[], aspect: number, keys: readonly string[] = []): void {
+    this.aspect = aspect || 1.5
+    const previous = new Map(this.bodies.map((body) => [body.key, body]))
+    this.bodies.length = 0
+    spots.forEach((spot, i) => {
+      const s = i * 12.9898
+      const key = keys[i] ?? String(i)
+      const kept = previous.get(key)
+      const seeded = {
+        key,
+        x: spot.x,
+        y: spot.y,
+        z: 0,
+        homeX: spot.x,
+        homeY: spot.y,
+        // The collider is the paper, a little tighter than the halo, so they
+        // may overlap their glow without overlapping their names.
+        r: (spot.size * LANTERN_ASPECT) / 2 / this.aspect,
+        scale: spot.scale,
+        alpha: 0.9,
+        restScale: spot.scale,
+        vx: 0,
+        vy: 0,
+        vz: 0,
+        /**
+         * Everything below is per-lantern and independently seeded, and two of
+         * them are spaced rather than sampled.
+         *
+         * A first cut drew rate and phase from the same random source and two
+         * lanterns came out correlated at r=0.98 — with eight bodies and a
+         * narrow range, a near-collision of parameters is likely rather than
+         * unlucky. The phase now steps by the golden angle so no two are ever
+         * close, the rates are spread across a wider band by index before
+         * being jittered, and each lantern's wander is rotated onto its own
+         * axes so even a similar clock traces a different path.
+         */
+        mass: 0.8 + rand(s + 3) * 0.6,
+        drag: 1.6 + rand(s + 7) * 1.4,
+        // Golden-ratio sequences, not index ramps. Spreading the rate BY INDEX
+        // guarantees the thing it was meant to prevent: neighbours get the
+        // nearest clocks to each other, and lamps 6 and 7 came out correlated
+        // at r=0.93. A low-discrepancy sequence puts consecutive indices as far
+        // apart as the range allows.
+        wanderRate: 0.045 + ((i * 0.6180339887) % 1) * 0.09 + rand(s + 11) * 0.012,
+        wanderPhase: ((i * 0.3819660113) % 1) * 6.283185 + rand(s + 17) * 0.5,
+        wanderGain: 0.6 + rand(s + 23) * 0.8,
+        wanderTilt: ((i * 0.7548776662) % 1) * 6.283185 + rand(s + 29) * 0.4,
+      }
+      this.bodies.push(
+        kept
+          ? // Position, velocity and clock carried over; home and size follow
+            // the new support.
+            { ...seeded, x: kept.x, y: kept.y, z: kept.z, vx: kept.vx, vy: kept.vy, vz: kept.vz }
+          : seeded,
+      )
+    })
   }
+
+  /**
+   * Advance by `dt` seconds at wall-clock `time`.
+   *
+   * Forces, in the order they are applied: the air moving the lantern, a weak
+   * spring holding it near where support put it, drag, and finally the soft
+   * separation that keeps names off each other.
+   */
+  step(dt: number, time: number): void {
+    const h = Math.min(dt, 1 / 30)
+
+    for (const b of this.bodies) {
+      // The air. Two incommensurate components per axis so the path has slow
+      // arcs with smaller irregularities on it and never visibly repeats.
+      const t = time * b.wanderRate + b.wanderPhase
+      const u = (Math.sin(t) * 0.7 + Math.sin(t * 2.3 + 1.1) * 0.3) * b.wanderGain
+      const v = (Math.cos(t * 0.83) * 0.7 + Math.sin(t * 1.9 + 2.2) * 0.3) * b.wanderGain
+      // Rotated onto this lantern's own axes, so two with similar clocks still
+      // trace different paths rather than sliding in parallel.
+      const cos = Math.cos(b.wanderTilt)
+      const sin = Math.sin(b.wanderTilt)
+      const ax = (u * cos - v * sin) * DRIFT.x
+      const ay = (u * sin + v * cos) * DRIFT.y
+      const az = Math.sin(t * 0.61 + 0.7) * DRIFT_Z
+
+      // A weak spring home. Without it a body wanders off and never returns;
+      // with it too strong, every lantern oscillates about its home on the
+      // same beat, which is the synchronised motion this exists to avoid. It
+      // is deliberately softer than the wander that fights it.
+      const kx = (b.homeX + ax - b.x) * 1.4
+      const ky = (b.homeY + ay - b.y) * 1.4
+      const kz = (az - b.z) * 1.2
+
+      b.vx += (kx / b.mass) * h
+      b.vy += (ky / b.mass) * h
+      b.vz += (kz / b.mass) * h
+
+      const damp = Math.exp(-b.drag * h)
+      b.vx *= damp
+      b.vy *= damp
+      b.vz *= damp
+
+      /**
+       * A SOFT WALL, not a hard one.
+       *
+       * You said a lantern going off the edge is fine, and it is — but the
+       * NAME is written on the paper and centred on it, so a lantern that
+       * sails out takes half a name with it. Measured, they were reaching
+       * 64px past the frame.
+       *
+       * This is a spring that only exists near the edges: nothing at all in
+       * the middle of the sky, firming up as a body approaches the margin. So
+       * they still wander widely and still overhang, and they stop before the
+       * writing is cut.
+       */
+      const margin = b.r * 0.9
+      if (b.x < margin) b.vx += (margin - b.x) * 9 * h
+      if (b.x > 1 - margin) b.vx -= (b.x - (1 - margin)) * 9 * h
+      const marginY = (b.r * this.aspect) * 0.9
+      if (b.y < marginY) b.vy += (marginY - b.y) * 9 * h
+      if (b.y > 1 - marginY) b.vy -= (b.y - (1 - marginY)) * 9 * h
+
+      b.x += b.vx * h
+      b.y += b.vy * h
+      b.z += b.vz * h
+    }
+
+    this.separate(h)
+
+    for (const b of this.bodies) {
+      b.scale = b.restScale * (1 + b.z)
+      b.alpha = 0.84 + b.z * 4
+    }
+  }
+
+  /**
+   * SOFT SEPARATION. Overlapping bodies push apart in proportion to how far
+   * they have interpenetrated, scaled by a spring constant low enough that a
+   * determined pair can still cross — the ask was that they intersect
+   * sometimes and slightly, not that they repel like magnets.
+   *
+   * It acts on VELOCITY rather than position: moving them directly would be a
+   * hard constraint and would read as two objects snapping apart.
+   */
+  private separate(h: number): void {
+    const list = this.bodies
+    for (let i = 0; i < list.length; i++) {
+      for (let j = i + 1; j < list.length; j++) {
+        const a = list[i]
+        const b = list[j]
+        // y is compared in x-units so a circle stays a circle on a wide frame.
+        const dx = b.x - a.x
+        const dy = (b.y - a.y) / this.aspect
+        const dist = Math.hypot(dx, dy) || 1e-5
+        const want = a.r + b.r
+        if (dist >= want) continue
+
+        const overlap = (want - dist) / want
+        // Deliberately gentle, and eased so a slight touch barely registers
+        // while a deep overlap pushes firmly.
+        const push = overlap * overlap * 3.2 * h
+        const nx = dx / dist
+        const ny = dy / dist
+        a.vx -= (nx * push) / a.mass
+        a.vy -= (ny * push * this.aspect) / a.mass
+        b.vx += (nx * push) / b.mass
+        b.vy += (ny * push * this.aspect) / b.mass
+      }
+    }
+  }
+}
+
+/** The one field. The canvas steps it; the DOM reads it. */
+let field: LanternField | null = null
+
+export function lanternField(): LanternField {
+  field ??= new LanternField()
+  return field
 }

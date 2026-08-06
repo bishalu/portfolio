@@ -37,7 +37,7 @@
  */
 import { Container, FillGradient, Graphics, WebGLRenderer } from 'pixi.js'
 import { lampSpots } from './lamps'
-import { LANTERN_ASPECT, lanternDrift, lanternSpots } from './lanterns'
+import { LANTERN_ASPECT, lanternField, lanternSpots } from './lanterns'
 import { drive, type LivingLayer } from './living'
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -179,6 +179,8 @@ export interface ValleyHandle {
    * Depth encodes support — see lanterns.ts.
    */
   setLanterns(counts: readonly number[]): void
+  /** The note key per lantern, so simulation state survives a rebuild. */
+  setLanternKeys(keys: readonly string[]): void
   resize(): void
   destroy(): void
 }
@@ -856,6 +858,8 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
   let lanternList: Lantern[] = []
   /** Support counts, newest set wins. Drives how many and how near. */
   let lanternCounts: readonly number[] = []
+  /** Note keys, parallel to the counts, so bodies survive a rebuild. */
+  let lanternKeys: readonly string[] = []
 
   function buildLanterns() {
     for (const l of lanternList) l.g.destroy()
@@ -864,6 +868,10 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
     if (lanternCounts.length === 0) return
 
     const spots = lanternSpots(lanternCounts, w < 600, h)
+    // The field is seeded from the resting spots and then simulates. Both this
+    // canvas and the DOM labels read it — see lanterns.ts.
+    // Keys so a rebuild keeps each lantern where it is — see reset().
+    lanternField().reset(spots, w / Math.max(1, h), lanternKeys)
 
     /**
      * FAR FIRST. The lanterns are large enough now to overlap each other, and a
@@ -969,18 +977,28 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
     }
   }
 
+  /** Wall-clock of the previous frame, for the simulation's timestep. */
+  let lastLanternTime = 0
+
   function animateLanterns(time: number) {
-    for (const l of lanternList) {
-      // The same function the DOM label reads, so the name rides its own paper
-      // rather than watching it drift away. See lanterns.ts.
-      const drift = lanternDrift(l.index, time, w, h)
-      l.g.x = l.x * w + drift.dx
-      l.g.y = l.y * h + drift.dy
+    const f = lanternField()
+    if (f.bodies.length !== lanternList.length) return
+
+    // THE CANVAS OWNS THE CLOCK. One stepper, or the field advances twice per
+    // frame and everything moves at double speed.
+    const dt = lastLanternTime === 0 ? 1 / 60 : time - lastLanternTime
+    lastLanternTime = time
+    f.step(dt, time)
+
+    lanternList.forEach((l, i) => {
+      const body = f.bodies[i]
+      l.g.x = body.x * w
+      l.g.y = body.y * h
       // The third dimension: nearer is bigger, brighter, and in front.
-      l.g.scale.set(drift.scale)
-      l.g.alpha = drift.alpha
-      l.g.zIndex = drift.scale
-    }
+      l.g.scale.set(body.scale / l.scale)
+      l.g.alpha = body.alpha
+      l.g.zIndex = body.scale
+    })
   }
 
   let veilFill: FillGradient | null = null
@@ -1263,6 +1281,9 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
         animateLamps(0)
         renderer.render(stage)
       }
+    },
+    setLanternKeys(keys) {
+      lanternKeys = [...keys]
     },
     setLanterns(counts) {
       // Same length AND same values, or a re-render on every parent update

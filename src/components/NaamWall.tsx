@@ -57,7 +57,7 @@
  */
 import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { NAAM_COPY } from '@/lib/naam/copy'
-import { LANTERN_ASPECT, lanternDrift, lanternSpots } from '@/lib/naam/scene/lanterns'
+import { LANTERN_ASPECT, lanternField, lanternSpots } from '@/lib/naam/scene/lanterns'
 
 /** Kept in CSS custom properties so the stylesheet can size the paper. */
 const ASPECT = LANTERN_ASPECT
@@ -183,19 +183,22 @@ export default function NaamWall({ notes, onKeep }: NaamWallProps) {
   }, [])
 
   /**
-   * THE NAME RIDES ITS OWN BALLOON.
+   * THE LABEL IS PARENTED TO ITS LANTERN.
    *
-   * The canvas drifts each lantern; the label used to sit perfectly still at
-   * the resting position, so the paper slid out from under the name written on
-   * it — the one thing a lantern carrying a name must never do.
+   * The paper is drawn on the canvas and the name is written in the DOM, and
+   * if those two ever disagree the paper slides out from under its own name.
    *
-   * Same pure function, same clock, applied as a transform. Deliberately NOT
-   * React state: this runs every frame, and re-rendering six list items sixty
-   * times a second to move them turns a compositor job into a layout job. The
-   * style is written straight onto the node.
+   * They cannot be computed independently any more: the lanterns are a
+   * simulation now, with collisions, so there is no closed-form position to
+   * recompute on this side. There is exactly ONE field (lanterns.ts). The
+   * canvas owns the clock and steps it; this reads the body out and writes it
+   * to the node — which is what "parented" means here, since a DOM element
+   * cannot literally be a child of a canvas display object.
    *
-   * `transform` is free here — .nm-lamp does its centring with the `translate`
-   * property, which is a separate one and is left alone.
+   * Deliberately NOT React state: this runs every frame, and re-rendering the
+   * list sixty times a second to move it turns a compositor job into a layout
+   * job. `transform` is free — .nm-lamp does its centring with the `translate`
+   * property, which is separate and left alone.
    */
   useEffect(() => {
     const list = shelfRef.current
@@ -207,13 +210,18 @@ export default function NaamWall({ notes, onKeep }: NaamWallProps) {
 
     let raf = 0
     const tick = () => {
-      const time = performance.now() / 1000
+      const bodies = lanternField().bodies
       list.querySelectorAll<HTMLElement>('.nm-lamp').forEach((el, i) => {
-        const drift = lanternDrift(i, time, frame.cw, frame.ch)
-        el.style.transform = `translate(${drift.dx.toFixed(2)}px, ${drift.dy.toFixed(2)}px) scale(${drift.scale.toFixed(3)})`
+        const body = bodies[i]
+        if (!body) return
+        // Offset from where this label is already positioned (its resting
+        // spot), so the transform carries only what the simulation added.
+        const dx = (body.x - body.homeX) * frame.cw
+        const dy = (body.y - body.homeY) * frame.ch
+        el.style.transform = `translate(${dx.toFixed(2)}px, ${dy.toFixed(2)}px) scale(${(body.scale / (body.restScale || 1)).toFixed(3)})`
         // The label stacks by the same depth its paper does, so a name that has
         // drifted forward is not overlapped by one that has drifted back.
-        el.style.zIndex = String(Math.round(drift.scale * 1000))
+        el.style.zIndex = String(Math.round(body.scale * 1000))
       })
       raf = requestAnimationFrame(tick)
     }

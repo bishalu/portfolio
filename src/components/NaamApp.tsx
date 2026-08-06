@@ -446,9 +446,12 @@ export default function NaamApp({ seed }: NaamAppProps) {
   const lampCountRef = useRef(0)
   /** Support counts for the sky, held for a scene that has not loaded yet. */
   const lanternCountsRef = useRef<readonly number[]>([])
+  /** Parallel note keys, so the field can keep each lantern's state. */
+  const lanternKeysRef = useRef<readonly string[]>([])
   const valleyHandleRef = useRef<{
     setLamps(n: number): void
     setLanterns(counts: readonly number[]): void
+    setLanternKeys(keys: readonly string[]): void
   } | null>(null)
   /** React renders this empty and never diffs its children, so it is the one
       safe place to park an imperatively created flying name. */
@@ -495,6 +498,7 @@ export default function NaamApp({ seed }: NaamAppProps) {
     let handle: {
       setLamps(n: number): void
       setLanterns(counts: readonly number[]): void
+      setLanternKeys(keys: readonly string[]): void
       resize(): void
       destroy(): void
     } | null = null
@@ -512,6 +516,7 @@ export default function NaamApp({ seed }: NaamAppProps) {
         }
         valleyHandleRef.current = handle
         handle.setLamps(lampCountRef.current)
+        handle.setLanternKeys(lanternKeysRef.current)
         handle.setLanterns(lanternCountsRef.current)
       } catch {
         // WebGL blocked, context lost, chunk failed — all the same outcome, and
@@ -1711,12 +1716,17 @@ export default function NaamApp({ seed }: NaamAppProps) {
    * loaded; the handle covers every change after it has.
    */
   const lanternCounts = useMemo(() => notes.map((note) => note.count), [notes])
+  const lanternKeys = useMemo(() => notes.map((note) => note.key), [notes])
   useEffect(() => {
     lampCountRef.current = notes.length
     lanternCountsRef.current = lanternCounts
+    lanternKeysRef.current = lanternKeys
     valleyHandleRef.current?.setLamps(notes.length)
+    // Keys first: setLanterns is what triggers the rebuild, and the rebuild
+    // needs them to match bodies to the names they already belong to.
+    valleyHandleRef.current?.setLanternKeys(lanternKeys)
     valleyHandleRef.current?.setLanterns(lanternCounts)
-  }, [notes.length, lanternCounts])
+  }, [notes.length, lanternCounts, lanternKeys])
 
   /**
    * The cut between what you have passed and what you are on: the last thing
