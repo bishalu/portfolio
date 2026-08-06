@@ -1,0 +1,141 @@
+---
+/**
+ * The seam under the hero — the surface area, moving slowly past.
+ *
+ * Replaces the live-signals strip, which spent this space on a leaderboard
+ * ranking that wasn't Bishal's work and a line bragging about the page. This
+ * spends it on what he actually does. Every phrase is a real term of art in
+ * voice, audio, video, multimodal and research engineering — specificity is
+ * the whole effect. "Speaker diarization" reads as a practitioner; "AI
+ * expertise" reads as a brochure.
+ *
+ * Motion budget (MOTION.md §2): this replaces the strip's `.live-dot`, so the
+ * ambient count is unchanged. It stops on hover and on keyboard focus, and the
+ * global reduced-motion block stops it entirely — the list stays readable
+ * because it is a real list that simply wraps.
+ */
+
+const SURFACE: readonly string[] = [
+  'speaker diarization',
+  'streaming speech',
+  'sub-200ms voice loops',
+  'audio embeddings',
+  'temporal alignment',
+  'video understanding',
+  'multimodal retrieval',
+  'agent orchestration',
+  'tool use under constraints',
+  'evaluation harnesses',
+  'model distillation',
+  'latency and cost budgets',
+  'vector search at scale',
+  'noise-robust inference',
+  'clinical workflow support',
+  'human review loops',
+]
+---
+
+<aside class="sf on-ink" aria-label="What I work on">
+  <div class="sf-viewport">
+    <!-- Two passes: the second is what the first scrolls into, so the loop has
+         no seam. Only the first is announced; the copy is decorative. -->
+    <ul class="sf-track">
+      {
+        SURFACE.map((s) => (
+          <li class="sf-item label-mono">
+            <span class="sf-tick" aria-hidden="true" />
+            {s}
+          </li>
+        ))
+      }
+    </ul>
+    <ul class="sf-track" aria-hidden="true">
+      {
+        SURFACE.map((s) => (
+          <li class="sf-item label-mono">
+            <span class="sf-tick" aria-hidden="true" />
+            {s}
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</aside>
+
+<style lang="scss">
+  .sf {
+    border-top: 1px solid var(--hairline-on-ink);
+    border-bottom: 1px solid var(--hairline-on-ink);
+    overflow: hidden;
+  }
+
+  .sf-viewport {
+    display: flex;
+    /* Phrases arrive and leave rather than being cut at the edge. */
+    mask-image: linear-gradient(90deg, transparent, #000 5rem, #000 calc(100% - 5rem), transparent);
+    padding: 0.7rem 0;
+    width: 100%;
+  }
+
+  .sf-track {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    margin: 0;
+    padding: 0;
+    min-width: max-content;
+    list-style: none;
+    animation: sf-drift 80s linear infinite;
+  }
+
+  .sf-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding-right: 1.7rem;
+    color: var(--paper-soft);
+    white-space: nowrap;
+  }
+
+  /* The site's own mark — a short signal rule, not a bullet. */
+  .sf-tick {
+    flex-shrink: 0;
+    background: var(--grad-signal);
+    width: 14px;
+    height: 2px;
+  }
+
+  @keyframes sf-drift {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-100%);
+    }
+  }
+
+  /* Let a reader stop it and finish a phrase, by pointer or by keyboard. */
+  .sf:hover .sf-track,
+  .sf:focus-within .sf-track {
+    animation-play-state: paused;
+  }
+
+  /* Still and readable, not frozen mid-slide: the duplicate pass goes and the
+     real list wraps like the list it is. */
+  @media (prefers-reduced-motion: reduce) {
+    .sf-viewport {
+      flex-wrap: wrap;
+      mask-image: none;
+    }
+
+    .sf-track {
+      flex-wrap: wrap;
+      min-width: 0;
+      animation: none;
+    }
+
+    .sf-track[aria-hidden='true'] {
+      display: none;
+    }
+  }
+</style>

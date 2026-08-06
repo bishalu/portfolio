@@ -6,6 +6,8 @@
  * Eyebrows encode the real music lifecycle — not decoration.
  */
 import { getCollection } from 'astro:content'
+import Substrate from '@components/Substrate.astro'
+import { BENCH_HOME } from '@/data/choon-benchmark'
 import VibeFinder from '@components/VibeFinder.tsx'
 import CueSync from '@components/CueSync.tsx'
 // Imported at build time, not fetched: the widget's claim is that it does no
@@ -23,10 +25,12 @@ const choon = bySlug['choon']
   <div class="vs-inner">
     <header class="vs-head" data-reveal>
       <p class="label-mono">Vibeset</p>
-      <h2 class="vs-title">One catalog, three products.</h2>
+      <h2 class="vs-title">Three systems, in production.</h2>
       <p class="vs-lede">
-        I co-own and build <a href="https://vibeset.ai" rel="noopener">Vibeset</a>. Find the track. Fit it to
-        picture. Prove what it is. All three are running below, if you'd like to try them.
+        I cofounded <a href="https://vibeset.ai" rel="noopener">Vibeset Technologies</a>. One product finds
+        the right track from a rough description, one watches a video and picks music that fits, one knows a
+        recording again after the internet has mangled it. Point the same three at support calls or security
+        footage and nothing about the engineering changes.
       </p>
     </header>
 
@@ -95,50 +99,64 @@ const choon = bySlug['choon']
              showing this rather than a staged identification. The workbench
              itself lives on /vibeset/choon — the landing page is an index
              (docs/design/DESIGN.md §2). -->
-        <figure class="vs-frozen">
-          <figcaption class="vs-frozen-head label-mono">
-            <span class="vs-frozen-badge">eval</span>
-            <span class="vs-frozen-input">66,000-track proxy catalog</span>
+        <!-- The comparison, not the confession.
+             This panel used to publish three internal numbers and the line
+             "every matcher has a condition it fails. This one is ours." That
+             candour is the site's whole posture and it stays — at /notes/choon,
+             where the methodology sits beside it. What belongs here is the
+             question a buyer actually asks: is this competitive. A published
+             benchmark with someone else's conditions answers it better than a
+             self-reported number can.
+
+             Four rows, not nine. Three stat tiles could not show a comparison
+             at all, and the full nine-row table does not fit a station on the
+             landing page. Each row here answers a different question; the rest
+             are one link away. -->
+        <figure class="vs-bench">
+          <figcaption class="vs-bench-head label-mono">
+            <span class="vs-frozen-badge">benchmark</span>
+            <span class="vs-frozen-input">Recall@1 · arXiv:2511.05399 · 5,000 refs</span>
           </figcaption>
 
-          <div class="vs-frozen-body">
-            <dl class="vs-frozen-stats">
-              <div>
-                <dt class="label-mono">core conditions</dt>
-                <dd>93.8%</dd>
-              </div>
-              <div>
-                <dt class="label-mono">recall@1, all attacks</dt>
-                <dd>76.9%</dd>
-              </div>
-              <div class="vs-frozen-weak">
-                <dt class="label-mono">high-pass filter</dt>
-                <dd>15.3%</dd>
-              </div>
-            </dl>
-            <p class="vs-frozen-note">Every matcher has a condition it fails. This one is ours.</p>
-          </div>
-        </figure>
+          <table class="vs-bench-table">
+            <caption class="sr-only">
+              Recall@1 and parameter count for Choon's neural channel against three published models.
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Model</th>
+                <th scope="col">Size</th>
+                <th scope="col">Recall@1</th>
+                <th scope="col">Re-encoded</th>
+              </tr>
+            </thead>
+            <tbody>
+              {
+                BENCH_HOME.map((r) => (
+                  <tr class:list={[r.ours && 'vs-bench-ours']}>
+                    <th scope="row">{r.ours ? 'Choon' : r.model.replace(', unfrozen', '')}</th>
+                    <td>{r.paramsLabel}</td>
+                    <td>{r.recall.toFixed(1)}</td>
+                    <td>{r.encoded.toFixed(1)}</td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
 
+          <p class="vs-bench-note">
+            The learned channel alone, at a tenth of the size of the model ahead of it. First on re-encoded
+            audio, which is what every file meets passing through a platform.
+          </p>
+        </figure>
         <p class="vs-frozen-cta">
-          <a class="vs-cta-quiet" href="/notes/choon">How this was measured ↳</a>
+          <a class="vs-cta-quiet" href="/vibeset/choon">All nine models ↳</a>
+          <a class="vs-cta-quiet" href="/notes/choon">Where it fails ↳</a>
         </p>
       </div>
     </article>
 
-    <!-- ── The pipeline underneath all three ───────────────────────────── -->
-    <aside class="vs-pipe" data-reveal>
-      <p class="label-mono vs-pipe-title">Underneath</p>
-      <!-- tabindex: the strip scrolls horizontally on narrow viewports, so it
-           needs to be reachable and scrollable by keyboard. -->
-      <ol class="vs-pipe-flow" aria-label="The pipeline underneath" tabindex="0">
-        <li><span class="vs-pipe-node">setlist scrapers</span></li>
-        <li><span class="vs-pipe-node">ETL + LLM enrichment</span></li>
-        <li><span class="vs-pipe-node vs-pipe-node-em">licensed pgvector catalog</span></li>
-        <li><span class="vs-pipe-node">LLM ensemble</span></li>
-        <li><span class="vs-pipe-node">three products</span></li>
-      </ol>
-    </aside>
+    <Substrate />
   </div>
 </section>
 
@@ -288,59 +306,6 @@ const choon = bySlug['choon']
     }
   }
 
-  /* ── Pipeline strip ─────────────────────────────────────────────────── */
-  .vs-pipe {
-    border-top: 1px solid var(--hairline-on-paper);
-    padding-top: var(--space-l);
-  }
-
-  .vs-pipe-title {
-    margin: 0 0 var(--space-s);
-  }
-
-  .vs-pipe-flow {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin: 0;
-    padding: 0.25rem 0;
-    overflow-x: auto;
-    list-style: none;
-
-    li {
-      display: flex;
-      flex-shrink: 0;
-      align-items: center;
-      gap: 0.75rem;
-
-      &:not(:last-child)::after {
-        display: block;
-        border-radius: 999px;
-        background: var(--grad-signal);
-        width: clamp(1.25rem, 3vw, 3rem);
-        height: 2px;
-        content: '';
-      }
-    }
-  }
-
-  .vs-pipe-node {
-    border: 1px solid var(--hairline-on-paper);
-    border-radius: 999px;
-    padding: 0.35rem 0.9rem;
-    color: var(--ink-soft);
-    font-size: 0.72rem;
-    letter-spacing: var(--tracking-label);
-    font-family: var(--font-mono);
-    text-transform: uppercase;
-    white-space: nowrap;
-  }
-
-  .vs-pipe-node-em {
-    border-color: var(--marigold);
-    color: var(--paper);
-  }
-
   /* ── Responsive ─────────────────────────────────────────────────────── */
   @media (max-width: 1023px) {
     .vs-station {
@@ -445,10 +410,96 @@ const choon = bySlug['choon']
     }
   }
 
-  /* The failing condition. Marked in marigold rather than hidden — publishing
-     it is the credibility, not a caveat (docs/design/DESIGN.md P9). */
-  .vs-frozen-weak dd {
-    color: var(--marigold);
+  /* ── Landing-page benchmark ─────────────────────────────────────────── */
+  .vs-bench {
+    margin: 0;
+    border: 1px solid var(--hairline-on-ink);
+    border-radius: var(--radius-large);
+    background: var(--card-background);
+    overflow: hidden;
+  }
+
+  .vs-bench-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border-color-subtle);
+    padding: 0.6rem 0.9rem;
+  }
+
+  /* 1px gap on a hairline ground — the gap is the rule, so there is nothing to
+     keep in sync. Same trick as the full table on the product page. */
+  .vs-bench-table {
+    border-spacing: 1px;
+    background: var(--hairline-on-ink);
+    width: 100%;
+    border-collapse: separate;
+    text-align: left;
+
+    th,
+    td {
+      background: var(--card-background);
+      padding: 0.45rem 0.7rem;
+    }
+
+    thead th {
+      color: var(--paper-soft);
+      font-weight: 500;
+      font-size: 0.58rem;
+      letter-spacing: 0.09em;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    tbody th {
+      color: var(--paper-soft);
+      font-weight: 400;
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+
+    td {
+      color: var(--paper-soft);
+      font-size: 0.82rem;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+  }
+
+  .vs-bench-note {
+    margin: 0;
+    padding: 0.7rem 0.9rem 0.85rem;
+    color: var(--paper-soft);
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+
+  /* Our row, and the only place this panel spends colour. The other three are
+     the baseline it is measured against, so they stay neutral. */
+  .vs-bench-ours {
+    th,
+    td {
+      background: var(--ink-2);
+      color: var(--paper);
+      font-weight: 600;
+    }
+
+    th {
+      position: relative;
+
+      &::after {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        background: var(--grad-signal);
+        width: 2px;
+        content: '';
+      }
+    }
   }
 
   .vs-frozen-note {
@@ -459,6 +510,9 @@ const choon = bySlug['choon']
   }
 
   .vs-frozen-cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.2rem;
     margin: var(--space-s) 0 0;
   }
 </style>

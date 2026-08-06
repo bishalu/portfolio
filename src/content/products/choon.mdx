@@ -30,16 +30,39 @@ claims:
     evidenceUrl: /notes/choon
     status: shipped
   - claim: Hybrid matcher — spectral landmarks plus learned embeddings
-    evidence: Classical and neural channels with FAISS temporal alignment
+    evidence: Classical and neural channels with FAISS temporal alignment on the identify path
     evidenceUrl: /notes/choon
     status: shipped
+  # Monitor is the third capability and appeared nowhere on this site. It is
+  # also where the neural channel was deliberately cut, which is the strongest
+  # engineering story Choon has: a matched A/B settled it, not an opinion.
+  - claim: Monitor — platform scanning against a catalogue, returning a queue of detected uses with evidence
+    evidence: Read-only in v1; every null states its own boundary (not-found and not-scanned are different answers)
+    status: shipping
+    eta: 2026-08-09
+  # No evidenceUrl on purpose: /notes/choon publishes the high-pass failure, not
+  # this one, and Balgo was citing the page for an A/B it does not contain.
+  # Writing it up there is the right move and needs a decision about publishing
+  # the numbers first.
+  - claim: Monitor v1 scans classical-only — the neural channel was measured and cut
+    evidence: Matched A/B on one corpus; at the production threshold the neural cascade took precision from 100% to 67%, and speech-only audio false-matched 47% of the time against 0% without it. Not yet written up publicly — do not link a page for it
+    status: shipped
+  - claim: Neural channel alone reaches 85.4% Recall@1 at 5,000-reference scale — second only to a ~300M model, at a tenth of its size
+    evidence: 27.7M params, measured at the same eleven conditions and same 5,000-reference scale as the 2025 music-foundation-model paper. MuQ-Large leads at 88.2 (~300M); MERT (95M) 74.3, BEATs (~90M) 70.3, NAFP 63.5. On re-encoded audio Choon leads outright at 97.6% against MuQ's 96.0, MERT's 44% and NAFP's 10%. Different corpus (FMA), so a placement rather than a reproduction — always say so
+    evidenceUrl: /vibeset/choon
+    status: shipped
+  - claim: Watermark payloads in three tiers — 16, 32 and 48 bit
+    evidence: Embed and verify both implemented in the watermark module
+    status: shipping
+    eta: 2026-08-09
   - claim: Major music label evaluation
     evidence: Benchmarked against an FMA proxy catalog pending catalog clearance
     evidenceUrl: /notes/choon
     status: building
   - claim: Audio watermarking with C2PA signed manifests
-    evidence: C2PA-shaped manifests, HMAC-signed; c2pa-python binding not yet wired
-    status: building
+    evidence: watermark/c2pa_utils.py builds the manifests and signs them; c2pa-python is a declared dependency and drops in behind the same data contract
+    status: shipping
+    eta: 2026-08-09
 order: 3
 ---
 

@@ -13,7 +13,7 @@ import { ClientRouter } from 'astro:transitions'
 
 const {
   title = 'Bishal Upadhyaya — AI Systems Architect',
-  description = 'AI systems, end-to-end: peer-reviewed research on one side, shipped products on the other. Co-owner of Vibeset — AI music tooling with live demos right on this page.',
+  description = 'AI systems, end-to-end: peer-reviewed research on one side, shipped products on the other. Cofounder of Vibeset — AI music tooling with live demos right on this page.',
   url = Astro.site,
   image = 'social-preview-image.png',
   author = 'Bishal Upadhyaya',
@@ -26,8 +26,16 @@ const {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
 
-    <!-- favicon -->
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- favicon — raster set rather than an SVG. The mark is flat vector art
+         but its counter is not a circle any primitive reproduces, so hand-
+         tracing it would have drifted from the artwork. Browsers pick the
+         nearest size; 512 covers PWA installs and 180 covers iOS, which masks
+         its own corners. -->
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/favicon-512.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
     <SiteMeta title={title} description={description.substring(0, 160)} url={url} image={image} author={author} />
 

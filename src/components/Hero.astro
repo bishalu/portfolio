@@ -11,7 +11,7 @@
 
 <section class="hero on-ink" id="hero">
   <div class="hero-container">
-    <p class="hero-kicker label-mono" id="hero-kicker">AI systems architect · research → production</p>
+    <p class="hero-kicker label-mono" id="hero-kicker">Applied AI · agents, voice, video, multimodal</p>
 
     <h1 class="hero-name" id="hero-name">
       <span class="name-line"><span class="name-word">Bishal</span></span>
@@ -25,9 +25,22 @@
     <div class="hero-split" id="split-layout">
       <div class="hero-left-column" id="hero-left">
         <p class="hero-tagline">
-          I build AI systems, start to finish.<br />
-          Research becomes something people use.<br />
-          <strong>Right now, that's Vibeset.</strong>
+          I take AI systems from research to production.<br />
+          Started with images, then 3D, then audio, then video.<br />
+          <strong>Now agents, wired into real products. Try Balgo.</strong><svg
+            class="sig-mark"
+            viewBox="0 0 400 300"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <defs>
+              <linearGradient id="sig-mark-grad" x1="8" y1="0" x2="392" y2="0" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stop-color="#d64553"></stop>
+                <stop offset="1" stop-color="#efa33b"></stop>
+              </linearGradient>
+            </defs>
+            <path d="M8 150 H120 L184 30 L240 270 L294 150 H392"></path>
+          </svg>
         </p>
       </div>
 
@@ -35,7 +48,11 @@
         <div class="balgo-portal" id="balgo-portal" data-state="collapsed">
           <div class="portal-header" id="portal-header">
             <span class="live-dot" aria-hidden="true"></span>
-            <span class="portal-status label-mono">Available for work</span>
+            <span class="portal-status label-mono">Balgo</span>
+            <span class="portal-role"
+            >I've read everything here — papers, benchmarks, the parts that didn't work. Ask, and I'll take you
+            there.</span
+          >
           </div>
 
           <button type="button" class="portal-close" id="portal-close" aria-label="Close chat">
@@ -57,7 +74,7 @@
             <textarea
               id="kinetic-input"
               class="balgo-input"
-              placeholder="What are we building today?"
+              placeholder="Ask it something"
               rows="1"
               aria-label="Ask Balgo a question"></textarea>
             <button type="submit" class="balgo-send" id="kinetic-send-btn" aria-label="Send message">
@@ -77,9 +94,9 @@
           </form>
 
           <div class="balgo-starters" id="balgo-starters" aria-label="Suggested questions">
-            <button type="button" class="balgo-starter btn" data-prompt="What is Vibeset?">What is Vibeset?</button>
-            <button type="button" class="balgo-starter btn" data-prompt="Tell me about the research behind this site.">The research</button>
-            <button type="button" class="balgo-starter btn" data-prompt="How do I work with Bishal?">Work with Bishal</button>
+            <button type="button" class="balgo-starter btn" data-prompt="What has Bishal actually shipped?">What's shipped?</button>
+            <button type="button" class="balgo-starter btn" data-prompt="Does this work outside music?">Outside music?</button>
+            <button type="button" class="balgo-starter btn" data-prompt="I have a problem involving audio, video or voice. Where would Bishal start?">I have a problem</button>
           </div>
         </div>
       </div>
@@ -109,9 +126,10 @@
     let energy = 0.26
 
     const scope = (() => {
-      if (!canvas || !scopeBox) return { setState: (_: string) => {} }
+      const noop = { setState: (_: string) => {}, retireInvite: () => {} }
+      if (!canvas || !scopeBox) return noop
       const ctx = canvas.getContext('2d')
-      if (!ctx) return { setState: (_: string) => {} }
+      if (!ctx) return noop
 
       const dpr = Math.min(window.devicePixelRatio || 1, 2)
       let w = 0
@@ -174,10 +192,59 @@
         ctx.stroke()
       }
 
+      /* The invitation. The canvas already knows, every frame, how high the
+         wave is standing; the console next to it is the thing you're meant to
+         use. So the wave's rise is published as `--flow` on the console and its
+         edge warms with it — one signal lighting two objects, rather than a
+         second animation pretending to agree with the first. MOTION.md P8 is
+         satisfied by construction: no new loop, no new timer.
+
+         Only the upward half is published. A symmetric read would strobe; a
+         rise-and-rest reads as breathing.
+
+         It is an invitation, so it is spent once it works. On the first send it
+         retires for the rest of the visit — the console has been found, and a
+         thing that keeps asking for attention it already has is just noise. */
+      let inviting = false
+      try {
+        inviting = sessionStorage.getItem('balgo-asked') !== '1'
+      } catch {
+        inviting = true
+      }
+      // Under reduced motion the loop never runs, so the attribute never goes
+      // on and both the spike and the ring fall back to their static styles.
+      // One condition, no per-component reduced-motion block (MOTION.md).
+      if (rm) inviting = false
+      if (inviting) hero.setAttribute('data-invite', '')
+      let lastFlow = -1
+
+      const publishFlow = () => {
+        // Quantised to 1/20th: below that the paint is invisible and the style
+        // recalc is not.
+        const rise = Math.min(1, Math.max(0, wave(w / 2, t, 1)) * 1.3)
+        const v = Math.round(rise * 20) / 20
+        if (v === lastFlow) return
+        lastFlow = v
+        hero.style.setProperty('--flow', String(v))
+      }
+
+      const retireInvite = () => {
+        if (!inviting) return
+        inviting = false
+        hero.removeAttribute('data-invite')
+        hero.style.removeProperty('--flow')
+        try {
+          sessionStorage.setItem('balgo-asked', '1')
+        } catch {
+          /* private mode — the invitation just returns next visit */
+        }
+      }
+
       const loop = () => {
         energy += (energyTarget - energy) * 0.04
         t += 0.016 * (0.6 + energy * 2.2)
         drawFrame()
+        if (inviting) publishFlow()
         raf = requestAnimationFrame(loop)
       }
 
@@ -218,6 +285,7 @@
         setState: (state: string) => {
           energyTarget = state === 'thinking' ? 0.85 : 0.26
         },
+        retireInvite,
       }
     })()
 
@@ -454,13 +522,47 @@
     }
 
     closeBtn.addEventListener('click', closeChat)
-    backdrop.addEventListener('click', closeChat)
+
+    // Clicking away steps aside; it does not end the conversation. The console
+    // shrinks to the pill bottom-right and the transcript is one tap away —
+    // the same move it already makes when you follow one of its links. Closing
+    // outright is still available, deliberately: the X, and Escape.
+    backdrop.addEventListener('click', () => {
+      if (balgoPortal.classList.contains('overlay')) void dockOverlay()
+      else closeChat()
+    })
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') closeChat()
     })
 
+    /* Balgo's reply is model output going into innerHTML, so it is escaped
+       before anything else touches it — the emphasis pass then reintroduces
+       exactly the two tags it is allowed to.
+
+       Paragraphs and lists are new. The old renderer understood bold and
+       italic and nothing else, so a three-paragraph answer arrived as one
+       unbroken wall and the prompt's instruction to write in short paragraphs
+       had no effect anyone could see. */
+    const esc = (t: string) =>
+      t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+
+    const inline = (t: string) =>
+      esc(t)
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/(^|[^*])\*(?!\s)([^*]+?)\*/g, '$1<em>$2</em>')
+
     const markdownToHtml = (text: string) =>
-      text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>')
+      String(text ?? '')
+        .trim()
+        .split(/\n\s*\n/)
+        .map((block) => {
+          const lines = block.split('\n')
+          if (lines.every((l) => /^\s*[-*]\s+/.test(l))) {
+            return `<ul>${lines.map((l) => `<li>${inline(l.replace(/^\s*[-*]\s+/, ''))}</li>`).join('')}</ul>`
+          }
+          return `<p>${lines.map(inline).join('<br />')}</p>`
+        })
+        .join('')
 
     const smoothScrollChat = () =>
       chatHistory.scrollTo({ top: chatHistory.scrollHeight, behavior: rm ? 'auto' : 'smooth' })
@@ -559,9 +661,9 @@
         linksEl.innerHTML = data.links
           .map(
             (link: any) => `
-          <a href="${link.href}" class="msg-link smooth-scroll" data-target="${link.href}">
+          <a href="${esc(String(link.href ?? ''))}" class="msg-link smooth-scroll" data-target="${esc(String(link.href ?? ''))}">
             <span class="msg-link-glyph" aria-hidden="true">↳</span>
-            <span>${link.title}</span>
+            <span>${esc(String(link.title ?? 'Open'))}</span>
           </a>
         `,
           )
@@ -611,6 +713,7 @@
       isSubmitting = true
       sendBtn.disabled = true
       scope.setState('thinking')
+      scope.retireInvite()
 
       try {
         if (!balgoPortal.classList.contains('expanded')) {
@@ -803,6 +906,43 @@
       color: var(--paper);
       font-weight: 700;
     }
+
+    /* Rest, spike, undershoot, rest — the same reading the tab icon makes,
+       except the icon resolves its trace into a "b" and this one stays a wave.
+       A letterform inline after "Meet Balgo." would read as a logo dropped
+       into a sentence; what belongs here is the signal itself. It closes the
+       line and lights with the wave overhead, so the eye is handed from the
+       sentence to the console beside it. Decorative — the sentence is complete
+       without it. */
+    .sig-mark {
+      display: inline-block;
+      transform: translateY(0.08em);
+      margin-left: 0.5em;
+      width: 2.2em;
+      height: 0.82em;
+      overflow: visible;
+      vertical-align: baseline;
+
+      path {
+        fill: none;
+        stroke: url(#sig-mark-grad);
+        stroke-width: 34;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+    }
+  }
+
+  /* Resting: present, quiet, no motion. This is what reduced motion and no-JS
+     get, and what remains after the invitation is spent. */
+  .sig-mark {
+    opacity: 0.55;
+  }
+
+  /* Riding the wave. Only while the invitation stands. */
+  :global(#hero[data-invite]) .sig-mark {
+    opacity: calc(0.4 + var(--flow, 0) * 0.6);
+    filter: drop-shadow(0 0 calc(var(--flow, 0) * 7px) rgb(239 163 59 / 0.55));
   }
 
   /* ── Balgo console — quiet glass on ink ─────────────────────────────────── */
@@ -826,6 +966,31 @@
     /* focus lift — pure CSS, no JS */
     &:not(.expanded):focus-within {
       box-shadow: var(--ring-crimson);
+    }
+
+    /* The wave arriving. Its own element rather than this one's border or
+       box-shadow, both of which are already spoken for by the focus ring, the
+       overlay lift and the sheet — a ring that fades out of the way beats four
+       states negotiating one property.
+
+       Under reduced motion the rAF never starts, so --flow is never written and
+       this stays at zero. Inert without a second reduced-motion block, which
+       MOTION.md forbids anyway. */
+    :global(#hero[data-invite]) &::before {
+      position: absolute;
+      inset: -1px;
+      opacity: calc(var(--flow, 0) * 0.5);
+      border: 1px solid var(--marigold);
+      border-radius: 17px;
+      box-shadow: 0 0 22px -8px var(--marigold);
+      pointer-events: none;
+      content: '';
+    }
+
+    /* Once it is open it is in use, and the edge has nothing left to say. */
+    &.expanded::before,
+    &.sheet::before {
+      display: none;
     }
 
     &.expanded {
@@ -914,9 +1079,17 @@
 
   .portal-header {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.35rem 0.6rem;
     margin-bottom: 0.75rem;
+  }
+
+  .portal-role {
+    flex-basis: 100%;
+    color: var(--paper-soft);
+    font-size: 0.82rem;
+    line-height: 1.45;
   }
 
   .portal-status {
@@ -1067,6 +1240,39 @@
 
   :global(.msg-bubble-ai strong) {
     color: var(--paper);
+  }
+
+  /* The reply arrives as paragraphs now, so it needs the spacing of prose:
+     a gap between paragraphs and none at either end of the bubble. */
+  :global(.msg-text p) {
+    margin: 0 0 0.7em;
+  }
+
+  :global(.msg-text > :last-child) {
+    margin-bottom: 0;
+  }
+
+  :global(.msg-text ul) {
+    margin: 0 0 0.7em;
+    padding-left: 1.1rem;
+    list-style: none;
+  }
+
+  :global(.msg-text li) {
+    position: relative;
+    margin-bottom: 0.3em;
+
+    /* The site's mark, not a bullet — the same signal rule that ticks the
+       phrases under the hero and the capability list on /about. */
+    &::before {
+      position: absolute;
+      top: 0.62em;
+      left: -1.1rem;
+      background: var(--grad-signal);
+      width: 10px;
+      height: 2px;
+      content: '';
+    }
   }
 
   :global(.msg-bubble-loading) {

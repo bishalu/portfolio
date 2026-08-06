@@ -5,7 +5,8 @@
  * script enforces one rule and reports the rest:
  *
  *   status: shipped   MUST have evidence. No evidence → the build fails.
- *   status: building  Real work in flight. Renders normally, listed here so
+ *   status: shipping  Done or all but, with a date. MUST have evidence AND eta.
+ *   status: building  Real work in flight, no date. Renders normally, listed here so
  *                     it can't quietly become permanent.
  *
  * Nothing here changes a single word a visitor reads. The point is that when
@@ -57,17 +58,34 @@ for (const file of readdirSync(DIR).filter((f) => f.endsWith('.mdx'))) {
   }
 }
 
-const missing = rows.filter((r) => r.status === 'shipped' && !r.evidence)
+const missing = rows.filter((r) => (r.status === 'shipped' || r.status === 'shipping') && !r.evidence)
+// A `shipping` row without a date is just `building` wearing optimism, and
+// Balgo would relay the optimism to a prospect as a commitment.
+const undated = rows.filter((r) => r.status === 'shipping' && !r.eta)
 const building = rows.filter((r) => r.status === 'building')
+const shipping = rows.filter((r) => r.status === 'shipping')
 
 if (!quiet) {
-  const shipped = rows.length - building.length
-  console.log(`\n  claims ledger — ${rows.length} total · ${shipped} shipped · ${building.length} building`)
+  const shipped = rows.length - building.length - shipping.length
+  console.log(
+    `\n  claims ledger — ${rows.length} total · ${shipped} shipped · ${shipping.length} shipping · ${building.length} building`,
+  )
+  if (shipping.length) {
+    console.log('\n  landing soon (Balgo may say so, with the date):')
+    for (const r of shipping) console.log(`    · ${r.product}: ${r.claim} — ${r.eta}`)
+  }
   if (building.length) {
     console.log('\n  in flight (renders now, evidence pending):')
     for (const r of building) console.log(`    · ${r.product}: ${r.claim}`)
   }
   console.log('')
+}
+
+if (undated.length) {
+  console.error('\n  FAIL: claims marked `shipping` with no `eta`:\n')
+  for (const r of undated) console.error(`    · ${r.product}: ${r.claim}`)
+  console.error('\n  Give it an ISO date, or set `status: building` until it has one.\n')
+  process.exit(1)
 }
 
 if (missing.length) {

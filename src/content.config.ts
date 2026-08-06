@@ -38,8 +38,12 @@ const publications = defineCollection({
  * `status` is the honest bit:
  *   shipped  — running in production today. MUST carry evidence; the build
  *              fails without it (scripts/check-claims.mjs).
- *   building — real work, in flight, not finished. Renders normally and is
- *              listed in the claims report so it can't be forgotten.
+ *   shipping — finished or all but, with a date. Needs evidence AND eta.
+ *              Balgo may speak of it in the near future tense ("lands Friday"),
+ *              which is the one honest way to answer a prospect asking about
+ *              something that is real but not yet live.
+ *   building — real work, in flight, no date. Renders normally and is listed
+ *              in the claims report so it can't be forgotten.
  *
  * This is an internal engineering surface, not a public label. Nothing about
  * it changes what a visitor reads.
@@ -48,7 +52,15 @@ const claim = z.object({
   claim: z.string(),
   evidence: z.string().optional(),
   evidenceUrl: z.string().optional(),
-  status: z.enum(['shipped', 'building']).default('shipped'),
+  status: z.enum(['shipped', 'shipping', 'building']).default('shipped'),
+  /** Go-live date. Required when status is `shipping` — a date with no day on
+      it is a hope, and Balgo would repeat it to a prospect as a commitment.
+      Coerced because YAML parses a bare 2026-08-09 into a Date, and everything
+      downstream wants the ISO string. */
+  eta: z
+    .union([z.string(), z.date()])
+    .transform((v) => (v instanceof Date ? v.toISOString().slice(0, 10) : v))
+    .optional(),
 })
 
 // Capabilities - the individual systems behind each product. Replaces the old

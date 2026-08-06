@@ -91,11 +91,42 @@ lines.push(
 for (const p of products) {
   const caps = capabilities.filter((c) => c.product === p.slug).map((c) => c.name)
   const stats = (p.stats || []).map((s) => `${s.label} ${s.value}`).join(', ')
+  // The ledger already records what ships and what does not. Balgo never saw
+  // that column, so it read the marketing description as fact and told a
+  // visitor Choon "returns a signed C2PA manifest" — which the ledger marks
+  // `building`, c2pa-python binding not yet wired. Promising a prospect a
+  // feature that does not exist is the most expensive mistake this site can
+  // make, so the status travels with the facts now.
+  //
+  // Phrased as UNPROVEN rather than NOT SHIPPED because the two `building`
+  // rows mean different things: Choon's C2PA binding is unfinished, while
+  // Curation's "Licensed catalog" is licensed but not publicly documented.
+  // A single "not yet shipped" label would have had Balgo tell a prospect the
+  // catalogue is unlicensed — worse than the bug it was fixing.
+  const building = (p.claims || []).filter((c) => c.status === 'building')
+  const shipping = (p.claims || []).filter((c) => c.status === 'shipping')
+  // Shipped claims carry the evidence pointers — they are the whole reason the
+  // ledger exists, and Balgo could not see them. Without this it had the
+  // marketing description and the headline stats and nothing underneath, which
+  // is how it ended up inventing mechanisms when a prospect pushed.
+  const proven = (p.claims || []).filter((c) => (c.status || 'shipped') === 'shipped' && c.evidence)
   const bits = [
     `*   ${p.name} (${p.eyebrow}, Anchor: #vibeset, page: /vibeset/${p.slug}${p.liveUrl ? `, live: ${p.liveUrl}` : ''}): ${p.tagline}.`,
     p.description,
     stats && `Measured: ${stats}.`,
     caps.length && `Capabilities: ${caps.join(', ')}.`,
+    proven.length &&
+      `PROVEN — each of these has evidence behind it, cite it when it helps: ${proven
+        .map((c) => `${c.claim} [${c.evidence}${c.evidenceUrl ? `, see ${c.evidenceUrl}` : ''}]`)
+        .join('; ')}.`,
+    shipping.length &&
+      `CORRECTION TO THE DESCRIPTION ABOVE — anything here is NOT live yet. The description is marketing copy written ahead of the work; this is what is true today. Speak of these in the near future, with the date, and never in the present tense: ${shipping
+        .map((c) => `${c.claim} (live ${c.eta}) — ${c.evidence}`)
+        .join('; ')}.`,
+    building.length &&
+      `CORRECTION TO THE DESCRIPTION ABOVE — unproven, never state as fact. If asked, say where each one actually stands: ${building
+        .map((c) => `${c.claim} — ${c.evidence}`)
+        .join('; ')}.`,
   ].filter(Boolean)
   lines.push(bits.join(' '))
 }
