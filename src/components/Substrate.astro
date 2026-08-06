@@ -1,0 +1,496 @@
+---
+/**
+ * The substrate, drawn.
+ *
+ * This replaces a capability × product table. The table was accurate but it
+ * read as a spreadsheet, and worse, it flattened the one thing worth showing:
+ * that these capabilities fan out unevenly. "Train and compress" reaches
+ * exactly one product. "Retrieve" and "Serve and prove" reach all three.
+ * A grid of dots gives every cell the same visual weight, so the fan-out —
+ * the actual argument — is something you have to reconstruct by reading rows.
+ * Edges show it without being read.
+ *
+ * The signature is that single thread from "Train and compress" to Choon,
+ * sitting in the middle of a bundle that goes everywhere. One-to-one against
+ * one-to-many, in the same picture, at a glance.
+ *
+ * Not a Sankey and not a force graph. Both are the template answer for
+ * "relationships between two sets", both need a library, and a force layout
+ * would move the nodes on every load — the shape here is fixed because the
+ * shape is the content. Sixteen hand-placed beziers, no dependency.
+ *
+ * Colour: --grad-signal runs left to right, substrate into product, which is
+ * the same direction the hero's oscilloscope reads and the same gradient the
+ * spike-train rail uses. It is a stroke, never a fill (DESIGN.md P5).
+ *
+ * Motion: none ambient. MOTION.md P8 allows two loops per viewport and both
+ * are spoken for. The only movement is a 180ms opacity change when a lens is
+ * chosen, which is interaction, not atmosphere.
+ *
+ * The SVG is aria-hidden and a real table carries the same data to screen
+ * readers. A diagram that cannot be read aloud is a diagram that excludes
+ * people; duplicating it in markup costs nothing and the table is authored
+ * from the same array, so the two cannot drift.
+ */
+import { CAPABILITIES, PRODUCTS, WEIGHT_LABEL } from '@/data/substrate'
+
+// Fixed geometry. Six rows on the left, three on the right, in one viewBox so
+// the whole thing scales as a unit rather than reflowing.
+// Width is set by the longest gloss, not by taste: "inference under a deadline,
+// eval harnesses, cost governance" is 58 characters of mono, and at 10.5px that
+// needs 365 units to the left of the node. It was running off the viewBox.
+const VB = { w: 1010, h: 400 }
+const CAP_X = 430
+const PROD_X = 700
+const capY = (i: number) => 34 + i * 66
+const prodY = (i: number) => 100 + i * 99
+
+const WIDTH = { lean: 2.2, use: 1.1, none: 0 }
+const IDLE = { lean: 0.42, use: 0.2, none: 0 }
+
+const edges = CAPABILITIES.flatMap((c, ci) =>
+  c.w
+    .map((weight, pi) => ({ weight, cap: c, ci, prod: PRODUCTS[pi], pi }))
+    .filter((e) => e.weight !== 'none')
+    .map((e) => ({
+      ...e,
+      d: `M${CAP_X} ${capY(e.ci)} C548 ${capY(e.ci)} 582 ${prodY(e.pi)} ${PROD_X} ${prodY(e.pi)}`,
+    })),
+)
+---
+
+<section class="sb" aria-labelledby="sb-title">
+  <header class="sb-head">
+    <p class="label-mono sb-eyebrow">Underneath</p>
+    <h2 class="sb-title" id="sb-title">Six capabilities. Three arrangements of them.</h2>
+    <p class="sb-lede">
+      None of this is specific to music. Pick a product to see what it leans on.
+    </p>
+  </header>
+
+  <div class="sb-stage" id="sb-stage">
+    <svg class="sb-svg" viewBox={`0 0 ${VB.w} ${VB.h}`} aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="sb-flow" x1={CAP_X} y1="0" x2={PROD_X} y2="0" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="#d64553"></stop>
+          <stop offset="1" stop-color="#efa33b"></stop>
+        </linearGradient>
+      </defs>
+
+      {
+        edges.map((e) => (
+          <path
+            class:list={['sb-edge', `is-${e.cap.id}`, `to-${e.prod.id}`]}
+            d={e.d}
+            style={`--o:${IDLE[e.weight]}`}
+            stroke-width={WIDTH[e.weight]}
+          />
+        ))
+      }
+
+      {
+        CAPABILITIES.map((c, i) => (
+          <g
+            class:list={[
+              'sb-cap',
+              `is-${c.id}`,
+              ...c.w.map((weight, pi) => weight !== 'none' && `has-${PRODUCTS[pi].id}`),
+            ]}
+          >
+            <text class="sb-cap-name" x={CAP_X - 22} y={capY(i) - 2} text-anchor="end">
+              {c.name}
+            </text>
+            <text class="sb-cap-gloss" x={CAP_X - 22} y={capY(i) + 15} text-anchor="end">
+              {c.gloss}
+            </text>
+            <circle class="sb-node" cx={CAP_X} cy={capY(i)} r="4.5" />
+          </g>
+        ))
+      }
+
+      {
+        PRODUCTS.map((p, i) => (
+          <g class:list={['sb-prod', `to-${p.id}`]}>
+            <circle class="sb-node sb-node-prod" cx={PROD_X} cy={prodY(i)} r="6" />
+            <text class="sb-prod-name" x={PROD_X + 22} y={prodY(i) + 7}>
+              {p.name}
+            </text>
+          </g>
+        ))
+      }
+    </svg>
+  </div>
+
+  <!-- The control, and the mobile reading of the same data. Buttons rather
+       than hover targets on the SVG: hover is not available on a phone and a
+       <circle> is not focusable. -->
+  <div class="sb-lens" role="group" aria-label="Filter by product">
+    {
+      PRODUCTS.map((p) => (
+        <button type="button" class="sb-lens-btn label-mono" data-lens={p.id} aria-pressed="false">
+          {p.name}
+        </button>
+      ))
+    }
+  </div>
+
+  <ul class="sb-compact">
+    {
+      CAPABILITIES.map((c) => (
+        <li class:list={['sb-crow', `is-${c.id}`]}>
+          <p class="sb-crow-name">{c.name}</p>
+          <p class="sb-crow-gloss">{c.gloss}</p>
+          <p class="sb-crow-marks">
+            {c.w.map((weight, pi) => (
+              <span class:list={['sb-mark', `w-${weight}`, `to-${PRODUCTS[pi].id}`]}>
+                <span class="sb-mark-dot" aria-hidden="true" />
+                {PRODUCTS[pi].name}
+              </span>
+            ))}
+          </p>
+        </li>
+      ))
+    }
+  </ul>
+
+  <p class="sb-note">
+    Retrieval and serving carry all three. Training carries one. That difference is what makes this a practice
+    rather than three separate builds.
+  </p>
+
+  <!-- The wrapper carries .sr-only, not the table: a <table> ignores
+       inline-size: 1px because its min-content width wins, so the hidden copy
+       was 360px wide and pushed the page sideways by 40px at 320. A div shrinks
+       and clips it. -->
+  <div class="sr-only">
+    <table>
+      <caption>Which capabilities each product draws on</caption>
+      <thead>
+        <tr>
+          <th scope="col">Capability</th>
+          {PRODUCTS.map((p) => <th scope="col">{p.name}</th>)}
+        </tr>
+      </thead>
+      <tbody>
+        {
+          CAPABILITIES.map((c) => (
+            <tr>
+              <th scope="row">
+                {c.name} — {c.gloss}
+              </th>
+              {c.w.map((weight) => (
+                <td>{WEIGHT_LABEL[weight]}</td>
+              ))}
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<style lang="scss">
+  .sb {
+    border-top: 1px solid var(--hairline-on-paper);
+    padding-top: var(--space-l);
+  }
+
+  .sb-head {
+    margin-bottom: var(--space-l);
+    max-width: 44rem;
+  }
+
+  .sb-eyebrow {
+    margin: 0 0 var(--space-xs);
+    color: var(--paper-soft);
+  }
+
+  .sb-title {
+    margin: 0 0 var(--space-s);
+    font-size: clamp(1.4rem, 2.4vw, 1.9rem);
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+  }
+
+  .sb-lede {
+    margin: 0;
+    color: var(--paper-soft);
+    font-size: 0.98rem;
+    line-height: 1.6;
+  }
+
+  .sb-stage {
+    margin: 0 auto;
+    max-width: 60rem;
+  }
+
+  .sb-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+
+  /* Every edge is a stroke of the signal gradient, running substrate → product.
+     Weight is stroke width; presence is opacity. There is no edge at all where
+     a product does not use a capability, which is why "Train and compress" has
+     one line leaving it and "Retrieve" has three. */
+  .sb-edge {
+    fill: none;
+    stroke: url(#sb-flow);
+    stroke-linecap: round;
+    opacity: var(--o);
+    transition: opacity 0.18s var(--ease-out);
+  }
+
+  .sb-node {
+    fill: var(--paper-soft);
+    opacity: 0.55;
+    transition:
+      fill 0.18s var(--ease-out),
+      opacity 0.18s var(--ease-out);
+  }
+
+  .sb-node-prod {
+    fill: var(--paper);
+    opacity: 0.9;
+  }
+
+  .sb-cap-name {
+    fill: var(--paper);
+    font-size: 15px;
+    font-family: var(--font-body);
+  }
+
+  .sb-cap-gloss {
+    fill: var(--paper-soft);
+    font-size: 10.5px;
+    letter-spacing: 0.02em;
+    font-family: var(--font-mono);
+  }
+
+  .sb-prod-name {
+    fill: var(--paper);
+    font-weight: 600;
+    font-size: 19px;
+    letter-spacing: -0.01em;
+    font-family: var(--font-display);
+  }
+
+  /* ── Lensing ─────────────────────────────────────────────────────────────
+     Choosing a product drops everything that is not its own to a trace, so the
+     shape of that one product's dependency is readable on its own. The dropped
+     edges stay visible rather than disappearing — the comparison is the point,
+     and an edge at 6% still says "there is more here". */
+  .sb[data-lens] {
+    .sb-edge {
+      opacity: 0.06;
+    }
+
+    .sb-cap-name,
+    .sb-prod-name {
+      opacity: 0.28;
+    }
+
+    .sb-cap-gloss {
+      opacity: 0.15;
+    }
+
+    .sb-node {
+      opacity: 0.18;
+    }
+  }
+
+  @each $p in curation, cue, choon {
+    .sb[data-lens='#{$p}'] {
+      .sb-edge.to-#{$p} {
+        opacity: 1;
+      }
+
+      .sb-prod.to-#{$p} {
+        .sb-prod-name,
+        .sb-node {
+          opacity: 1;
+        }
+      }
+
+      /* The capabilities that product actually reaches come back up with it.
+         Dimming the whole left column would hide the answer to the question the
+         button just asked. */
+      .sb-cap.has-#{$p} {
+        .sb-cap-name,
+        .sb-node {
+          opacity: 1;
+        }
+
+        .sb-cap-gloss {
+          opacity: 0.75;
+        }
+      }
+    }
+  }
+
+  .sb-lens {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: var(--space-m);
+  }
+
+  .sb-lens-btn {
+    transition:
+      border-color 0.18s var(--ease-out),
+      color 0.18s var(--ease-out),
+      transform 0.18s var(--ease-out);
+    border: 1px solid var(--hairline-on-paper);
+    border-radius: var(--radius-pill);
+    background: transparent;
+    cursor: pointer;
+    padding: 0.4rem 0.9rem;
+    min-height: var(--target-size-min, 24px);
+    color: var(--paper-soft);
+
+    &:hover {
+      transform: translateY(-1px);
+      border-color: var(--paper-soft);
+      color: var(--paper);
+    }
+
+    &[aria-pressed='true'] {
+      border-color: var(--marigold);
+      color: var(--paper);
+    }
+  }
+
+  .sb-note {
+    margin: var(--space-m) 0 0;
+    max-width: 42rem;
+    color: var(--paper-soft);
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+
+  /* ── The narrow reading ──────────────────────────────────────────────────
+     Below 720px there is no room for two columns and a span of curves between
+     them, and a diagram squeezed until its labels collide is worse than no
+     diagram. The same data becomes six rows, each naming which products lean
+     on it — which keeps the fan-out legible, because a row with one product
+     under it looks different from a row with three. */
+  .sb-compact {
+    display: none;
+    margin: var(--space-m) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .sb-crow {
+    border-top: 1px solid var(--hairline-on-ink);
+    padding: 0.7rem 0;
+  }
+
+  .sb-crow-name {
+    margin: 0;
+    color: var(--paper);
+    font-weight: 500;
+    font-size: 0.92rem;
+  }
+
+  .sb-crow-gloss {
+    margin: 0.1rem 0 0.45rem;
+    color: var(--paper-soft);
+    font-size: 0.74rem;
+    line-height: 1.4;
+  }
+
+  .sb-crow-marks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.8rem;
+    margin: 0;
+  }
+
+  .sb-mark {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--paper-soft);
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+  }
+
+  .sb-mark-dot {
+    display: inline-block;
+    border-radius: 50%;
+    width: 8px;
+    height: 8px;
+  }
+
+  .w-lean {
+    color: var(--paper);
+
+    .sb-mark-dot {
+      background: var(--grad-signal);
+    }
+  }
+
+  .w-use .sb-mark-dot {
+    box-shadow: inset 0 0 0 1.5px var(--paper-soft);
+    opacity: 0.7;
+  }
+
+  /* Not used, and said so rather than left out — an absence you can see is
+     information, an absence you cannot is a gap in the table. */
+  .w-none {
+    opacity: 0.4;
+
+    .sb-mark-dot {
+      background: var(--paper-soft);
+      width: 8px;
+      height: 1.5px;
+      opacity: 0.5;
+    }
+  }
+
+  .sb[data-lens] .sb-mark {
+    opacity: 0.22;
+  }
+
+  @each $p in curation, cue, choon {
+    .sb[data-lens='#{$p}'] .sb-mark.to-#{$p} {
+      opacity: 1;
+    }
+  }
+
+  @media (max-width: 719px) {
+    .sb-stage {
+      display: none;
+    }
+
+    .sb-compact {
+      display: block;
+    }
+  }
+</style>
+
+<script>
+  document.addEventListener('astro:page-load', () => {
+    const root = document.querySelector<HTMLElement>('.sb')
+    if (!root) return
+    const buttons = [...root.querySelectorAll<HTMLButtonElement>('.sb-lens-btn')]
+
+    // Clicking the active lens clears it. There is no "All" button because the
+    // cleared state is the default, and a button for the state you start in is
+    // a button that does nothing the first time anyone presses it.
+    const apply = (lens: string | null) => {
+      if (lens) root.dataset.lens = lens
+      else delete root.dataset.lens
+      buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lens === lens)))
+    }
+
+    buttons.forEach((b) =>
+      b.addEventListener('click', () => apply(root.dataset.lens === b.dataset.lens ? null : b.dataset.lens!)),
+    )
+  })
+</script>
