@@ -1543,6 +1543,34 @@ export default function NaamApp({ seed }: NaamAppProps) {
   }, [family, picks, preferB, rows, wall])
 
   /**
+   * TAPPING A LANTERN KEEPS THAT NAME, and adds a voice to it.
+   *
+   * The lanterns were focusable buttons that did nothing — a control that
+   * announces itself to a screen reader and then ignores the press. Now the
+   * sky is an input as well as a readout: agreeing with a name the family is
+   * already holding is the commonest thing a relative will want to do, and it
+   * was the one thing the page had no gesture for.
+   *
+   * The vote is what moves it. Support drives depth, so a name gaining a voice
+   * drifts nearer over the next few seconds rather than jumping — which is the
+   * feedback, and it needs no toast to say so.
+   *
+   * KEEPING IS THE VOTE. The first cut added a separate tally on top of the
+   * pick, and the count went from one to three on a single press: `notes`
+   * already walks `picks` and credits each one. Agreeing with a name and
+   * keeping it are the same act here, so they must not be counted twice — and
+   * taking it back correctly removes the voice again.
+   */
+  const keepFromSky = useCallback(
+    (key: string) => {
+      const row = family.find((candidate) => candidate.id === key) ?? rows?.find((r) => r.id === key)
+      if (row) keep(row)
+    },
+    [family, keep, rows],
+  )
+
+
+  /**
    * The chosen names go to the scene twice over: a lamp count for the town, and
    * the support COUNTS for the sky, where depth encodes how many people chose
    * each one. The refs cover the case where notes exist before the scene has
@@ -2052,7 +2080,7 @@ export default function NaamApp({ seed }: NaamAppProps) {
             and the order re-sorts under them as they choose. The right column
             stops being an output and starts being the thing that changes. */}
         <div className="nm-shelfwrap">
-          <NaamWall notes={notes} />
+          <NaamWall notes={notes} onKeep={keepFromSky} />
         </div>
 
         {/* The lamp sits WITH the slots, not in the rail corner where it
