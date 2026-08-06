@@ -41,7 +41,13 @@ import { CAPABILITIES, PRODUCTS, WEIGHT_LABEL } from '@/data/substrate'
 // characters of mono, needing 365 units left of the node at 10.5px. The longest
 // product name needs about 90 to the right. 1010 left 160 units of nothing on
 // the right, which read as the whole composition sitting off-centre.
-const VB = { w: 862, h: 400 }
+// The frame is cropped to the drawing, measured rather than guessed: getBBox
+// across every text, node and edge puts the ink at 39.6 → 799.8, centre 419.7.
+// A frame starting at zero centred at 431 and pulled the picture 11 units left
+// of the header above it — invisible alone, obvious once the section is centred
+// on one spine. 30 → 810 puts the frame centre on the ink centre exactly, with
+// ~10 units of air at each end.
+const VB = { x: 30, w: 780, h: 400 }
 const CAP_X = 430
 const PROD_X = 700
 const capY = (i: number) => 34 + i * 66
@@ -93,10 +99,7 @@ const edges = CAPABILITIES.flatMap((c, ci) =>
 <section class="sb" aria-labelledby="sb-title">
   <header class="sb-head">
     <p class="label-mono sb-eyebrow">Underneath</p>
-    <h2 class="sb-title" id="sb-title">Six capabilities, arranged three ways.</h2>
-    <p class="sb-lede">
-      None of this is specific to music. Pick a product to see what it draws on.
-    </p>
+    <h2 class="sb-title" id="sb-title">Six capabilities, arranged three ways. None of them specific to music.</h2>
   </header>
 
   <div class="sb-stage" id="sb-stage" data-reveal>
@@ -104,7 +107,7 @@ const edges = CAPABILITIES.flatMap((c, ci) =>
          a hidden subtree may not contain focusable children. The decorative
          parts — every edge, every capability label — carry aria-hidden
          individually, and the table below still reads the whole thing out. -->
-    <svg class="sb-svg" viewBox={`0 0 ${VB.w} ${VB.h}`}>
+    <svg class="sb-svg" viewBox={`${VB.x} 0 ${VB.w} ${VB.h}`}>
       <defs>
         <linearGradient id="sb-flow" x1={CAP_X} y1="0" x2={PROD_X} y2="0" gradientUnits="userSpaceOnUse">
           <stop offset="0" stop-color="#d64553"></stop>
@@ -208,11 +211,6 @@ const edges = CAPABILITIES.flatMap((c, ci) =>
     }
   </ul>
 
-  <p class="sb-note">
-    Retrieval and serving carry all three. Training carries one. The overlap is why a new domain starts from
-    something rather than nothing.
-  </p>
-
   <!-- The wrapper carries .sr-only, not the table: a <table> ignores
        inline-size: 1px because its min-content width wins, so the hidden copy
        was 360px wide and pushed the page sideways by 40px at 320. A div shrinks
@@ -250,9 +248,17 @@ const edges = CAPABILITIES.flatMap((c, ci) =>
     padding-top: var(--space-l);
   }
 
+  /* Centred, and this is the only section on the site that is.
+     The diagram's own composition is symmetric — a label column resolving to a
+     hard edge, a span of curves, three nodes — so a left-ragged header sitting
+     over it made the two disagree about where the page's spine was. Aligning
+     the type to the drawing rather than the drawing to the type is the smaller
+     change and the better-looking one: it reads as an exhibit, which is what it
+     is. Everything else on the page stays left. */
   .sb-head {
-    margin-bottom: var(--space-l);
-    max-width: 44rem;
+    margin: 0 auto var(--space-l);
+    max-width: 46rem;
+    text-align: center;
   }
 
   .sb-eyebrow {
@@ -261,24 +267,16 @@ const edges = CAPABILITIES.flatMap((c, ci) =>
   }
 
   .sb-title {
-    margin: 0 0 var(--space-s);
+    margin: 0;
+    text-wrap: balance;
     font-size: clamp(1.4rem, 2.4vw, 1.9rem);
     line-height: 1.15;
     letter-spacing: -0.015em;
   }
 
-  .sb-lede {
-    margin: 0;
-    color: var(--paper-soft);
-    font-size: 0.98rem;
-    line-height: 1.6;
-  }
 
-  /* Left rag, not centred. The header and the note start at the container
-     gutter, and a centred diagram between them gave the section two left edges
-     neither of which was deliberate. */
   .sb-stage {
-    margin: 0;
+    margin: 0 auto;
     max-width: 58rem;
   }
 
@@ -427,6 +425,7 @@ const edges = CAPABILITIES.flatMap((c, ci) =>
   .sb-lens {
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     gap: 0.5rem;
     margin-top: var(--space-m);
   }

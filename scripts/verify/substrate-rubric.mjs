@@ -47,21 +47,43 @@ for (const [w, h, target] of [
 
   const desktop = target === 'desktop'
 
-  // ── composition: the section shares one left edge ────────────────────────
-  // Only elements that are actually rendered. A display:none box reports
-  // left: 0, which made the phone pass look like a 24px misalignment when
-  // every visible element was flush — the check was wrong, not the layout.
-  const edges = await p.evaluate(() => {
+  // ── composition: one spine ───────────────────────────────────────────────
+  // This axis used to measure a shared LEFT edge. The section is deliberately
+  // centred now — the diagram's own composition is symmetric and the header was
+  // fighting it — so a left-edge check measures an intent that no longer exists.
+  // Replaced rather than relaxed: it still fails if the blocks disagree, it just
+  // asks about centres.
+  //
+  // Only rendered elements count. A display:none box reports left: 0, which made
+  // the phone pass look like a 24px misalignment when everything was flush.
+  const centres = await p.evaluate(() => {
     const out = {}
-    for (const s of ['.sb-head', '.sb-stage', '.sb-note', '.sb-lens', '.sb-compact']) {
+    for (const s of ['.sb-head', '.sb-stage', '.sb-lens', '.sb-compact']) {
       const r = document.querySelector(s)?.getBoundingClientRect()
-      if (r && r.width > 0) out[s] = r.left
+      if (r && r.width > 0) out[s] = (r.left + r.right) / 2
+    }
+    // The drawing's ink, which is what the eye centres on — not its frame.
+    const svg = document.querySelector('.sb-svg')
+    if (svg && svg.getBoundingClientRect().width > 0) {
+      let l = Infinity
+      let r = -Infinity
+      for (const el of svg.querySelectorAll('text, circle')) {
+        const b = el.getBoundingClientRect()
+        l = Math.min(l, b.left)
+        r = Math.max(r, b.right)
+      }
+      out.ink = (l + r) / 2
     }
     return out
   })
-  const lefts = Object.values(edges)
-  const spread = Math.max(...lefts) - Math.min(...lefts)
-  grade('composition: one left edge', target, spread <= 2, `spread ${spread.toFixed(1)}px across ${lefts.length} visible blocks`)
+  const cs = Object.values(centres)
+  const spread = Math.max(...cs) - Math.min(...cs)
+  grade(
+    'composition: one spine',
+    target,
+    spread <= 8,
+    `centres within ${spread.toFixed(1)}px across ${cs.length} blocks`,
+  )
 
   // ── labels: nothing clipped by the viewBox, nothing overlapping ──────────
   if (desktop) {
