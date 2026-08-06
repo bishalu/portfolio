@@ -170,7 +170,6 @@ const RECOIL_MS = 90
 const SLOT_SETTLE_MS = 220
 const RELEASE_MS = 260
 /** Long enough to read the third card as landed before the form arrives. */
-const FORM_DELAY_MS = 620
 /** Ambient motion stays suspended this long after the last keystroke. */
 const CALM_MS = 800
 const DEAL_EASE = 'cubic-bezier(0.05, 0.7, 0.1, 1)'
@@ -1202,21 +1201,91 @@ export default function NaamApp({ seed }: NaamAppProps) {
    * So the tray offers `send.open` once there is anything to send, and pressing
    * it is what brings the form. Keeping goes on happening either way.
    */
+  /** The dialog's own box, and whatever had focus before it opened. */
+  const overlayRef = useRef<HTMLDivElement | null>(null)
+  const formOpener = useRef<HTMLElement | null>(null)
+
   const openForm = useCallback(() => {
     if (formShown) return
+    // Remembered before the dialog steals focus, so Escape can hand it back.
+    formOpener.current = document.activeElement as HTMLElement | null
     setFormShown(true)
-    later(
-      () => {
-        setTurns((prev) => [
-          ...prev,
-          { id: nextId(), kind: 'agent', text: C.app.send.lead },
-          { id: nextId(), kind: 'form' },
-        ])
-        setAnnounce(C.app.send.lead)
-      },
-      reducedMotion() ? 0 : FORM_DELAY_MS,
-    )
-  }, [formShown, later])
+    setAnnounce(C.app.send.lead)
+  }, [formShown])
+
+  const closeForm = useCallback(() => setFormShown(false), [])
+
+  /**
+   * FOCUS GOES BACK, AFTER THE SHEET IS ACTUALLY GONE.
+   *
+   * Two things had to be true and neither was obvious from the code:
+   *
+   * · The stored node may no longer exist. Keeping a name re-renders the tray,
+   *   so the button that opened the sheet can be a different element by the
+   *   time it closes, and focus() on the detached one does nothing.
+   * · Restoring inside the close handler is too early. React has not removed
+   *   the dialog yet, focus is still inside it, and the removal that follows
+   *   drops focus to <body> — which is precisely what it measured as.
+   *
+   * So it runs in an effect, after the render that unmounts the sheet, and
+   * falls back to the live send button when the remembered one has gone.
+   */
+  const wasFormShown = useRef(false)
+  useEffect(() => {
+    if (wasFormShown.current && !formShown) {
+      const remembered = formOpener.current
+      const target =
+        remembered && remembered.isConnected
+          ? remembered
+          : shellRef.current?.querySelector<HTMLElement>('.nm-tray-send')
+      target?.focus?.()
+    }
+    wasFormShown.current = formShown
+  }, [formShown])
+
+  /**
+   * MODAL BEHAVIOUR, written out rather than imported.
+   *
+   * Escape closes. Tab cycles inside the sheet and cannot leave it — the whole
+   * point of a modal is that the page behind it is unreachable, and a dialog
+   * you can tab out of is a dialog that strands you in a room you cannot see.
+   * Focus moves to the first field on open.
+   */
+  useEffect(() => {
+    if (!formShown) return undefined
+    const sheet = overlayRef.current
+    if (!sheet) return undefined
+
+    const focusable = () =>
+      [...sheet.querySelectorAll<HTMLElement>('a[href], button, input, select, textarea')].filter(
+        (el) => !el.hasAttribute('disabled') && el.offsetParent !== null,
+      )
+
+    focusable()[0]?.focus()
+
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        closeForm()
+        return
+      }
+      if (event.key !== 'Tab') return
+      const items = focusable()
+      if (items.length === 0) return
+      const first = items[0]
+      const last = items[items.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [closeForm, formShown])
 
   /**
    * Two posts, and they say different things. Netlify Forms is the durable
@@ -1318,7 +1387,10 @@ export default function NaamApp({ seed }: NaamAppProps) {
           ? C.form.confirmation.body
           : C.form.confirmation.emailOnly
       setSending(false)
-      setTurns((prev) => prev.map((t) => (t.kind === 'form' ? { id: t.id, kind: 'sent', text: line } : t)))
+      // The sheet closes and the outcome goes to the conversation, which is
+      // where the rest of the exchange already lives.
+      setFormShown(false)
+      setTurns((prev) => [...prev, { id: nextId(), kind: 'sent', text: line }])
       setAnnounce(line)
     },
     [picks, sending],
@@ -1732,59 +1804,10 @@ export default function NaamApp({ seed }: NaamAppProps) {
         )
 
       case 'form':
-        return (
-          <form className="nm-send" onSubmit={(event) => void sendPicks(event)}>
-            <p className="label-mono label-mono--sm nm-quiet-label">{C.app.send.picksLabel}</p>
-            <p className="nm-send-picks">{picks.map((pick) => pick.spelling).join(' · ') || C.form.picks.empty}</p>
-
-            <div className="nm-send-row">
-              <span className="nm-field">
-                <label className="label-mono label-mono--sm" htmlFor="nma-from">
-                  {C.form.name.label}
-                </label>
-                <input id="nma-from" name="from" type="text" required maxLength={C.limits.name} autoComplete="name" />
-              </span>
-              <span className="nm-field">
-                <label className="label-mono label-mono--sm" htmlFor="nma-relation">
-                  {C.form.relation.label}
-                </label>
-                <select id="nma-relation" name="relation" required defaultValue="">
-                  <option value="">{C.form.relation.placeholder}</option>
-                  {NAAM_RELATIONS.map((relation) => (
-                    <option value={relation} key={relation}>
-                      {relation}
-                    </option>
-                  ))}
-                </select>
-              </span>
-            </div>
-
-            {/* The "or just type a name" field used to sit here. It has moved to
-                the empty slots, where it belongs: a name is a name whether it
-                came out of the document or out of somebody's head, and the tray
-                is where names go. A field in the form asked the visitor to
-                switch surfaces to do the same thing twice. */}
-
-            <span className="nm-field">
-              <label className="label-mono label-mono--sm" htmlFor="nma-reason">
-                {C.app.send.why}
-              </label>
-              <textarea id="nma-reason" name="reason" rows={2} maxLength={C.limits.reason}></textarea>
-            </span>
-
-            <button type="submit" className="nm-send-go" disabled={sending || picks.length === 0}>
-              {C.app.send.submit}
-            </button>
-
-            {sending && (
-              <div className="nm-thinking" aria-hidden="true">
-                <div className="pulse-line"></div>
-                <p className="pulse-caption nm-caption">{C.form.sending}</p>
-              </div>
-            )}
-            {sendNote && <p className="nm-said nm-said--note">{sendNote}</p>}
-          </form>
-        )
+        // The form is no longer a turn: it opens as a centred dialog (see
+        // .nm-overlay below). The turn kind survives only so an interrupted
+        // session restored from storage still has something to key off.
+        return null
 
       case 'sent':
         return (
@@ -1987,16 +2010,27 @@ export default function NaamApp({ seed }: NaamAppProps) {
                 <p className="nm-wallrow-lead label-mono label-mono--sm">{C.app.familyLead}</p>
                 {/* Horizontally scrollable: a phone has width to spare and no
                     height at all, so the overflow runs sideways. */}
+                {/* Buttons, like the lanterns they stand in for. Tapping one
+                    keeps that name and adds a voice to it — the same gesture
+                    on both layouts, because a phone visitor agreeing with a
+                    name the family already holds is doing exactly what the
+                    desktop visitor does when they tap a lantern. */}
                 <ul className="nm-wallrow-list">
                   {notes.map((note) => (
-                    <li className="nm-wallrow-item" key={note.key}>
-                      {note.deva && (
-                        <span className="nm-wallrow-deva" lang="sa-Deva">
-                          {note.deva}
-                        </span>
-                      )}
-                      <span className="nm-wallrow-latin">{note.latin}</span>
-                      <span className="sr-only">{C.wall.support(note.count)}</span>
+                    <li key={note.key}>
+                      <button
+                        type="button"
+                        className="nm-wallrow-item"
+                        onClick={() => keepFromSky(note.key)}
+                      >
+                        {note.deva && (
+                          <span className="nm-wallrow-deva" lang="sa-Deva">
+                            {note.deva}
+                          </span>
+                        )}
+                        <span className="nm-wallrow-latin">{note.latin}</span>
+                        <span className="sr-only">{C.wall.support(note.count)}</span>
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -2186,6 +2220,101 @@ export default function NaamApp({ seed }: NaamAppProps) {
           </button>
         )}
       </section>
+
+
+      {/* ── THE SEND FORM, AS A DIALOG ────────────────────────────────────────
+          It used to arrive as another turn in the conversation, which put a
+          name field, a relation select and a reason box into a scroller whose
+          job is reading — and on a phone it pushed the three names it is about
+          off the screen entirely.
+
+          Sending is a decision, not a remark, so it gets the page's attention:
+          a centred sheet over a dimmed room. Real dialog semantics rather than
+          a styled div — labelled, modal, Escape closes it, focus is trapped
+          while it is open and returned to the button that opened it, because
+          the alternative is a keyboard user tabbing into a page they cannot
+          see. */}
+      {formShown && (
+        <div className="nm-overlay">
+          {/* The scrim is a BUTTON, not a div with a click handler. Clicking
+              away is a real action and it needs a real control with a name —
+              a listener on a div is unreachable by keyboard and silent to a
+              screen reader. It is behind the sheet and aria-hidden from the
+              reading order, because Escape and "Not yet" already say this. */}
+          <button
+            type="button"
+            className="nm-overlay-scrim"
+            aria-label={C.app.send.closeAria}
+            tabIndex={-1}
+            onClick={closeForm}
+          />
+          <div
+            className="nm-overlay-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="nm-send-title"
+            ref={overlayRef}
+          >
+            <p className="nm-said nm-said--lead" id="nm-send-title">
+              {C.app.send.lead}
+            </p>
+            <form className="nm-send" onSubmit={(event) => void sendPicks(event)}>
+              <p className="label-mono label-mono--sm nm-quiet-label">{C.app.send.picksLabel}</p>
+              <p className="nm-send-picks">{picks.map((pick) => pick.spelling).join(' · ') || C.form.picks.empty}</p>
+
+              <div className="nm-send-row">
+                <span className="nm-field">
+                  <label className="label-mono label-mono--sm" htmlFor="nma-from">
+                    {C.form.name.label}
+                  </label>
+                  <input id="nma-from" name="from" type="text" required maxLength={C.limits.name} autoComplete="name" />
+                </span>
+                <span className="nm-field">
+                  <label className="label-mono label-mono--sm" htmlFor="nma-relation">
+                    {C.form.relation.label}
+                  </label>
+                  <select id="nma-relation" name="relation" required defaultValue="">
+                    <option value="">{C.form.relation.placeholder}</option>
+                    {NAAM_RELATIONS.map((relation) => (
+                      <option value={relation} key={relation}>
+                        {relation}
+                      </option>
+                    ))}
+                  </select>
+                </span>
+              </div>
+
+              {/* The "or just type a name" field used to sit here. It has moved to
+                  the empty slots, where it belongs: a name is a name whether it
+                  came out of the document or out of somebody's head, and the tray
+                  is where names go. A field in the form asked the visitor to
+                  switch surfaces to do the same thing twice. */}
+
+              <span className="nm-field">
+                <label className="label-mono label-mono--sm" htmlFor="nma-reason">
+                  {C.app.send.why}
+                </label>
+                <textarea id="nma-reason" name="reason" rows={2} maxLength={C.limits.reason}></textarea>
+              </span>
+
+              <button type="submit" className="nm-send-go" disabled={sending || picks.length === 0}>
+                {C.app.send.submit}
+              </button>
+
+              {sending && (
+                <div className="nm-thinking" aria-hidden="true">
+                  <div className="pulse-line"></div>
+                  <p className="pulse-caption nm-caption">{C.form.sending}</p>
+                </div>
+              )}
+              {sendNote && <p className="nm-said nm-said--note">{sendNote}</p>}
+            </form>
+            <button type="button" className="nm-overlay-close" onClick={closeForm}>
+              {C.app.send.close}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── THE HAND, ON THE CHAT SIDE ────────────────────────────────────────
           Asked for, and it comes with a caveat this file already recorded: the

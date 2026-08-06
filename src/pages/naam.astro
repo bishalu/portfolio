@@ -2584,10 +2584,17 @@ if (!seedRow) {
     display: none;
   }
 
+  .nm-wallrow-list > li {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+
   .nm-wallrow-item {
     display: flex;
     position: relative;
-    flex: 0 0 auto;
+    cursor: pointer;
+    /* 44px of thumb. These are the phone's only way to agree with a name. */
+    min-height: 44px;
     flex-direction: column;
     align-items: center;
     justify-content: center;
@@ -2602,7 +2609,6 @@ if (!seedRow) {
       linear-gradient(180deg, #fbeacd 0%, #f6dfbd 100%);
     padding: 0.42rem 0.6rem 0.5rem;
     min-width: 4.6rem;
-    scroll-snap-align: start;
   }
 
   .nm-wallrow-deva {
@@ -2615,6 +2621,96 @@ if (!seedRow) {
     color: #7a5330;
     font-size: 0.68rem;
     line-height: 1.2;
+  }
+
+  /* ── The send sheet ───────────────────────────────────────────────────────
+     Sending is a decision, not a remark, so it gets the page's attention
+     rather than another slot in the transcript. Centred over a dimmed room:
+     the scene stays visible behind it because the names being sent are up
+     there, and hiding the sky to ask about the sky would be perverse. */
+  .nm-overlay {
+    display: grid;
+    position: fixed;
+    place-items: center;
+    z-index: 80;
+    inset: 0;
+    padding: var(--space-s);
+  }
+
+  /* Full-bleed, behind the sheet, and it is a real button — see NaamApp. */
+  .nm-overlay-scrim {
+    position: absolute;
+    animation: nm-overlay-in 220ms ease backwards;
+    cursor: default;
+    border: 0;
+    background: color-mix(in srgb, var(--naam-ink) 46%, transparent);
+    padding: 0;
+    inset: 0;
+    /* The room dims but does not disappear. */
+    backdrop-filter: blur(2px);
+  }
+
+  .nm-overlay-sheet {
+    display: flex;
+    position: relative;
+    flex-direction: column;
+    gap: 0.75rem;
+    animation: nm-overlay-rise 260ms cubic-bezier(0.16, 0.7, 0.3, 1) backwards;
+    box-shadow: 0 2px 4px rgb(26 29 46 / 12%), 0 18px 44px -12px rgb(26 29 46 / 28%);
+    border: 1px solid var(--nm-hair);
+    border-radius: 14px;
+    background: var(--nm-surface);
+    padding: clamp(1rem, 3vw, 1.6rem);
+    width: min(30rem, 100%);
+    max-height: min(88vh, 40rem);
+    overflow-y: auto;
+  }
+
+  /* The sheet's own title, not the invitation's. .nm-said--lead is the page's
+     biggest type — right for the one sentence that opens the page, far too
+     loud for a dialog heading, where it filled three lines before the first
+     field. */
+  .nm-overlay-sheet .nm-said--lead {
+    max-width: none;
+    font-size: 1.12rem;
+    line-height: 1.4;
+  }
+
+  /* One frame, not two. The form carries its own border for the days it sits
+     in the transcript; inside the sheet that reads as a box in a box. */
+  .nm-overlay-sheet .nm-send {
+    border: 0;
+    background: transparent;
+    padding: 0;
+  }
+
+  .nm-overlay-close {
+    align-self: center;
+    transition: color var(--dur-base) ease;
+    cursor: pointer;
+    border: 0;
+    background: transparent;
+    padding: 0.4rem 0.8rem;
+    min-height: 44px;
+    color: var(--nm-text-soft);
+  }
+
+  .nm-overlay-close:hover,
+  .nm-overlay-close:focus-visible {
+    color: var(--nm-accent-text);
+  }
+
+  @keyframes nm-overlay-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes nm-overlay-rise {
+    from {
+      transform: translateY(12px) scale(0.98);
+      opacity: 0;
+    }
   }
 
   /* ── Ways in ──────────────────────────────────────────────────────────────
@@ -3939,7 +4035,9 @@ if (!seedRow) {
        arrow would simply never appear. */
     .nm-doodle,
     .nm-doodle-reveal,
-    .nm-doodle-barb {
+    .nm-doodle-barb,
+    .nm-overlay-scrim,
+    .nm-overlay-sheet {
       animation: none;
       stroke-dashoffset: 0;
     }

@@ -354,6 +354,10 @@ export const NAAM_COPY = {
        * enough" while somebody was still choosing.
        */
       open: (count: number) => (count === 1 ? 'Send this one →' : `Send these ${count} →`),
+      /** Leaves the sheet without sending. Says what it does, not "Cancel". */
+      close: 'Not yet',
+      /** The scrim's accessible name — same action, reached by clicking away. */
+      closeAria: 'Close without sending',
     },
   },
 
