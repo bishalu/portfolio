@@ -1998,6 +1998,47 @@ if (!seedRow) {
       display: grid;
     }
 
+    /* ── A HAND ON A PHONE ────────────────────────────────────────────────
+       Measured with cards dealt at 375x667: stream 132 + tray 188 + hand 88 +
+       composer 218. The card is 292px in an 88px band, so the names the page
+       just dealt were three-quarters hidden behind the starter chips.
+
+       Two things give. The card drops its syllable rail here — it is the most
+       decorative row on it, and a phone reading the name and its meaning does
+       not also need the beat marks. And the tray's floor comes down once there
+       is a hand, because when names are on the table they matter more than the
+       empty slots waiting for them. */
+    #naam-app .nm-hand {
+      min-height: 14.2rem;
+    }
+
+    /* ── THE STARTERS STAND DOWN ONCE THERE IS A HAND, on a phone only ──────
+       You asked for the chips to stay after the first question and on the wide
+       layout they do. At 375x667 they cannot: the budget is stream + hand +
+       tray + composer against 626px, the card is 226px on its own, and the
+       chips are 94px of the composer. Something had to give and this is the
+       part whose job is already done — they are ways to START, and once names
+       are on the table the visitor is choosing between them, not looking for
+       an opening.
+
+       They come back the moment the hand is cleared, and the composer is right
+       there either way. */
+    #naam-app .nm-shell:has(.nm-card) .nm-starters {
+      display: none;
+    }
+
+    /* `.nm-rail`, which is the ticks and the syllable labels. The first
+       attempt hid `.nm-syllables`, a class that does not exist on this card —
+       the rule was valid CSS matching nothing, and the card shrank by the 26px
+       of a different change while appearing to work. */
+    #naam-app .nm-hand .nm-rail {
+      display: none;
+    }
+
+    #naam-app .nm-shell:has(.nm-card) .nm-tray {
+      min-height: min(24%, 150px);
+    }
+
     /* ── The phone's vertical budget, stated ──────────────────────────────
        Measured at 375x667: shell 626 = stream 220 + tray 188 + composer 218,
        exactly. The invitation is 473px, so 253px of it sits below the fold and
@@ -3097,6 +3138,15 @@ if (!seedRow) {
      marigold edge and the word stays in --nm-text: it reads as a control at a
      glance without putting text on a colour that cannot hold it. */
   .nm-pick {
+    /* 44px, measured at 59x28 before this. The whole card keeps the name, so
+       this pill is not the only way in — but it is the one that LOOKS like the
+       control, and the responsive gate cannot see it: there are no cards on
+       the page until somebody asks a question, so every automated sweep of
+       tap targets had been running against a page with no cards in it. */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
     transition:
       border-color var(--dur-base) ease,
       background var(--dur-base) ease,
