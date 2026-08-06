@@ -1,43 +1,46 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="78 78 356 356" role="img" aria-label="bishal.ai">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="bishal.ai">
   <title>bishal.ai</title>
   <!--
-    One stroke, doing both jobs: it is a trace and it is the b.
+    A lowercase b in two pieces, with a pulse running through the seam.
 
-    The line rests, spikes to the ascender, falls down the stem, and rounds into
-    the bowl — an action potential that happens to spell the first letter of the
-    name. The site is an instrument reading a signal (the hero oscilloscope, the
-    spike-train rail on the publications, the sig-* motion vocabulary, a
-    neuroscience record of recording electrical signals in living circuits), so
-    the mark is that, reduced until it survives 16px.
+    The letter is built from primitives rather than drawn: a stem and a ring,
+    both 66 units thick, so the weight is identical everywhere. A band of the
+    background colour cuts horizontally through the exact centre, which is what
+    separates the upper form (stem and arch) from the lower one (the bowl).
+    Cutting the gap with the ground rather than authoring two closed paths keeps
+    the geometry honest — the two forms are provably the same shapes, minus a
+    rectangle.
 
-    The flat lead-in on the left is what keeps it from being a plain letter. It
-    is the resting baseline the spike departs from. Without it this is a "b";
-    with it, it is a reading.
+    Through that seam runs one continuous line: flat, one symmetrical peak at
+    centre, flat again. It is the same reading the hero's oscilloscope draws and
+    the same shape the spike-train rail on the publications uses.
 
-    Two things were wrong with the first cut, and both were geometry. The stem
-    leaned — it ran from (168,78) to (186,402), eighteen units of drift that
-    read as a wobble rather than a letter. It is vertical now. And the bowl was
-    a lopsided curve; it is drawn as a balanced 174×174 square of extent, so the
-    counter is round and the weight is even all the way through.
+    The mark spans 90 → 422 on both axes: 332 units, 65% of the canvas, equal
+    margin on all four sides.
 
-    No tile. The rounded-square container showed four light corners on any tab
-    strip that wasn't dark, which framed the mark instead of presenting it. The
-    viewBox is cropped to the glyph's own bounding square instead, so the letter
-    fills the frame edge to edge and sits on whatever the browser's chrome is.
-    It reads on white, on light grey and on dark, and at 16px it reads larger
-    than the tiled version did.
+    Three colours and nothing else. No gradient here, unlike everywhere else on
+    the site — at 16px a two-stop ramp across a 30-unit stroke resolves to one
+    muddy colour, so the flat marigold is both the brief and the better call.
   -->
-  <defs>
-    <linearGradient id="signal" x1="89" y1="0" x2="423" y2="0" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#d64553" />
-      <stop offset="1" stop-color="#efa33b" />
-    </linearGradient>
-  </defs>
+  <rect width="512" height="512" fill="#0E1124" />
+
+  <g fill="#FAF7F1">
+    <rect x="90" y="90" width="66" height="332" rx="10" />
+    <path
+      fill-rule="evenodd"
+      d="M142 282 a140 140 0 1 1 280 0 a140 140 0 1 1 -280 0 Z
+         M208 282 a74 74 0 1 0 148 0 a74 74 0 1 0 -148 0 Z"
+    />
+  </g>
+
+  <!-- The seam. Background colour, full width of the mark, centred on 256. -->
+  <rect x="70" y="232" width="380" height="48" fill="#0E1124" />
+
   <path
-    d="M115 276 H175 L223 104 V408 C455 408 455 234 223 234"
+    d="M78 256 H198 L256 168 L314 256 H434"
     fill="none"
-    stroke="url(#signal)"
-    stroke-width="52"
+    stroke="#EFA33B"
+    stroke-width="30"
     stroke-linecap="round"
     stroke-linejoin="round"
   />

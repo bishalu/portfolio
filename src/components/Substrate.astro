@@ -36,10 +36,12 @@ import { CAPABILITIES, PRODUCTS, WEIGHT_LABEL } from '@/data/substrate'
 
 // Fixed geometry. Six rows on the left, three on the right, in one viewBox so
 // the whole thing scales as a unit rather than reflowing.
-// Width is set by the longest gloss, not by taste: "inference under a deadline,
-// eval harnesses, cost governance" is 58 characters of mono, and at 10.5px that
-// needs 365 units to the left of the node. It was running off the viewBox.
-const VB = { w: 1010, h: 400 }
+// Width is set by the content at both ends, not by taste. The longest gloss —
+// "inference under a deadline, eval harnesses, cost governance" — is 58
+// characters of mono, needing 365 units left of the node at 10.5px. The longest
+// product name needs about 90 to the right. 1010 left 160 units of nothing on
+// the right, which read as the whole composition sitting off-centre.
+const VB = { w: 862, h: 400 }
 const CAP_X = 430
 const PROD_X = 700
 const capY = (i: number) => 34 + i * 66
@@ -48,28 +50,61 @@ const prodY = (i: number) => 100 + i * 99
 const WIDTH = { lean: 2.2, use: 1.1, none: 0 }
 const IDLE = { lean: 0.42, use: 0.2, none: 0 }
 
+/**
+ * Bundled, not direct.
+ *
+ * Sixteen independent curves across the same gap cross each other everywhere
+ * and you cannot follow a single one — the idle state read as a scribble, and
+ * "use the filter" is not an answer to a picture that is illegible before you
+ * touch it. So every edge is routed through a waist: it leaves its capability,
+ * converges toward the vertical middle with the others, and fans back out to
+ * its product. Crossings collapse into one braid.
+ *
+ * The bundling is also true. These are not sixteen private wires; they are one
+ * shared substrate that three products draw from, and a braid says that where
+ * sixteen straight lines said the opposite.
+ *
+ * 0.6 is how hard each edge is pulled toward centre. Lower and the tangle comes
+ * back; higher and every edge collapses onto the same line, which reads as one
+ * thick rope and loses the count.
+ */
+const WAIST_X = 565
+const CENTER_Y = 200
+const PULL = 0.6
+
 const edges = CAPABILITIES.flatMap((c, ci) =>
   c.w
     .map((weight, pi) => ({ weight, cap: c, ci, prod: PRODUCTS[pi], pi }))
     .filter((e) => e.weight !== 'none')
-    .map((e) => ({
-      ...e,
-      d: `M${CAP_X} ${capY(e.ci)} C548 ${capY(e.ci)} 582 ${prodY(e.pi)} ${PROD_X} ${prodY(e.pi)}`,
-    })),
+    .map((e) => {
+      const a = capY(e.ci)
+      const b = prodY(e.pi)
+      const waist = (a + b) / 2 + (CENTER_Y - (a + b) / 2) * PULL
+      return {
+        ...e,
+        d:
+          `M${CAP_X} ${a} C${CAP_X + 70} ${a} ${WAIST_X - 55} ${waist} ${WAIST_X} ${waist}` +
+          ` C${WAIST_X + 55} ${waist} ${PROD_X - 70} ${b} ${PROD_X} ${b}`,
+      }
+    }),
 )
 ---
 
 <section class="sb" aria-labelledby="sb-title">
   <header class="sb-head">
     <p class="label-mono sb-eyebrow">Underneath</p>
-    <h2 class="sb-title" id="sb-title">Six capabilities. Three arrangements of them.</h2>
+    <h2 class="sb-title" id="sb-title">Six capabilities, arranged three ways.</h2>
     <p class="sb-lede">
-      None of this is specific to music. Pick a product to see what it leans on.
+      None of this is specific to music. Pick a product to see what it draws on.
     </p>
   </header>
 
-  <div class="sb-stage" id="sb-stage">
-    <svg class="sb-svg" viewBox={`0 0 ${VB.w} ${VB.h}`} aria-hidden="true" focusable="false">
+  <div class="sb-stage" id="sb-stage" data-reveal>
+    <!-- Not aria-hidden any more: the product nodes are real controls now, and
+         a hidden subtree may not contain focusable children. The decorative
+         parts — every edge, every capability label — carry aria-hidden
+         individually, and the table below still reads the whole thing out. -->
+    <svg class="sb-svg" viewBox={`0 0 ${VB.w} ${VB.h}`}>
       <defs>
         <linearGradient id="sb-flow" x1={CAP_X} y1="0" x2={PROD_X} y2="0" gradientUnits="userSpaceOnUse">
           <stop offset="0" stop-color="#d64553"></stop>
@@ -82,11 +117,16 @@ const edges = CAPABILITIES.flatMap((c, ci) =>
           <path
             class:list={['sb-edge', `is-${e.cap.id}`, `to-${e.prod.id}`]}
             d={e.d}
-            style={`--o:${IDLE[e.weight]}`}
             stroke-width={WIDTH[e.weight]}
+            pathLength="1"
+            aria-hidden="true"
+            data-draw
+            style={`--o:${IDLE[e.weight]};--reveal-delay:${e.ci * 55}ms`}
           />
         ))
       }
+
+      <g class="sb-pulses" aria-hidden="true"></g>
 
       {
         CAPABILITIES.map((c, i) => (
@@ -96,6 +136,7 @@ const edges = CAPABILITIES.flatMap((c, ci) =>
               `is-${c.id}`,
               ...c.w.map((weight, pi) => weight !== 'none' && `has-${PRODUCTS[pi].id}`),
             ]}
+            aria-hidden="true"
           >
             <text class="sb-cap-name" x={CAP_X - 22} y={capY(i) - 2} text-anchor="end">
               {c.name}
@@ -110,7 +151,15 @@ const edges = CAPABILITIES.flatMap((c, ci) =>
 
       {
         PRODUCTS.map((p, i) => (
-          <g class:list={['sb-prod', `to-${p.id}`]}>
+          <g
+            class:list={['sb-prod', `to-${p.id}`]}
+            role="button"
+            tabindex="0"
+            aria-pressed="false"
+            data-lens={p.id}
+          >
+            <title>{`Show what ${p.name} draws on`}</title>
+            <rect class="sb-hit" x={PROD_X - 16} y={prodY(i) - 20} width="180" height="40" rx="8" />
             <circle class="sb-node sb-node-prod" cx={PROD_X} cy={prodY(i)} r="6" />
             <text class="sb-prod-name" x={PROD_X + 22} y={prodY(i) + 7}>
               {p.name}
@@ -124,6 +173,12 @@ const edges = CAPABILITIES.flatMap((c, ci) =>
   <!-- The control, and the mobile reading of the same data. Buttons rather
        than hover targets on the SVG: hover is not available on a phone and a
        <circle> is not focusable. -->
+  <!-- Shown at every width. These were briefly narrow-screen-only, on the
+       argument that the diagram already names the products and the nodes are
+       clickable — which was tidy and wrong. A control nobody can find is not a
+       control, and the nodes give no hint that they are pressable. The buttons
+       are the affordance; the nodes are the shortcut for anyone who works it
+       out. -->
   <div class="sb-lens" role="group" aria-label="Filter by product">
     {
       PRODUCTS.map((p) => (
@@ -154,8 +209,8 @@ const edges = CAPABILITIES.flatMap((c, ci) =>
   </ul>
 
   <p class="sb-note">
-    Retrieval and serving carry all three. Training carries one. That difference is what makes this a practice
-    rather than three separate builds.
+    Retrieval and serving carry all three. Training carries one. The overlap is why a new domain starts from
+    something rather than nothing.
   </p>
 
   <!-- The wrapper carries .sr-only, not the table: a <table> ignores
@@ -219,9 +274,12 @@ const edges = CAPABILITIES.flatMap((c, ci) =>
     line-height: 1.6;
   }
 
+  /* Left rag, not centred. The header and the note start at the container
+     gutter, and a centred diagram between them gave the section two left edges
+     neither of which was deliberate. */
   .sb-stage {
-    margin: 0 auto;
-    max-width: 60rem;
+    margin: 0;
+    max-width: 58rem;
   }
 
   .sb-svg {
@@ -240,7 +298,19 @@ const edges = CAPABILITIES.flatMap((c, ci) =>
     stroke: url(#sb-flow);
     stroke-linecap: round;
     opacity: var(--o);
-    transition: opacity 0.18s var(--ease-out);
+    /* Slower than the 180ms it was: a snap between states reads as a flicker
+       when sixteen elements do it at once. */
+    transition: opacity 0.34s var(--ease-out);
+  }
+
+  /* A 14% segment of the path, so what moves is a charge rather than the line
+     being drawn. Sits above its edge and inherits nothing from it. */
+  .sb-pulse {
+    fill: none;
+    stroke: var(--marigold);
+    stroke-linecap: round;
+    stroke-dasharray: 0.14 1;
+    pointer-events: none;
   }
 
   .sb-node {
@@ -254,6 +324,30 @@ const edges = CAPABILITIES.flatMap((c, ci) =>
   .sb-node-prod {
     fill: var(--paper);
     opacity: 0.9;
+  }
+
+  /* The whole product row is the target, not the 12px dot — WCAG 2.2 AA 2.5.8
+     wants 24px and a circle that small is a dare, not a control. */
+  .sb-prod {
+    cursor: pointer;
+
+    .sb-hit {
+      fill: transparent;
+    }
+
+    &:hover .sb-prod-name,
+    &[aria-pressed='true'] .sb-prod-name {
+      fill: var(--marigold);
+    }
+
+    &:focus-visible {
+      outline: none;
+
+      .sb-hit {
+        stroke: var(--crimson);
+        stroke-width: 2;
+      }
+    }
   }
 
   .sb-cap-name {
@@ -356,8 +450,12 @@ const edges = CAPABILITIES.flatMap((c, ci) =>
       color: var(--paper);
     }
 
+    /* A border colour alone was not findable at a glance against two unpressed
+       siblings. The filled ground is what makes the current state readable
+       without hunting — the one place this section spends a fill. */
     &[aria-pressed='true'] {
       border-color: var(--marigold);
+      background: rgba(239, 163, 59, 0.14);
       color: var(--paper);
     }
   }
@@ -483,14 +581,91 @@ const edges = CAPABILITIES.flatMap((c, ci) =>
     // Clicking the active lens clears it. There is no "All" button because the
     // cleared state is the default, and a button for the state you start in is
     // a button that does nothing the first time anyone presses it.
+    const rm = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    /* A charge travels each line. It does not redraw it.
+       
+       The first version animated stroke-dashoffset from 1 to 0 on every
+       matching edge, which redraws the whole line — sixteen full lines at once
+       when the lens was cleared, in 520ms. That is a flash across the entire
+       diagram, and MOTION.md already refuses `flash-shadow` on exactly this
+       ground. Nobody should have to brace for a filter button.
+
+       What runs now is one short segment travelling from capability to product
+       along a copy of the path, while the line underneath stays put. Three
+       things keep it calm:
+
+         · only the edges that just lit animate — at most six, never sixteen
+         · they fire in sequence, 130ms apart, so two or three are ever moving
+         · clearing the lens animates nothing, because nothing is being
+           revealed; the opacity transition alone carries it back
+
+       Each pulse removes itself on finish, so the layer is empty at rest. */
+    const layer = root.querySelector<SVGGElement>('.sb-pulses')
+
+    const pulse = (lens: string | null) => {
+      if (rm || !lens || !layer) return
+      layer.replaceChildren()
+      const lit = [...root.querySelectorAll<SVGPathElement>(`.sb-edge.to-${lens}`)]
+      lit.forEach((edge, i) => {
+        const trace = edge.cloneNode() as SVGPathElement
+        trace.removeAttribute('style')
+        trace.setAttribute('class', 'sb-pulse')
+        // Same weight as the edge it rides, not heavier. A thicker bright bar
+        // is a bigger luminance change over a bigger area, which is the thing
+        // that actually makes motion uncomfortable.
+        trace.setAttribute('stroke-width', edge.getAttribute('stroke-width') ?? '2')
+        layer.appendChild(trace)
+        const anim = trace.animate(
+          [
+            { strokeDashoffset: 1.14, opacity: 0 },
+            { strokeDashoffset: 1.02, opacity: 0.9, offset: 0.12 },
+            { strokeDashoffset: 0.12, opacity: 0.9, offset: 0.88 },
+            { strokeDashoffset: 0, opacity: 0 },
+          ],
+          {
+            // Constant speed, and it fades in and out at the ends. An eased
+            // arrival snaps, and a segment that pops out of existence at the
+            // node reads as a blink.
+            // 280ms apart against a 1000ms flight means about four segments are
+            // ever in motion, out of six. Tighter than that and they read as one
+            // event again; looser and the sequence outstays the state change it
+            // is decorating. The opacity swap lands in 340ms regardless, so the
+            // filter answers immediately and the charges finish behind it.
+            duration: 1000,
+            delay: i * 280,
+            easing: 'linear',
+            fill: 'both',
+          },
+        )
+        anim.onfinish = () => trace.remove()
+      })
+    }
+
     const apply = (lens: string | null) => {
       if (lens) root.dataset.lens = lens
       else delete root.dataset.lens
-      buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lens === lens)))
+      const mark = (el: Element) => el.setAttribute('aria-pressed', String((el as HTMLElement).dataset.lens === lens))
+      buttons.forEach(mark)
+      root.querySelectorAll('.sb-prod').forEach(mark)
+      pulse(lens)
     }
 
     buttons.forEach((b) =>
       b.addEventListener('click', () => apply(root.dataset.lens === b.dataset.lens ? null : b.dataset.lens!)),
     )
+
+    // Product nodes are the desktop control. role="button" needs its keyboard
+    // half written by hand — Enter and Space, the two keys a real button answers.
+    root.querySelectorAll<SVGGElement>('.sb-prod').forEach((g) => {
+      const pick = () => apply(root.dataset.lens === g.dataset.lens ? null : g.dataset.lens!)
+      g.addEventListener('click', pick)
+      g.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          pick()
+        }
+      })
+    })
   })
 </script>
