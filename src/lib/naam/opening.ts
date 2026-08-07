@@ -47,11 +47,31 @@ export const OPENING_STEPS = 3
 const STEP_MS = 1150
 
 /**
- * The first block does not wait. Someone who has just clicked a link is not
- * ready to be paused at, and a page whose first line is late reads as slow
- * rather than as deliberate.
+ * The gap before the SECOND block. The first one does not wait at all — see
+ * FIRST_STAGE below.
  */
 const FIRST_MS = 220
+
+/**
+ * ── THE GREETING IS ALREADY ON THE CARD ─────────────────────────────────────
+ *
+ * This started at 0, which held all three blocks back until JavaScript had
+ * hydrated and a 220ms timer had fired. The comment above it said "the first
+ * block does not wait", and on a fast machine that was true; measured on a
+ * throttled one it was not close. The first legible line landed at 1771ms on
+ * desktop and 2167ms on a phone, and every millisecond of that was an empty
+ * conversation column with a text box under it.
+ *
+ * Starting at 1 means the first block carries no `data-wait` in the
+ * server-rendered HTML, so it is on the paper in the first painted frame and
+ * needs nothing to run. An invitation's greeting is not animated in — it is
+ * what you see when the card opens. The two blocks that follow are the ones
+ * with something to reveal, and they still arrive 1150ms apart.
+ *
+ * This also makes the sequence honest with JavaScript off: the greeting shows,
+ * which is better than three blocks held at opacity 0 forever.
+ */
+const FIRST_STAGE = 1
 
 /**
  * RUSHED, NOT SKIPPED. When somebody types before the opening has finished they
@@ -80,7 +100,7 @@ export interface Opening {
  * In that case every block is in from the first frame.
  */
 export function useOpening(enabled: boolean): Opening {
-  const [stage, setStage] = useState(() => (enabled ? 0 : OPENING_STEPS))
+  const [stage, setStage] = useState(() => (enabled ? FIRST_STAGE : OPENING_STEPS))
   const [rushed, setRushed] = useState(false)
   const timers = useRef<number[]>([])
   const rushedRef = useRef(false)
@@ -107,7 +127,7 @@ export function useOpening(enabled: boolean): Opening {
       setStage(OPENING_STEPS)
       return
     }
-    schedule(0, STEP_MS, FIRST_MS)
+    schedule(FIRST_STAGE, STEP_MS, FIRST_MS)
     return clear
     // schedule/clear are stable; enabled is the only real input.
   }, [enabled, schedule, clear])

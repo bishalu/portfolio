@@ -259,6 +259,19 @@ export default function NaamWall({ notes, onKeep }: NaamWallProps) {
 
     const tick = () => {
       const field = lanternField()
+      /**
+       * NO FIELD, NO WAITING. If the canvas never came up — a blocked context,
+       * a refused WebGL — nothing will ever step this simulation, and a label
+       * loop that only reveals on a step leaves every name at opacity 0
+       * forever. Measured with getContext stubbed to null: three lines of
+       * conversation and an empty sky where eight names should be.
+       *
+       * The names are the page. They show, and this loop stops.
+       */
+      if (field.bodies.length === 0) {
+        reveal()
+        return
+      }
       if (field.steps === lastStep) {
         raf = requestAnimationFrame(tick)
         return
