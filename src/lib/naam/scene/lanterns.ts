@@ -347,6 +347,27 @@ const DRIFT = { x: 0.075, y: 0.018 }
 /** Depth swing, as a fraction of resting size. */
 const DRIFT_Z = 0.04
 
+/**
+ * ── THE ARRIVAL ──────────────────────────────────────────────────────────
+ *
+ * Seconds. The lead is the beat the valley gets to itself before anything
+ * starts rising into it; the stagger is the gap between one lantern leaving
+ * and the next; the lift is how long one takes to reach its resting spot from
+ * ENTER_FROM below it.
+ *
+ * 1.05s is chosen against the brief "quickly, but not so quick they stop
+ * reading as balloons". Under about 700ms a paper lantern reads as an element
+ * fading in; over about 1.5s the sky is still assembling itself while the
+ * visitor is trying to read the invitation. Eight lanterns at 0.11s apart put
+ * the last one settled at ~2.1s, which is inside the time the first sentence
+ * takes to read.
+ */
+const ENTER_LEAD = 0.28
+const ENTER_STAGGER = 0.11
+const ENTER_LIFT = 1.05
+/** How far below its spot a lantern starts, as a fraction of frame height. */
+const ENTER_FROM = 0.16
+
 export interface LanternBody {
   /** Live position, in fractions of the frame. */
   x: number
@@ -377,6 +398,32 @@ interface Body extends LanternBody {
   /** Rotates this lantern's wander onto its own axes. */
   wanderTilt: number
   restScale: number
+  /**
+   * The arrival, 0 to 1.
+   *
+   * The lanterns used to exist from the first drawn frame: the sky was simply
+   * already full, which is the one thing a sky full of rising lanterns is not.
+   * They lift from below their resting spot instead, one after another, far
+   * ones first, so the valley resolves and then fills.
+   *
+   * It lives on the BODY and not in the renderer because the paper is drawn on
+   * the canvas and the name is written in the DOM, and both read this field. An
+   * offset applied on the canvas side only would leave every name hanging at
+   * its resting spot while its lantern rose to meet it.
+   */
+  enter: number
+  /** Seconds to wait before this one starts lifting. */
+  enterDelay: number
+  /**
+   * How much of `y` is the arrival rather than the simulation.
+   *
+   * The offset has to be REMOVED before the next step or it accumulates: the
+   * first version added it every frame and the lanterns left the frame
+   * downward at 0.16 of the screen per step. Carrying the applied amount and
+   * subtracting it at the top of the step keeps one source of truth — both
+   * readers still take `y` — while the physics never sees the lift.
+   */
+  lift: number
 }
 
 /** Deterministic 0..1 from a seed — a lantern must not change character. */
@@ -403,6 +450,8 @@ export class LanternField {
    * pointless one. Readers compare it and skip a frame that has nothing in it.
    */
   steps = 0
+  /** Seconds since the field started stepping — the arrival's clock. */
+  private age = 0
   /** Frame aspect, so a radius in x-fractions can be compared in y. */
   private aspect = 1.5
 
@@ -463,16 +512,69 @@ export class LanternField {
         wanderRate: 0.045 + ((i * 0.6180339887) % 1) * 0.09 + rand(s + 11) * 0.012,
         wanderPhase: ((i * 0.3819660113) % 1) * 6.283185 + rand(s + 17) * 0.5,
         wanderGain: 0.6 + rand(s + 23) * 0.8,
+        enter: 0,
+        enterDelay: 0,
+        lift: 0,
         wanderTilt: ((i * 0.7548776662) % 1) * 6.283185 + rand(s + 29) * 0.4,
       }
       this.bodies.push(
         kept
           ? // Position, velocity and clock carried over; home and size follow
-            // the new support.
-            { ...seeded, x: kept.x, y: kept.y, z: kept.z, vx: kept.vx, vy: kept.vy, vz: kept.vz }
+            // the new support. THE ARRIVAL CARRIES OVER TOO — a lantern that is
+            // already up there must not lift off again because somebody voted.
+            {
+              ...seeded,
+              x: kept.x,
+              y: kept.y,
+              z: kept.z,
+              vx: kept.vx,
+              vy: kept.vy,
+              vz: kept.vz,
+              enter: kept.enter,
+              enterDelay: kept.enterDelay,
+              lift: kept.lift,
+            }
           : seeded,
       )
     })
+
+    /**
+     * FAR ONES FIRST, so the sky fills back to front and the near lanterns —
+     * the ones with the most support — are the last to settle. The delay is
+     * assigned after the loop because it depends on every body's depth, which
+     * is not known until they all exist.
+     *
+     * ENTER_LEAD is the beat the backdrop gets to itself. The valley resolves,
+     * and then things start rising into it; without it the mountains and the
+     * first lantern arrive together and the ordering the eye is being offered
+     * never happens.
+     */
+    const arriving = this.bodies.filter((body) => body.enter < 1)
+    arriving
+      .slice()
+      .sort((a, z) => a.restScale - z.restScale)
+      .forEach((body, rank) => {
+        body.enterDelay = ENTER_LEAD + rank * ENTER_STAGGER
+      })
+  }
+
+  /**
+   * Skip the arrival — every lantern already up, nothing lifted.
+   *
+   * Under prefers-reduced-motion the scene draws ONE frame and then stops, so
+   * an entrance that has not run is an entrance that never will: measured, all
+   * eight lanterns sat 0.16 of the frame height below their spots permanently,
+   * with their names hanging in the sky under the paper they are written on.
+   * A still frame of a rising lantern is a lantern that has arrived, which is
+   * also the honest reading of WCAG 2.3.3 — it is about motion, not about
+   * whether the scene is allowed to be complete.
+   */
+  settle(): void {
+    for (const b of this.bodies) {
+      b.y -= b.lift
+      b.lift = 0
+      b.enter = 1
+    }
   }
 
   /**
@@ -485,6 +587,25 @@ export class LanternField {
   step(dt: number, time: number): void {
     const h = Math.min(dt, 1 / 30)
     this.steps++
+    /**
+     * THE ARRIVAL RUNS ON WALL TIME, THE PHYSICS RUNS ON `h`.
+     *
+     * `h` is capped at a thirtieth so a stalled frame cannot fling a body
+     * across the screen — correct for a simulation, wrong for an entrance. The
+     * canvas draws at 30fps by design and slower than that on a weak machine,
+     * so an arrival clocked on `h` ran at a fraction of real speed: measured on
+     * this host, 3.3 seconds of wall time advanced it by 0.65. A lantern's
+     * entrance has to take the same time on every machine, so it takes `dt` —
+     * bounded only against a tab that was backgrounded for a minute.
+     */
+    this.age += Math.min(dt, 0.25)
+
+    // Undo last frame's lift so the simulation below runs on the resting
+    // position, not on the position the arrival put it in.
+    for (const b of this.bodies) {
+      b.y -= b.lift
+      b.lift = 0
+    }
 
     for (const b of this.bodies) {
       // The air. Two incommensurate components per axis so the path has slow
@@ -547,6 +668,35 @@ export class LanternField {
     for (const b of this.bodies) {
       b.scale = b.restScale * (1 + b.z)
       b.alpha = 0.84 + b.z * 4
+    }
+
+    /**
+     * ── AND THEN THE RISE, ON TOP OF EVERYTHING THE PHYSICS DID ────────────
+     *
+     * Applied last and never fed back: `y` still holds the simulated position
+     * and the offset is added to it afterwards, so a lantern still on its way
+     * up is not treated by the wander, the walls or the colliders as though it
+     * were down there. It drifts and separates as if it were already home, and
+     * the arrival is a transform laid over that.
+     *
+     * easeOutCubic, and the choice matters: a balloon under buoyancy leaves
+     * fast and asymptotes into its ceiling. Anything with an overshoot reads as
+     * a UI element springing, which is the opposite of the thing being
+     * described.
+     */
+    for (const b of this.bodies) {
+      if (b.enter >= 1) continue
+      const t = Math.max(0, Math.min(1, (this.age - b.enterDelay) / ENTER_LIFT))
+      b.enter = 1 - Math.pow(1 - t, 3)
+      const left = 1 - b.enter
+      b.lift = left * ENTER_FROM
+      b.y += b.lift
+      // Fades over the first half of the lift, so it is fully there for the
+      // part of the climb the eye is actually following.
+      b.alpha *= Math.min(1, b.enter * 2)
+      // A shade smaller on the way up. Two percent — enough to read as coming
+      // from further away, not enough to read as a zoom.
+      b.scale *= 0.98 + b.enter * 0.02
     }
   }
 

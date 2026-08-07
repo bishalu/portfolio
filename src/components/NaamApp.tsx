@@ -2432,7 +2432,15 @@ export default function NaamApp({ seed }: NaamAppProps) {
           composer sits against the layout viewport and ends up underneath the
           iOS keyboard permanently. */}
       <div className="nm-composer" ref={composerRef} data-typing={ask.trim().length > 0 ? 'true' : undefined}>
-        {/* Present for the whole conversation, refreshing as they are used. */}
+        {/* Present for the whole conversation, refreshing as they are used.
+            THE SLOT IS ALWAYS HERE, THE CHIPS ARE NOT. The starters are picked
+            at random on mount, so they cannot be server-rendered without a
+            hydration mismatch — which meant the row appeared 364ms in on
+            desktop and 1269ms in on a phone and shoved the composer down 59px
+            in a single frame. The slot is plain markup with the height of one
+            chip row, so it is in the layout from the first paint and the chips
+            fade into a space that was already theirs. */}
+        <div className="nm-starters-slot">
         {starters.length > 0 && (
           <ul className="nm-starters" aria-label={C.app.startersLabel}>
             {starters.map((starter) => (
@@ -2454,6 +2462,7 @@ export default function NaamApp({ seed }: NaamAppProps) {
             ))}
           </ul>
         )}
+        </div>
         <div className="nm-composer-in">
           <label className="sr-only" htmlFor="nma-ask">
             {C.app.composerLabel}
@@ -2490,12 +2499,30 @@ export default function NaamApp({ seed }: NaamAppProps) {
             <span className="sr-only">{C.app.composerSend}</span>
           </button>
         </div>
-        {notReady && !dataFailed && (
-          <div className="nm-thinking nm-thinking--composer" aria-hidden="true">
-            <div className="pulse-line"></div>
-            <p className="pulse-caption nm-caption">{C.app.reading}</p>
+        {/* IT COLLAPSES, IT DOES NOT VANISH. This block says the document is
+            still being read, and it used to unmount the instant that stopped
+            being true — taking 33px out of the composer in one frame, 82ms
+            after the starters had just pushed it the other way. Two shoves in
+            opposite directions is most of what "pops and skips" was.
+
+            Always rendered, opened by the attribute, and the height eases
+            shut. `grid-template-rows: 1fr -> 0fr` is the collapse that
+            animates; `max-height` guesses a number and either clips or leaves
+            slack. It starts OPEN because the server renders it open — rows is
+            null until the document arrives — so the space is reserved from the
+            first paint and the only movement is the easing. */}
+        <div
+          className="nm-composer-status"
+          data-open={notReady && !dataFailed ? 'true' : undefined}
+          aria-hidden="true"
+        >
+          <div className="nm-composer-status-in">
+            <div className="nm-thinking nm-thinking--composer">
+              <div className="pulse-line"></div>
+              <p className="pulse-caption nm-caption">{C.app.reading}</p>
+            </div>
           </div>
-        )}
+        </div>
 
         {/* What the bar used to hold, at the weight it actually deserves: one
             hairline row under the composer, which is where a visitor's eye

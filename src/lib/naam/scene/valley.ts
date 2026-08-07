@@ -911,6 +911,9 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
     // canvas and the DOM labels read it — see lanterns.ts.
     // Keys so a rebuild keeps each lantern where it is — see reset().
     lanternField().reset(spots, w / Math.max(1, h), lanternKeys)
+    // One frame and stop means an entrance that has not run is one that never
+    // will — see settle() in lanterns.ts.
+    if (still) lanternField().settle()
 
     /**
      * FAR FIRST. The lanterns are large enough now to overlap each other, and a

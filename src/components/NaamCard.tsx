@@ -54,7 +54,7 @@
  * unfocusable; a dead enabled one is neither. Sizes are identical either way,
  * so nothing shifts (CLS floor is 0).
  */
-import type { MouseEvent } from 'react'
+import { Fragment } from 'react'
 import { NAAM_COPY } from '@/lib/naam/copy'
 import { naamPreferredDevanagari, naamPreferredForm, type NaamRow } from '@/types/naam'
 
@@ -105,73 +105,67 @@ export default function NaamCard({
   const marked = row.badges.hardCluster
 
   /**
-   * THE WHOLE CARD KEEPS THE NAME. Asking someone to find a small pill in the
-   * corner of a card is three steps — notice it, aim at it, work out that it
-   * and not the name above it is the thing that chooses — for one idea.
+   * The name, cut where the syllables cut it — SLICED FROM THE SPELLING ON THE
+   * CARD, not assembled from the split.
    *
-   * One region opts out, because it does a different job and is one tap of its
-   * own: the व/ब pill, which changes how a name is SPELLED rather than
-   * choosing it. Everything else on the card is Keep.
+   * `syllableSplit` is lowercase, so printing it directly turned Varisha into
+   * "va·ri·sha": the break was right and the name was wrong, on a page whose
+   * whole subject is how a name is written. Slicing the displayed spelling at
+   * the split's own offsets keeps the capital and works for the B-form too,
+   * which differs from the V-form only in its first letter.
    *
-   * The real <button> is still rendered and still does the work, so the
-   * accessibility tree has exactly one properly-named control per card and the
-   * keyboard path is unchanged — this only widens where a pointer may land.
-   * The button's own click is left to bubble: forwarding it here as well would
-   * keep the name and immediately un-keep it.
+   * If the two ever disagree in length the name is printed whole, without
+   * breaks. A missing hyphenation is a small loss; a mangled name is not.
    */
-  const keepFromCard = (event: MouseEvent<HTMLElement>) => {
-    if (!onPick || (trayFull && !picked)) return
-    const target = event.target as HTMLElement
-    if (target.closest('.nm-pick')) return
-    onPick()
-  }
+  const broken = (() => {
+    const parts = row.syllableSplit
+    const total = parts.reduce((n, part) => n + part.length, 0)
+    if (total !== primary.length) return [{ text: primary, cluster: false }]
+    let at = 0
+    return parts.map((part) => {
+      const text = primary.slice(at, at + part.length)
+      at += part.length
+      return { text, cluster: marked && opensOnCluster(part) }
+    })
+  })()
 
   return (
-    /* Both rules are asking for the keyboard path, and the keyboard path is the
-       real <button> rendered inside this article — properly labelled, in the
-       tab order, doing exactly this. Adding onKeyDown here would give a
-       screen-reader user a second, unlabelled way to keep the same name, and
-       making the <article> a button would nest the disclosure inside it, which
-       axe rejects outright (nested-interactive). This widens where a POINTER
-       may land and changes nothing else. */
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions
-    <article className="nm-card" data-nm-card={row.id} data-picked={picked ? 'true' : undefined} onClick={keepFromCard}>
-      <div className="nm-card-name">
-        <span className="nm-deva" data-nm-deva lang="sa-Deva">
-          {devanagari}
-        </span>
-        <p className="nm-latin">
-          <span className="nm-latin-main">{primary}</span>
-          {alternate && <span className="nm-latin-alt label-mono">{alternate}</span>}
-        </p>
-      </div>
+    /* NO HANDLER ON THE ARTICLE ANY MORE. It used to carry an onClick so a
+       pointer could land anywhere on the card while the keyboard used the
+       button inside — two paths to one action, and an eslint suppression to
+       allow it. The button is now stretched over the whole card, so the
+       pointer and the keyboard reach the same control and the article is back
+       to being what it says it is. */
+    <article className="nm-card" data-nm-card={row.id} data-picked={picked ? 'true' : undefined}>
+      {/* ── ONE LINE FOR THE NAME, ONE FOR THE SOUND ─────────────────────────
+          The card carried the Devanagari on its own line, the Latin under it,
+          and then a whole separate 32px instrument — a rule with a dot and an
+          uppercase label per syllable — to say how the name breaks. Three rows
+          to print two facts, on the object there are nine of.
 
-      {/* role="presentation" because this is an instrument, not a list. Without
-          it a screen reader announces "list, 3 items" on all 77 prerendered
-          cards; the syllables themselves stay in the reading order, which is
-          the part worth hearing. */}
-      {/* THE व/ब TOGGLE IS GONE FROM THIS RAIL.
-          It switched which spelling led, and the card already prints both —
-          "Bardhi Vardhi", primary then alternate — so the information it
-          guarded was never actually behind it. What it cost was a row on the
-          busiest object on the page, plus 26px of reserved headroom on every
-          card whether it had one or not. The stored preference survives; only
-          the control is gone, and copy.ts keeps its strings for whatever
-          picks it up next. */}
-      <div className="nm-rail">
-        <ol className="nm-ticks" role="presentation">
-          {row.syllableSplit.map((syllable, i) => (
-            <li
-              key={`${row.id}-${i}`}
-              className="nm-tick"
-              data-cluster={marked && opensOnCluster(syllable) ? 'true' : undefined}
-            >
-              <span className="nm-tick-dot" aria-hidden="true"></span>
-              <span className="nm-tick-syllable label-mono label-mono--sm">{syllable}</span>
-            </li>
+          The break is now IN the name: "Bar·dhi". It is the same information,
+          it is read where the reader is already looking, and the interpunct is
+          the typographic convention for exactly this. The cluster mark rides
+          the separator that opens it, so the document's own `!` survives as a
+          coloured dot rather than as a coloured row. */}
+      <span className="nm-deva" data-nm-deva lang="sa-Deva">
+        {devanagari}
+      </span>
+      <p className="nm-latin">
+        <span className="nm-latin-main">
+          {broken.map((part, i) => (
+            <Fragment key={`${row.id}-${i}`}>
+              {i > 0 && (
+                <span className="nm-syl" aria-hidden="true" data-cluster={part.cluster ? 'true' : undefined}>
+                  ·
+                </span>
+              )}
+              {part.text}
+            </Fragment>
           ))}
-        </ol>
-      </div>
+        </span>
+        <span className="nm-latin-alt label-mono">{alternate ?? '\u00a0'}</span>
+      </p>
 
       {undocumented ? (
         <p className="nm-undocumented label-mono label-mono--sm">{C.notInDocument}</p>
@@ -192,22 +186,40 @@ export default function NaamCard({
           Without it a screen reader meets 72 buttons called "Pick" and 72
           disclosures called "From the document", with no way to tell which
           name any of them belongs to — the <article> carries no name either. */}
-      <div className="nm-card-foot">
-        {pickable && (
-          <button
-            type="button"
-            className="nm-pick label-mono label-mono--sm"
-            aria-pressed={picked}
-            disabled={!onPick || (trayFull && !picked)}
-            data-nm-pick={onPick ? undefined : row.id}
-            onClick={onPick}
-          >
-            <span data-nm-pick-word>{picked ? C.picked : C.pick}</span>
-            <span className="sr-only"> {primary}</span>
-          </button>
-        )}
+      {/* ── THE CONTROL IS THE CARD ────────────────────────────────────────
+          KEEP was a 59x44 pill on its own row — 44px of the card's height, and
+          the widest thing on it, to say the one thing the whole card is for.
 
-        {/* THE "FROM THE DOCUMENT" DISCLOSURE IS GONE. It carried the verbatim
+          The button is still a real button and still the keyboard path, but it
+          is stretched over the entire card and its visible mark is a small ring
+          in the corner. The tap target went UP (the whole card, not a pill in
+          the bottom-left), the height came down by a row, and what is left is a
+          mark that says "choosable" without spending a line saying it.
+
+          `inset: 0` means the article no longer needs its own pointer handler:
+          one control, one hit area, the same for a mouse and a keyboard.
+
+          The name still rides in an .sr-only span rather than in aria-label so
+          the visible word starts the accessible name (WCAG 2.5.3) — without it
+          a screen reader meets 72 buttons called "Keep" with no way to tell
+          which name any of them belongs to. */}
+      {pickable && (
+        <button
+          type="button"
+          className="nm-pick"
+          aria-pressed={picked}
+          disabled={!onPick || (trayFull && !picked)}
+          data-nm-pick={onPick ? undefined : row.id}
+          onClick={onPick}
+        >
+          <span className="nm-pick-mark" aria-hidden="true"></span>
+          <span className="sr-only">
+            {picked ? C.picked : C.pick} {primary}
+          </span>
+        </button>
+      )}
+
+      {/* THE "FROM THE DOCUMENT" DISCLOSURE IS GONE. It carried the verbatim
             source line, the corpus labels and a page number under every card,
             and it was the most machinery-looking thing on a page about naming a
             child — a footnote apparatus on a card someone is choosing between.
@@ -217,7 +229,6 @@ export default function NaamCard({
             document and nowhere else, and the matcher still cannot surface a
             name that is not in it. What has gone is the CITATION, not the
             sourcing. The meaning on the card is the document's own line. */}
-      </div>
     </article>
   )
 }

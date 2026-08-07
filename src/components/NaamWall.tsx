@@ -203,9 +203,38 @@ export default function NaamWall({ notes, onKeep }: NaamWallProps) {
    */
   useEffect(() => {
     const list = shelfRef.current
-    if (!list || stacked || frame.ch === 0) return undefined
+    if (!list || stacked) return undefined
+
+    /**
+     * ── THE NAME ARRIVES WITH ITS PAPER ────────────────────────────────────
+     *
+     * `.nm-lamp` is hidden in CSS and revealed here. Without that the names
+     * were in the sky from the first paint while their lanterns were still
+     * rising into place — filmed at 300ms and 500ms, eight labels hanging at
+     * their resting spots over an empty sky, which is a worse frame than
+     * either the old instant sky or the new rise.
+     *
+     * Revealing is this loop's job and not a CSS transition's, because the
+     * label cannot be shown until the frame has been MEASURED (`frame.ch`) or
+     * it appears at the wrong place first. Every path that leaves this effect
+     * early therefore has to reveal on the way out, or a name that will never
+     * animate never appears at all — reduced motion, a blocked canvas, and a
+     * field that has not built yet are all that path.
+     */
+    const reveal = () => {
+      for (const node of list.querySelectorAll<HTMLElement>('.nm-lamp')) node.style.opacity = '1'
+    }
+
+    if (frame.ch === 0) {
+      // Nothing measured yet, so nothing can be placed — but a sky whose
+      // canvas never arrives must still show its names.
+      const bail = setTimeout(reveal, 1200)
+      return () => clearTimeout(bail)
+    }
+
     // Reduced motion gets the resting composition, drawn once and left still.
     if (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      reveal()
       return undefined
     }
 
@@ -219,6 +248,7 @@ export default function NaamWall({ notes, onKeep }: NaamWallProps) {
     const nodes = [...list.querySelectorAll<HTMLElement>('.nm-lamp')]
     /** Last value written per node, so unchanged frames write nothing. */
     const lastZ = new Array<number>(nodes.length).fill(-1)
+    const lastFade = new Array<number>(nodes.length).fill(-1)
     /**
      * The canvas steps the simulation at 30fps. Reading it at the display's
      * rate writes every second transform twice with identical numbers, so the
@@ -250,6 +280,17 @@ export default function NaamWall({ notes, onKeep }: NaamWallProps) {
         // property — every write asks the browser to reconsider paint order,
         // and the depth ordering of eight slow-moving lanterns changes a
         // handful of times a minute, not sixty times a second.
+        /**
+         * The arrival's fade, written here rather than left to CSS: the paper
+         * fades in on the canvas over the first half of its lift, and the name
+         * written on it has to do exactly the same thing at exactly the same
+         * time or the two come apart.
+         */
+        const fade = body.enter >= 1 ? 1 : Math.min(1, body.enter * 2)
+        if (fade !== lastFade[i]) {
+          nodes[i].style.opacity = String(fade)
+          lastFade[i] = fade
+        }
         const z = Math.round(body.scale * 1000)
         if (z !== lastZ[i]) {
           nodes[i].style.zIndex = String(z)

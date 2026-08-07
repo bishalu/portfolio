@@ -522,19 +522,16 @@ if (!seedRow) {
        Held to the text's own measure and given a surface of its own, one step
        off the paper it rests on. Without it the cards were loose objects on
        a bare strip; with it they are a set, put down together, inside the
-       column rather than across it. The radius is the card's own 12px plus
-       the inset, so the tray's corners stay concentric with theirs.
+       column rather than across it.
 
-       THE TRAY TAKES THE MEASURE NOW, NOT THE CARDS. Outsetting it by its own
-       padding so the cards kept the text's left edge put its surface at x=57,
-       inside the strip the mala hangs in (the rope's canvas ends at 81) — and
-       the one thing this shelf must never do is reach into the thread's rail.
-       So the tray aligns with the text and the cards are its contents, which
-       is the ordinary relationship between a block and what is in it. */
+       THE TRAY'S SURFACE IS GONE, AND SO IS ITS PADDING. Giving it a fill of
+       its own meant it had to be inset from the cards, which put the CARDS 8px
+       right of the text they answer — and the left edge is the one thing on
+       this page every block shares. The cards sit on the conversation's own
+       paper now, starting exactly where the sentence above them starts. */
     .nm-hand > .nm-deal {
-      border-radius: 16px;
-      background: var(--nm-surface-2);
-      padding: 0.5rem;
+      justify-content: start;
+      padding: 0;
     }
 
     .nm-hand > .nm-deal {
@@ -1627,6 +1624,11 @@ if (!seedRow) {
 
   .nm-lamp {
     position: absolute;
+    /* Revealed by the label loop in NaamWall, which is the only thing that
+       knows where this belongs and whether its lantern has arrived yet. Every
+       early exit from that effect reveals on its way out, so a name is never
+       left hidden by a path that simply does not animate. */
+    opacity: 0;
     /* THE PAPER'S BOX LIVES HERE, not on the button inside it. A percentage
        height on .nm-lamp-hit resolved against a parent that had no height of
        its own, so every lantern measured 0x0 and every name sat outside a box
@@ -2020,11 +2022,20 @@ if (!seedRow) {
     min-width: 0;
   }
 
-  /* Three cards abreast, and the plate is sized so they land at their natural
-     width rather than being squeezed to fit it. */
+  /* ── AS MANY AS FIT, AT A FIXED WIDTH ───────────────────────────────────
+     `repeat(3, 1fr)` made the card a function of the column: at 1440 that was
+     199px each and the row spanned the whole measure, and at 1280 it was 159px
+     — the same card at two sizes, neither of them chosen.
+
+     11rem is chosen. Three land inside a 616px measure with 88px to spare, so
+     the deal reads as a set of objects sitting in the conversation rather than
+     as a band across it, and a narrower column simply fits fewer rather than
+     squeezing what it has. auto-fill, not auto-fit: auto-fit collapses the
+     empty tracks and re-centres a short row, which would move the cards. */
   @media (min-width: 1100px) {
     .nm-hand > .nm-deal {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(auto-fill, 11rem);
+      justify-content: start;
     }
   }
 
@@ -2045,8 +2056,11 @@ if (!seedRow) {
       scroll-snap-type: x mandatory;
     }
 
+    /* 11rem here too, so a phone shows two whole cards and the edge of a
+       third — 72vw showed one and a sliver, which reads as "there is one" far
+       more than as "swipe". The card is the same object at every width now. */
     .nm-hand .nm-dealt {
-      flex: 0 0 min(72vw, 17rem);
+      flex: 0 0 min(46vw, 11rem);
       scroll-snap-align: start;
     }
 
@@ -2107,8 +2121,12 @@ if (!seedRow) {
        not also need the beat marks. And the tray's floor comes down once there
        is a hand, because when names are on the table they matter more than the
        empty slots waiting for them. */
+    /* 15.2rem when the card was a 234-260px object with a KEEP row on it. The
+       card is 117px now and the gloss is hard-clamped to two lines, so its
+       height no longer varies with the answer — the band can hug it. Measured
+       after: 117px card in a 132px band, nothing clipped on either target. */
     #naam-app .nm-hand {
-      min-height: 15.2rem;
+      min-height: 8.25rem;
     }
 
     /* ── THE GLOSS GIVES, NOT THE KEEP ────────────────────────────────────
@@ -2924,18 +2942,92 @@ if (!seedRow) {
      type until they do would make them the smallest text on the screen. They
      wrap instead, and each one keeps a 44px hit area — the row is allowed to be
      two lines tall, because two readable lines beat three cramped ones. */
+  /* ── THE SPACE IS RESERVED BEFORE THE CHIPS EXIST ────────────────────────
+     One chip row tall, always, whether or not anything is in it. The chips
+     are chosen at random on mount and cannot be server-rendered, so without
+     this the row arrives after hydration and shoves the composer. 44px is the
+     chip's own min-height — the tap-target floor — so the reserved space is
+     exactly what will fill it. */
+  .nm-starters-slot {
+    margin-bottom: 0.5rem;
+    min-height: 44px;
+  }
+
   .nm-starters {
     display: flex;
     /* Centred over the box they feed. Left-aligned they read as a list the
        composer happens to sit under; centred they read as three ways into the
-       one thing below them — and a wrapped row that ends short looks deliberate
-       rather than ragged. */
-    flex-wrap: wrap;
+       one thing below them.
+
+       NOWRAP, AND IT IS NOT ONLY A LAYOUT PREFERENCE. Wrapped, the row's
+       height depends on which three labels were drawn — measured at 412px,
+       three chips came out 163/179/159 and took two lines and 94px, and a
+       different draw would have taken one. A row whose height is decided by a
+       random pick cannot have its space reserved above, and the whole reason
+       the reserving works is that the number is knowable in advance. */
+    flex-wrap: nowrap;
     justify-content: center;
     gap: 0.4rem;
-    margin: 0 0 0.5rem;
+    margin: 0;
     padding: 0;
     list-style: none;
+  }
+
+  /* Wider than the frame on a phone, so it scrolls — the same idiom the dealt
+     cards already use there, and the third chip peeking is what says so. */
+  @media (max-width: 1099px) {
+    .nm-starters {
+      justify-content: flex-start;
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      scrollbar-width: none;
+
+      &::-webkit-scrollbar {
+        display: none;
+      }
+    }
+
+    .nm-starters > li {
+      flex: 0 0 auto;
+    }
+  }
+
+  /* Into a space that was already theirs, so nothing moves — only the ink
+     arrives. Staggered by a breath so it reads as three things offered rather
+     than one row switched on. */
+  .nm-starter {
+    animation: nm-fade-in 300ms ease both;
+  }
+
+  .nm-starters > li:nth-child(2) .nm-starter {
+    animation-delay: 70ms;
+  }
+
+  .nm-starters > li:nth-child(3) .nm-starter {
+    animation-delay: 140ms;
+  }
+
+  /* ── THE STATUS LINE EASES SHUT ──────────────────────────────────────────
+     See the comment on .nm-composer-status in NaamApp.tsx. `1fr -> 0fr` is
+     the collapse that animates; the inner element carries the overflow so the
+     content does not reflow on the way down. */
+  .nm-composer-status {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition:
+      grid-template-rows 420ms cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 260ms ease;
+    opacity: 0;
+
+    &[data-open] {
+      grid-template-rows: 1fr;
+      opacity: 1;
+    }
+  }
+
+  .nm-composer-status-in {
+    overflow: hidden;
+    min-height: 0;
   }
 
   .nm-starter {
@@ -3116,12 +3208,21 @@ if (!seedRow) {
 
   /* Devanagari gets a fixed block so a late font swap shifts nothing, and
      1.65 line-height because matras collide below about 1.6. */
-  /* Tighter than the page's default box. A card is a small object repeated
-     three across; the padding that suits one wide surface reads as slack when
-     it is paid for six times in a column. */
+  /* ── SMALL ENOUGH TO SIT INSIDE THE CONVERSATION ────────────────────────
+     The card was 194x261 and the row of them spanned the whole text measure,
+     which is why it kept reading as too big however much the type came down:
+     a block as wide as the paragraph above it is not IN the conversation, it
+     IS the conversation for as long as it is on screen.
+
+     Three rows came out — the Devanagari and the Latin share a line's worth of
+     stacking rather than three, the syllable rail is inside the name now, and
+     the KEEP pill is a ring in the corner. What is left is the name, the
+     sound, and what it means, which is the whole of what a person choosing
+     between names needs. */
   .nm-card {
-    gap: 0.3rem;
-    padding: 0.7rem 0.8rem 0.75rem;
+    gap: 0.15rem;
+    border-radius: 10px;
+    padding: 0.55rem 0.65rem 0.6rem;
   }
 
   /* ── A CARD IS PART OF THE CONVERSATION, NOT LOUDER THAN IT ──────────────
@@ -3133,32 +3234,67 @@ if (!seedRow) {
      1.35rem still leads the card and still carries Devanagari comfortably
      (matras need the line-height, which is why that stays generous relative to
      the size), while sitting just above the prose rather than over it. */
+  /* 1.25rem is the floor, not a preference. 1.15rem measured 18.4px and the
+     card gate wants 20px on the Devanagari — the script carries meaning above
+     and below the baseline, so it loses more at a small size than a Latin
+     face does. The two pixels came out of the leading rather than the glyph. */
   .nm-deva {
     display: block;
-    min-height: 2.1rem;
+    min-height: 1.8rem;
     color: var(--nm-text);
-    font-size: 1.35rem;
-    line-height: 2.1rem;
+    font-size: 1.25rem;
+    /* Matras sit above the line and below it; a tight leading clips them. */
+    line-height: 1.8rem;
     font-family: var(--font-deva), var(--font-body);
   }
 
+  /* ── THE ALTERNATE ALWAYS SITS ON ITS OWN LINE ──────────────────────────
+     Inline, it fitted beside most names and wrapped beside the long ones —
+     "Ba·rsha·tra Varshatra" took two lines while "Ba·ri·sha Varisha" took one,
+     so a row of cards came out 117px in one place and 137px in another. In a
+     grid every row stretches to its tallest card, which turns one long name
+     into a ragged deal.
+
+     Its own line, always, whether or not there is one to show: every card is
+     then the same height and the deal is a grid rather than a staircase. The
+     line costs 16px and buys a number that does not depend on which names came
+     back. */
   .nm-latin {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0.5rem;
+    display: grid;
+    gap: 0;
     margin: 0;
+  }
+
+  .nm-latin-alt {
+    min-height: 1rem;
+    line-height: 1rem;
   }
 
   .nm-latin-main {
     color: var(--nm-text);
-    font-size: 1.15rem;
+    font-size: 1rem;
     font-family: var(--font-display);
   }
 
   .nm-latin-alt {
     color: var(--nm-text-soft);
     text-transform: none;
+  }
+
+  /* The syllable break, where the reader already is. Quiet enough to read as
+     punctuation rather than as a character of the name. */
+  .nm-syl {
+    margin: 0 0.04em;
+    color: var(--nm-text-soft);
+    opacity: 0.55;
+  }
+
+  /* The document's own `!` — a harder consonant cluster, marked on the break
+     that opens it. It was a crimson dot on a 32px rail; it is a crimson dot on
+     a separator now, which is the same mark in a tenth of the space. */
+  .nm-syl[data-cluster='true'] {
+    color: var(--crimson);
+    opacity: 1;
   }
 
   /* ── The sound rail ───────────────────────────────────────────────────
@@ -3229,17 +3365,20 @@ if (!seedRow) {
      to three lines: Monier-Williams glosses run from four characters to four
      hundred, and in a grid every row stretches to its tallest card. The full
      text is one tap away in the disclosure directly below. */
+  /* Two lines, not three. Monier-Williams glosses run from four characters to
+     four hundred, and in a grid every row stretches to its tallest card — a
+     third line costs every card in the deal to serve the longest one. */
   .nm-gloss,
   .nm-source-gloss {
     display: -webkit-box;
     margin: 0;
     overflow: hidden;
     color: var(--nm-text-soft);
-    font-size: 0.95rem;
-    line-height: 1.6;
+    font-size: 0.82rem;
+    line-height: 1.5;
     font-family: var(--font-deva), var(--font-mono);
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 2;
   }
 
   .nm-source-gloss {
@@ -3279,36 +3418,67 @@ if (!seedRow) {
      can never carry type here, so the fill is the pale keep-fill with a
      marigold edge and the word stays in --nm-text: it reads as a control at a
      glance without putting text on a colour that cannot hold it. */
-  .nm-pick {
-    /* 44px, measured at 59x28 before this. The whole card keeps the name, so
-       this pill is not the only way in — but it is the one that LOOKS like the
-       control, and the responsive gate cannot see it: there are no cards on
-       the page until somebody asks a question, so every automated sweep of
-       tap targets had been running against a page with no cards in it. */
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 44px;
-    transition:
-      border-color var(--dur-base) ease,
-      background var(--dur-base) ease,
-      box-shadow var(--dur-base) ease;
-    cursor: pointer;
-    border: 1px solid var(--nm-keep);
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--nm-keep) 10%, transparent);
-    padding: 0.32rem 0.9rem;
-    color: var(--nm-text);
+/* ── THE WHOLE CARD, MARKED BY A RING ───────────────────────────────────
+     This was a 59x44 pill on a row of its own, which is to say it spent the
+     single widest and one of the tallest things on the card saying the one
+     thing the card is already for.
 
-    &[aria-pressed='true'] {
-      border-color: var(--nm-keep);
-      background: var(--nm-keep-fill);
-    }
+     Now it covers the card. The target went UP — 176x118 rather than 59x44 —
+     while the visible mark came down to a 14px ring in the corner, so the tap
+     target and the ink are no longer the same measurement. `inset: 0` over a
+     `position: relative` card, transparent, with the ring drawn by the child.
+
+     It cannot be `display: none` under any condition: there are no cards on
+     the page until somebody asks a question, so every automated sweep of tap
+     targets runs against a page with no cards in it and would never see it. */
+  .nm-pick {
+    position: absolute;
+    z-index: 1;
+    cursor: pointer;
+    inset: 0;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    padding: 0;
 
     &:disabled {
       opacity: 0.5;
       cursor: default;
     }
+
+    &:focus-visible {
+      outline: 2px solid var(--nm-keep);
+      outline-offset: 2px;
+    }
+  }
+
+  /* Small, quiet, and unmistakably a thing you fill. An empty ring reads as a
+     socket; the same ring filled reads as taken — which is the whole state
+     this control has, said in one shape rather than in a word that changes. */
+  .nm-pick-mark {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.6rem;
+    transition:
+      background var(--dur-base) ease,
+      border-color var(--dur-base) ease,
+      box-shadow var(--dur-base) ease;
+    border: 1.5px solid color-mix(in srgb, var(--nm-keep) 55%, transparent);
+    border-radius: 50%;
+    width: 14px;
+    height: 14px;
+  }
+
+  .nm-card:hover .nm-pick-mark,
+  .nm-pick:focus-visible .nm-pick-mark {
+    border-color: var(--nm-keep);
+    background: color-mix(in srgb, var(--nm-keep) 22%, transparent);
+  }
+
+  .nm-pick[aria-pressed='true'] .nm-pick-mark {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--nm-keep) 22%, transparent);
+    border-color: var(--nm-keep);
+    background: var(--nm-keep);
   }
 
   /* The card is the target, so the card is what reacts — and it reacts to
