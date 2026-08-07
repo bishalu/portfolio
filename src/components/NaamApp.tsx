@@ -2433,9 +2433,25 @@ export default function NaamApp({ seed }: NaamAppProps) {
             in a single frame. The slot is plain markup with the height of one
             chip row, so it is in the layout from the first paint and the chips
             fade into a space that was already theirs. */}
+        {/* ── ONE ROW, TWO OCCUPANTS ─────────────────────────────────────────
+            The status ("reading the document…") used to sit BELOW the input and
+            collapse when the document arrived, on a `grid-template-rows`
+            transition — which is a layout animation by definition, and it ran
+            during boot, the worst moment to reflow a column. Measured at 4x on
+            a 412px phone: 44.7ms of layout and 206ms of style recalculation for
+            one 420ms collapse.
+
+            The two things were always the same moment anyway: the status says
+            what is happening, the chips say what you can do, and the second
+            replaces the first. So they share the row that was already reserved
+            above the input, crossfading on opacity alone. The composer's height
+            never changes, so there is no layout to animate. */}
         <div className="nm-starters-slot">
+        <p className="nm-cue-reading label-mono label-mono--sm" data-on={notReady && !dataFailed ? 'true' : undefined} aria-hidden="true">
+          {C.app.reading}
+        </p>
         {starters.length > 0 && (
-          <ul className="nm-starters" aria-label={C.app.startersLabel}>
+          <ul className="nm-starters" aria-label={C.app.startersLabel} data-on={notReady ? undefined : 'true'}>
             {starters.map((starter) => (
               <li key={starter.id}>
                 <button
@@ -2492,31 +2508,6 @@ export default function NaamApp({ seed }: NaamAppProps) {
             <span className="sr-only">{C.app.composerSend}</span>
           </button>
         </div>
-        {/* IT COLLAPSES, IT DOES NOT VANISH. This block says the document is
-            still being read, and it used to unmount the instant that stopped
-            being true — taking 33px out of the composer in one frame, 82ms
-            after the starters had just pushed it the other way. Two shoves in
-            opposite directions is most of what "pops and skips" was.
-
-            Always rendered, opened by the attribute, and the height eases
-            shut. `grid-template-rows: 1fr -> 0fr` is the collapse that
-            animates; `max-height` guesses a number and either clips or leaves
-            slack. It starts OPEN because the server renders it open — rows is
-            null until the document arrives — so the space is reserved from the
-            first paint and the only movement is the easing. */}
-        <div
-          className="nm-composer-status"
-          data-open={notReady && !dataFailed ? 'true' : undefined}
-          aria-hidden="true"
-        >
-          <div className="nm-composer-status-in">
-            <div className="nm-thinking nm-thinking--composer">
-              <div className="pulse-line"></div>
-              <p className="pulse-caption nm-caption">{C.app.reading}</p>
-            </div>
-          </div>
-        </div>
-
         {/* What the bar used to hold, at the weight it actually deserves: one
             hairline row under the composer, which is where a visitor's eye
             already is. `live` is not decoration — DESIGN.md §4 requires the

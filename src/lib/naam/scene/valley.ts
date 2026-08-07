@@ -188,6 +188,54 @@ export interface ValleyHandle {
 export async function createValley(options: ValleyOptions): Promise<ValleyHandle> {
   const { canvas, roomWidth = 0.44, still = false } = options
 
+  /**
+   * Boot timing, DEV ONLY.
+   *
+   * The scene's construction is the largest single main-thread task on the
+   * page and the one that decides whether a weak phone feels stuck, so it is
+   * worth being able to see its parts from outside. `import.meta.env.DEV` is
+   * statically false in the build, so the whole thing is dropped from
+   * production output rather than merely skipped.
+   */
+  /**
+   * ── LET THE BROWSER BREATHE BETWEEN THE PHASES ──────────────────────────
+   *
+   * Building this scene is the largest single task on the page, and a task is
+   * the unit the main thread cannot be interrupted inside: for as long as one
+   * runs, a tap does nothing and the opening's own timers cannot fire.
+   * Measured at 4x CPU on a 412px phone, the whole construction landed as ONE
+   * 443ms task — init 262, layout 38, first render 134 — and the three
+   * numbers add to 434, so that task is this function and nothing else.
+   *
+   * Yielding between the phases does not make any phase faster. It breaks one
+   * unresponsive 443ms into three stretches the browser can schedule around,
+   * and only the part of each over 50ms counts against blocking time. The
+   * scene appears at the same moment; the page stops being deaf while it is
+   * being built.
+   *
+   * `scheduler.yield()` where it exists, because it resumes at the front of
+   * the queue rather than behind every other pending task — a plain
+   * setTimeout(0) hands the scene to the back of the line and the backdrop
+   * arrives visibly later. setTimeout is the fallback for everything else.
+   */
+  const breathe = async (): Promise<void> => {
+    const s = (globalThis as { scheduler?: { yield?: () => Promise<void> } }).scheduler
+    if (typeof s?.yield === 'function') await s.yield()
+    else await new Promise((done) => setTimeout(done, 0))
+    // The clock restarts on the far side. Without this the NEXT phase's mark
+    // includes however long the browser took to come back, and layout read
+    // 111ms on a phone where the work itself is nearer 38.
+    __t = performance.now()
+  }
+
+  const boot = import.meta.env.DEV
+    ? ((window as unknown as Record<string, Record<string, number>>).__vb ||= {})
+    : null
+  let __t = performance.now()
+  const mark = (k: string) => {
+    if (boot) boot[k] = performance.now() - __t
+    __t = performance.now()
+  }
   const renderer = new WebGLRenderer()
   await renderer.init({
     canvas,
@@ -234,6 +282,7 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
    */
   Ticker.system.maxFPS = 4
 
+  mark('init')
   const stage = new Container()
   const sky = new Graphics()
   const ridgeLayer = new Container()
@@ -1323,15 +1372,18 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
     renderer.render(stage)
   }
 
+  mark('setup')
+  await breathe()
   layout()
+  mark('layout')
+  await breathe()
 
-  if (still) {
-    // One frame, with the flags hung and the lanterns placed — not an empty sky.
-    living.animate(0)
-    renderer.render(stage)
-  } else {
-    raf = requestAnimationFrame(frame)
-  }
+  // One frame either way, with the flags hung and the lanterns placed — not an
+  // empty sky. Under reduced motion it is also the only frame.
+  living.animate(0)
+  renderer.render(stage)
+  mark('firstRender')
+  if (!still) raf = requestAnimationFrame(frame)
 
   /** Stop when the tab is hidden. A scene animating into a background tab is
    *  battery spent on nobody. */

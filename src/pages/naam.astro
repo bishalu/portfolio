@@ -2954,9 +2954,49 @@ if (!seedRow) {
      this the row arrives after hydration and shoves the composer. 44px is the
      chip's own min-height — the tap-target floor — so the reserved space is
      exactly what will fill it. */
+  /* ── ONE ROW, TWO OCCUPANTS, STACKED ────────────────────────────────────
+     A grid with a single cell that both children sit in, so the status and the
+     chips crossfade in place instead of one collapsing to make room for the
+     other. The row's height is the chip's 44px tap-target floor whatever is in
+     it — which is what makes the composer's height constant, which is what
+     removes the layout animation this replaced. */
   .nm-starters-slot {
+    display: grid;
+    grid-template: 'cue' minmax(44px, auto) / 1fr;
     margin-bottom: 0.5rem;
-    min-height: 44px;
+    place-items: center;
+  }
+
+  .nm-starters-slot > * {
+    grid-area: cue;
+    width: 100%;
+  }
+
+  /* Both fade on opacity only. `visibility` rides the same transition so the
+     one that is out cannot be tabbed to or hit — opacity alone leaves an
+     invisible row of live buttons over the top of the visible one. */
+  .nm-cue-reading,
+  .nm-starters-slot .nm-starters {
+    transition:
+      opacity 260ms ease,
+      visibility 0s linear 260ms;
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .nm-cue-reading[data-on],
+  .nm-starters-slot .nm-starters[data-on] {
+    transition:
+      opacity 260ms ease,
+      visibility 0s;
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .nm-cue-reading {
+    margin: 0;
+    color: var(--nm-text-soft);
+    text-align: center;
   }
 
   .nm-starters {
@@ -3011,29 +3051,6 @@ if (!seedRow) {
 
   .nm-starters > li:nth-child(3) .nm-starter {
     animation-delay: 140ms;
-  }
-
-  /* ── THE STATUS LINE EASES SHUT ──────────────────────────────────────────
-     See the comment on .nm-composer-status in NaamApp.tsx. `1fr -> 0fr` is
-     the collapse that animates; the inner element carries the overflow so the
-     content does not reflow on the way down. */
-  .nm-composer-status {
-    display: grid;
-    grid-template-rows: 0fr;
-    transition:
-      grid-template-rows 420ms cubic-bezier(0.4, 0, 0.2, 1),
-      opacity 260ms ease;
-    opacity: 0;
-
-    &[data-open] {
-      grid-template-rows: 1fr;
-      opacity: 1;
-    }
-  }
-
-  .nm-composer-status-in {
-    overflow: hidden;
-    min-height: 0;
   }
 
   .nm-starter {
