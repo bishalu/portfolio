@@ -523,7 +523,6 @@ export const NAAM_COPY = {
        * for a write that failed — /api/naam-submit returns `stored` precisely
        * so this can be honest.
        */
-      emailOnly: 'It reached us by email. Getting it onto the wall may take one more try from our side.',
     },
     error: {
       network: 'That did not send. Your three are still here, so try once more.',

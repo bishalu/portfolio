@@ -59,12 +59,52 @@ const LINKISH = /https?:|\bwww\.|:\/\//i
 export const POST: APIRoute = async (context) => {
   const { request } = context
 
+  /**
+   * JSON FROM THE APP, FORM-ENCODED FROM THE NO-JS FORM.
+   *
+   * This endpoint used to take JSON only, because the page without JavaScript
+   * posted to Netlify Forms instead. Forms is gone — it was a second delivery
+   * path that emailed us, it could not be exercised anywhere but production,
+   * and it meant a submission had two ways to half-succeed. There is one path
+   * now and it is the one that keeps the record.
+   *
+   * `picks` arrives as a JSON string in the encoded case, which is how the
+   * form has always carried it.
+   */
+  const encoded = (request.headers.get('content-type') ?? '').includes('application/x-www-form-urlencoded')
   let payload: unknown
   try {
-    payload = await request.json()
+    if (encoded) {
+      const form = new URLSearchParams(await request.text())
+      let picks: unknown = []
+      try {
+        picks = JSON.parse(form.get('picks') || '[]')
+      } catch {
+        picks = []
+      }
+      payload = {
+        from: form.get('from'),
+        relation: form.get('relation'),
+        reason: form.get('reason'),
+        names: form.get('names'),
+        picks,
+        // The honeypot the form still carries. Netlify used to read it; now we
+        // do. A filled one is a bot, and a bot gets the same page a person
+        // gets so it learns nothing from the difference.
+        trap: form.get('bot-field'),
+      }
+    } else {
+      payload = await request.json()
+    }
   } catch {
     return json({ ok: false, stored: false, error: 'bad-request' }, 400)
   }
+
+  /** A browser posting a real form wants a page back, not JSON. */
+  const done = (ok: boolean) =>
+    encoded
+      ? new Response(null, { status: 303, headers: { Location: ok ? '/thank-you' : '/naam?send=failed' } })
+      : null
 
   // `clientAddress` is a getter that throws on adapters that cannot supply it,
   // so it is passed lazily rather than destructured.
@@ -75,7 +115,7 @@ export const POST: APIRoute = async (context) => {
       RATE_LIMIT_PER_MIN,
     )
   ) {
-    return json({ ok: false, stored: false, error: 'rate-limited' }, 429)
+    return done(false) ?? json({ ok: false, stored: false, error: 'rate-limited' }, 429)
   }
 
   const body = (payload ?? {}) as {
@@ -84,10 +124,16 @@ export const POST: APIRoute = async (context) => {
     picks?: unknown
     names?: unknown
     reason?: unknown
+    trap?: unknown
+  }
+
+  // Silently accepted, never stored. See the honeypot note above.
+  if (typeof body.trap === 'string' && body.trap.trim() !== '') {
+    return done(true) ?? json({ ok: true, stored: false }, 200)
   }
 
   const from = tidy(body.from, NAME_MAX)
-  if (!from) return json({ ok: false, stored: false, error: 'from' }, 400)
+  if (!from) return done(false) ?? json({ ok: false, stored: false, error: 'from' }, 400)
 
   const relationRaw = tidy(body.relation, 40)
   const relation = RELATIONS.has(relationRaw) ? relationRaw : RELATION_FALLBACK
@@ -95,7 +141,7 @@ export const POST: APIRoute = async (context) => {
   const reason = tidy(body.reason, REASON_MAX)
   const names = tidy(body.names, NAMES_MAX)
   if (LINKISH.test(from) || LINKISH.test(reason) || LINKISH.test(names)) {
-    return json({ ok: false, stored: false, error: 'link' }, 400)
+    return done(false) ?? json({ ok: false, stored: false, error: 'link' }, 400)
   }
 
   const submitted = Array.isArray(body.picks) ? body.picks : []
@@ -113,7 +159,7 @@ export const POST: APIRoute = async (context) => {
   const picks = wanted.filter((p) => real.has(p.id))
 
   // A suggestion is names, or typed names, or both. Never neither.
-  if (picks.length === 0 && !names) return json({ ok: false, stored: false, error: 'picks' }, 400)
+  if (picks.length === 0 && !names) return done(false) ?? json({ ok: false, stored: false, error: 'picks' }, 400)
 
   const id = `${Date.now().toString(36)}-${randomBytes(4).toString('hex')}`
   const record = { id, from, relation, picks, names, reason, at: new Date().toISOString() }
@@ -211,5 +257,5 @@ export const POST: APIRoute = async (context) => {
     }
   }
 
-  return json({ ok: true, stored })
+  return done(stored) ?? json({ ok: true, stored })
 }

@@ -1409,70 +1409,53 @@ export default function NaamApp({ seed }: NaamAppProps) {
       setSending(true)
       setSendNote('')
 
-      const encoded = new URLSearchParams({
-        'form-name': 'naam-suggestion',
-        from,
-        relation,
-        picks: JSON.stringify(cited),
-        names,
-        reason,
-      })
-
       /**
-       * TWO POSTS, AND NEITHER IS ALLOWED TO CANCEL THE OTHER.
+       * ── ONE POST, AND IT IS THE ONE THAT KEEPS THE RECORD ────────────────
        *
-       * This used to send the Netlify Forms post first and RETURN on any
-       * non-2xx from it, so a failure of the best-effort email path threw away
-       * a suggestion the durable queue would have accepted. The dependency was
-       * exactly backwards: Forms is the notification, /api/naam-submit is the
-       * record. Caught locally, where `netlify serve` answers POST / with 405
-       * and every submission silently aborted before reaching the queue at all.
+       * There were two: Netlify Forms, which emailed us, and /api/naam-submit,
+       * which is the moderation queue. Forms is gone entirely.
        *
-       * They run together now and the visitor is only told it failed if BOTH
-       * did. `Promise.allSettled`, not `all`: one rejecting must not take the
-       * other's result with it.
+       * It was not a trade. It never worked on this site and api/naam-submit.ts
+       * documents why — the adapter claims '/*' with preferStatic, preferStatic
+       * only covers GET, so the POST lands in the SSR function which renders a
+       * page and returns 200 while Forms never sees it, verified against
+       * production on four paths. What it actually bought was a second way for
+       * a submission to half-succeed, an outcome the visitor had to be told
+       * about in its own sentence, and a send that could not be exercised
+       * anywhere but production — the reason the launch animation below had
+       * never once been watched end to end.
+       *
+       * The notification the email was for still happens: the endpoint posts to
+       * Slack with a one-click approve link.
        */
-      const [mailed, stored] = await Promise.allSettled([
-        fetch('/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: encoded.toString(),
-          keepalive: true,
-        }),
-        fetch('/api/naam-submit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ from, relation, reason, names, picks: cited }),
-          keepalive: true,
-        }),
-      ])
+      const response = await fetch('/api/naam-submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from, relation, reason, names, picks: cited }),
+        keepalive: true,
+      }).catch(() => null)
 
-      const emailed = mailed.status === 'fulfilled' && mailed.value.ok
+      const rateLimited = response?.status === 429
       let queued = false
-      let rateLimited = false
-      if (stored.status === 'fulfilled') {
-        rateLimited = stored.value.status === 429
+      if (response && response.ok) {
         try {
-          const body = (await stored.value.json()) as { ok?: unknown; stored?: unknown }
+          const body = (await response.json()) as { ok?: unknown; stored?: unknown }
           queued = body.ok === true && body.stored === true
         } catch {
           /* a body we cannot read is not a stored suggestion */
         }
       }
 
-      // Nothing got through at all — the only case worth stopping for.
-      if (!emailed && !queued && !rateLimited) {
+      // One path means one failure, said plainly, with the typing still in the
+      // form behind it.
+      if (!queued && !rateLimited) {
         setSending(false)
         setSendNote(C.form.error.network)
         setAnnounce(C.form.error.network)
         return
       }
 
-      const line = rateLimited
-        ? C.form.error.rateLimited
-        : queued
-          ? C.form.confirmation.body
-          : C.form.confirmation.emailOnly
+      const line = rateLimited ? C.form.error.rateLimited : C.form.confirmation.body
       setSending(false)
       // Read the slots BEFORE the sheet closes and anything re-renders.
       const rising = picks.map((pick) => ({ id: pick.id, spelling: pick.spelling }))
@@ -2305,15 +2288,25 @@ export default function NaamApp({ seed }: NaamAppProps) {
           ))}
         </ol>
 
-        {/* The way out of the tray, and it appears only when there is something
-            to send. Before that it would be a control for nothing; after the
-            form is open it would be a second copy of a button already on
-            screen. */}
-        {picks.length > 0 && !formShown && (
-          <button type="button" className="nm-tray-send" onClick={openForm}>
-            {C.app.send.open(picks.length)}
-          </button>
-        )}
+        {/* The way out of the tray. It appears only when there is something to
+            send — before that it would be a control for nothing, and after the
+            form opens it would be a second copy of a button already on screen.
+
+            ITS SPACE IS RESERVED FROM THE START, and that is not cosmetic. The
+            tray is vertically centred, so a child arriving re-centres the group
+            above it: measured, the first Keep moved slot 1 up by 27px WHILE the
+            name was flying into it, because the flight is aimed at the slot's
+            box at the moment of the click and the button mounted mid-arc. The
+            token then landed 27px below where its name appeared. Slots 2 and 3
+            were reported as fine and measured as fine — by then the button
+            already existed and nothing moved. */}
+        <div className="nm-tray-send-slot">
+          {picks.length > 0 && !formShown && (
+            <button type="button" className="nm-tray-send" onClick={openForm}>
+              {C.app.send.open(picks.length)}
+            </button>
+          )}
+        </div>
       </section>
 
 

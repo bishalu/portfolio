@@ -143,15 +143,21 @@ if (!seedRow) {
       <h2 class="nm-fallback-h2">{C.form.heading}</h2>
       <p class="nm-fallback-standfirst">{C.form.standfirst}</p>
 
-      <form
-        class="nm-form"
-        name="naam-suggestion"
-        method="POST"
-        action="/thank-you"
-        data-netlify="true"
-        netlify-honeypot="bot-field"
-      >
-        <input type="hidden" name="form-name" value="naam-suggestion" />
+      <!--
+        POSTS TO THE ENDPOINT, NOT TO NETLIFY FORMS.
+
+        `data-netlify` was never working on this site and it is documented in
+        api/naam-submit.ts why: the adapter claims '/*' with preferStatic, and
+        preferStatic only covers GET, so the POST lands in the SSR function
+        which renders a page and returns 200 while Forms never sees it —
+        verified against production on four paths. A form that reports success
+        and delivers nothing is worse than no fallback at all.
+
+        It posts form-encoded to the same endpoint the app uses, which answers
+        a browser with a redirect and the app with JSON, and the honeypot is
+        read there now instead of at the edge.
+      -->
+      <form class="nm-form" name="naam-suggestion" method="POST" action="/api/naam-submit">
         <p hidden>
           <label>bot-field<input name="bot-field" tabindex="-1" autocomplete="off" /></label>
         </p>
@@ -3891,6 +3897,15 @@ if (!seedRow) {
 
   /* The way out of the tray. Quiet until there is something to send, and then
      it is the warmest thing under the slots. */
+  /* The height of the button plus its top margin, held whether or not the
+     button is in it — see the comment in NaamApp.tsx. Measured at 37px of
+     button and 0.55rem of margin. */
+  .nm-tray-send-slot {
+    display: flex;
+    justify-content: center;
+    min-height: 2.85rem;
+  }
+
   .nm-tray-send {
     animation: nm-say 420ms cubic-bezier(0.05, 0.7, 0.1, 1) backwards;
     transition:
