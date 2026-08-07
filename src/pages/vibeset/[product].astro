@@ -133,7 +133,7 @@ const m = media[slug] ?? { type: 'gradient' }
   <article class="vbp-info" style={`--accent: ${data.accent}`}>
     <div class="container">
       <nav class="vbp-nav" aria-label="Breadcrumb">
-        <a href="/#vibeset" class="vbp-back label-mono">← Vibeset</a>
+        <a href="/#work" class="vbp-back label-mono">← Vibeset</a>
       </nav>
 
       <p class="label-mono vbp-eyebrow">{data.eyebrow} · Vibeset</p>
@@ -291,12 +291,16 @@ const m = media[slug] ?? { type: 'gradient' }
 </DefaultLayout>
 
 <style lang="scss">
+  /* The media zone is a screen (tokens.css --stage). Every product shot on this
+     site is a dark UI, and DESIGN.md §5 licenses each product's real brand hue
+     for three non-text uses in here — Cue's lime is 1.09:1 on bone and 14.06:1
+     on the stage, so this surface is what keeps that clause payable. */
   .vbp-media {
     display: flex;
     position: relative;
     justify-content: center;
     align-items: center;
-    background: var(--ink);
+    background: var(--stage);
     padding-top: 72px; /* clear the fixed header */
     width: 100%;
     min-height: 40vh;
@@ -312,7 +316,7 @@ const m = media[slug] ?? { type: 'gradient' }
   .vbp-shot {
     display: block;
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
-    border: 1px solid var(--hairline-on-ink);
+    border: 1px solid var(--stage-hair);
     border-radius: 12px;
     width: 100%;
     height: auto;
@@ -323,7 +327,7 @@ const m = media[slug] ?? { type: 'gradient' }
     inset: 0;
     background:
       radial-gradient(ellipse at 30% 40%, color-mix(in srgb, var(--accent) 30%, transparent) 0%, transparent 60%),
-      var(--ink);
+      var(--stage);
   }
 
   .vbp-article-card {
@@ -336,7 +340,7 @@ const m = media[slug] ?? { type: 'gradient' }
     min-height: 40vh;
 
     &:hover .vbp-article-headline {
-      color: var(--marigold);
+      color: var(--marigold-on-stage);
     }
   }
 
@@ -344,7 +348,7 @@ const m = media[slug] ?? { type: 'gradient' }
     transition: color var(--dur-base) ease;
     margin: 0;
     max-width: 20ch;
-    color: var(--paper);
+    color: var(--on-stage);
     font-weight: 600;
     font-size: clamp(1.5rem, 3vw, 2.5rem);
     line-height: 1.15;
@@ -354,13 +358,13 @@ const m = media[slug] ?? { type: 'gradient' }
   .vbp-article-excerpt {
     margin: 0;
     max-width: 52ch;
-    color: var(--paper-soft);
+    color: var(--on-stage-soft);
     font-size: clamp(0.9rem, 1.5vw, 1.05rem);
     line-height: 1.6;
   }
 
   .vbp-article-cta {
-    color: var(--marigold);
+    color: var(--marigold-on-stage);
   }
 
   .vbp-info {
@@ -379,7 +383,7 @@ const m = media[slug] ?? { type: 'gradient' }
     color: var(--ink-soft);
 
     &:hover {
-      color: var(--crimson);
+      color: var(--crimson-text);
     }
   }
 
@@ -508,7 +512,7 @@ const m = media[slug] ?? { type: 'gradient' }
   }
 
   .rt-route-name {
-    color: var(--marigold);
+    color: var(--marigold-text);
   }
 
   .rt-route-ms {
@@ -568,7 +572,6 @@ const m = media[slug] ?? { type: 'gradient' }
     color: var(--paper-soft);
     font-size: 0.58rem;
     letter-spacing: 0.08em;
-    opacity: 0.7;
   }
 
   /* ── The /v1 API (Cue) ──────────────────────────────────────────────────
@@ -596,7 +599,7 @@ const m = media[slug] ?? { type: 'gradient' }
   }
 
   .api-m-post {
-    color: var(--marigold);
+    color: var(--marigold-text);
   }
 
   .api-m-get {
@@ -745,6 +748,5 @@ const m = media[slug] ?? { type: 'gradient' }
     color: var(--paper-soft);
     font-size: 0.65rem;
     letter-spacing: 0.1em;
-    opacity: 0.75;
   }
 </style>

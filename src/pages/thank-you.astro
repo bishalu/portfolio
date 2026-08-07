@@ -2,12 +2,11 @@
 export const prerender = true
 
 import DefaultLayout from '@layouts/DefaultLayout.astro'
-import PageHero from '@components/PageHero.astro'
+import PageHeader from '@components/PageHeader.astro'
 
 /**
- * Where the contact form lands (CloseSection posts here via Netlify Forms).
- * A real person just sent a real message — confirm what happened, say when
- * they'll hear back, and give them somewhere to go next.
+ * Where the contact form lands. A real person just sent a real message —
+ * confirm what happened, say when they'll hear back, give them somewhere next.
  */
 ---
 
@@ -15,7 +14,7 @@ import PageHero from '@components/PageHero.astro'
   title="Message sent — Bishal Upadhyaya"
   description="Your message reached Bishal's inbox."
 >
-  <PageHero title="Message sent" subtitle="It's in my inbox. I read everything myself." />
+  <PageHeader eyebrow="Contact" title="Message sent." subtitle="It's in my inbox. I read everything myself." />
 
   <section class="ty">
     <div class="ty-inner">
@@ -29,7 +28,7 @@ import PageHero from '@components/PageHero.astro'
       </p>
 
       <p class="ty-ctas" data-reveal>
-        <a class="btn-pill" href="/#vibeset">See what I've shipped ↳</a>
+        <a class="btn-pill" href="/#work">See what I've shipped ↳</a>
         <a class="ty-cta-quiet" href="/notes/choon">Or read an engineering case note</a>
       </p>
     </div>
@@ -58,7 +57,7 @@ import PageHero from '@components/PageHero.astro'
     color: var(--crimson-text);
 
     &:hover {
-      color: var(--marigold);
+      color: var(--marigold-text);
     }
   }
 
@@ -82,7 +81,7 @@ import PageHero from '@components/PageHero.astro'
     font-size: 0.95rem;
 
     &:hover {
-      color: var(--marigold);
+      color: var(--marigold-text);
     }
   }
 </style>

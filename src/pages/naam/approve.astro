@@ -1,0 +1,147 @@
+---
+/**
+ * /naam/approve — the one moderation screen (docs/design/DESIGN.md P9, P10).
+ *
+ * WHY A PAGE AND NOT A LINK IN THE EMAIL. The obvious design is
+ * `/api/naam-approve?id=…&key=…` in the notification. Gmail, Outlook and every
+ * corporate mail gateway fetch every URL in every message they scan, so that
+ * link approves the submission before anyone has read it — on a public page
+ * about a baby. So the email links here, this page is prerendered and does
+ * nothing on load, and approving is a POST from a real button. Prefetchers do
+ * not POST.
+ *
+ * The id and the HMAC come out of the query string in the browser, because
+ * this page is static — the server never sees them, and the token is verified
+ * in /api/naam-approve against NAAM_ADMIN_SECRET.
+ *
+ * noindex: this is a moderation surface, not content.
+ */
+import DefaultLayout from '@layouts/DefaultLayout.astro'
+import { NAAM_COPY } from '@/lib/naam/copy'
+
+export const prerender = true
+
+const C = NAAM_COPY.approve
+---
+
+<DefaultLayout title={`${C.heading} — ${NAAM_COPY.meta.title}`} description={C.body}>
+  <meta slot="head" name="robots" content="noindex, nofollow" />
+
+  <article class="nma">
+    <div class="nma-inner">
+      <p class="label-mono nma-eyebrow">{C.eyebrow}</p>
+      <h1 class="nma-title">{C.heading}</h1>
+      <p class="nma-body">{C.body}</p>
+
+      <button type="button" class="btn-pill nma-go" data-nma-go>{C.submit}</button>
+      <p class="label-mono nma-status" aria-live="polite" data-nma-status></p>
+    </div>
+  </article>
+</DefaultLayout>
+
+<script>
+  import { NAAM_COPY } from '@/lib/naam/copy'
+
+  const C = NAAM_COPY.approve
+
+  function init() {
+    const button = document.querySelector<HTMLButtonElement>('[data-nma-go]')
+    const status = document.querySelector<HTMLElement>('[data-nma-status]')
+    if (!button || !status) return
+
+    const ac = new AbortController()
+    document.addEventListener('astro:before-swap', () => ac.abort(), { once: true })
+
+    const params = new URLSearchParams(window.location.search)
+    const id = params.get('id') ?? ''
+    const token = params.get('t') ?? ''
+    if (!id || !token) {
+      button.disabled = true
+      status.textContent = C.invalid
+      return
+    }
+
+    button.addEventListener(
+      'click',
+      async () => {
+        button.disabled = true
+        status.textContent = C.working
+        try {
+          const res = await fetch('/api/naam-approve', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, token }),
+            signal: ac.signal,
+          })
+          const data = (await res.json()) as { ok?: boolean; error?: string }
+          if (data.ok) status.textContent = data.error === 'already' ? C.already : C.success
+          else if (data.error === 'missing') status.textContent = C.missing
+          else if (res.status === 403 || data.error === 'invalid') status.textContent = C.invalid
+          else {
+            status.textContent = C.error
+            button.disabled = false
+          }
+        } catch {
+          status.textContent = C.error
+          button.disabled = false
+        }
+      },
+      { signal: ac.signal },
+    )
+  }
+
+  document.addEventListener('astro:page-load', init)
+</script>
+
+<style lang="scss">
+  .nma {
+    padding: clamp(6rem, 14vh, 8rem) 0 var(--space-3xl);
+  }
+
+  .nma-inner {
+    margin: 0 auto;
+    padding: 0 var(--space-l);
+    max-width: 560px;
+  }
+
+  .nma-eyebrow {
+    margin: 0 0 var(--space-m);
+    color: var(--crimson-text);
+  }
+
+  .nma-title {
+    margin: 0 0 var(--space-m);
+    font-size: clamp(2rem, 4.5vw, 3.25rem);
+    line-height: 1.02;
+    letter-spacing: -0.015em;
+  }
+
+  .nma-body {
+    margin: 0 0 var(--space-l);
+    color: var(--paper-soft);
+    font-size: 1.02rem;
+    line-height: 1.7;
+  }
+
+  .nma-go {
+    cursor: pointer;
+    border: none;
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+  }
+
+  .nma-status {
+    margin: var(--space-m) 0 0;
+    min-height: 1.2rem;
+    color: var(--paper-soft);
+  }
+
+  @media (max-width: 479px) {
+    .nma-inner {
+      padding: 0 var(--space-m);
+    }
+  }
+</style>

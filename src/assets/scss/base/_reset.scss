@@ -10,14 +10,15 @@
     box-sizing: inherit;
   }
 
-  *:focus,
-  *:focus-visible {
-    outline: 2px dashed black;
-    outline-color: black;
-    outline-offset: 0;
-    -webkit-box-shadow: 0 0 0 2px white;
-    box-shadow: 0 0 0 2px white;
-  }
+  /* The focus indicator lives in motion.css and nowhere else. There used to be a
+     competing declaration here — `outline: 2px dashed black` plus
+     `box-shadow: 0 0 0 2px white`. Being inside @layer base, it lost the outline
+     to unlayered motion.css and looked dead, but nothing in motion.css sets
+     box-shadow, so the white halo shipped on every keyboard focus on the site.
+     Invisible against a dark canvas; against a light one it fills the ring's
+     2px outline-offset and welds the indicator to the control edge.
+     _general.scss already killed the sibling copy of this rule and left a note
+     saying deletion was the fix. This is the rest of it. */
 
   *:focus:not(:focus-visible) {
     outline: none;

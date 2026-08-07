@@ -2,7 +2,7 @@
 export const prerender = true
 
 import DefaultLayout from '@layouts/DefaultLayout.astro'
-import PageHero from '@components/PageHero.astro'
+import PageHeader from '@components/PageHeader.astro'
 import PublicationCard from '@components/PublicationCard.astro'
 import { getCollection } from 'astro:content'
 
@@ -15,7 +15,11 @@ const publications = (await getCollection('publications', ({ id }) => !id.starts
   title="Research - Bishal Upadhyaya"
   description="Peer-reviewed publications across neuroscience, medical imaging, and efficient deep learning."
 >
-  <PageHero title="Research" subtitle="Neurons first, models second." />
+  <PageHeader
+    eyebrow="Research"
+    title="Neurons first, models second."
+    subtitle="Four papers, across electrical signalling in living circuits, medical imaging, and model efficiency. The last one runs in production."
+  />
 
   <section class="publications">
     <div class="container" data-reveal-stagger>
@@ -28,12 +32,21 @@ const publications = (await getCollection('publications', ({ id }) => !id.starts
   .publications {
     padding: var(--space-2xl) 0 var(--space-3xl);
 
+    /* Same container and left edge as the page header. Entries are separated by
+       their own top hairline, so the grid gap goes to zero — a record, not a
+       stack of cards (docs/design/DESIGN.md §0). */
     .container {
       display: grid;
-      gap: var(--space-l);
+      gap: var(--space-xl);
       margin-inline: auto;
+      padding-inline: var(--space-l);
+      max-width: 1200px;
+    }
+  }
+
+  @media (max-width: 479px) {
+    .publications .container {
       padding-inline: var(--space-m);
-      max-width: 900px;
     }
   }
 </style>

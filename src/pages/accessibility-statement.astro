@@ -2,7 +2,7 @@
 export const prerender = true
 
 import DefaultLayout from '@layouts/DefaultLayout.astro'
-import PageHero from '@components/PageHero.astro'
+import PageHeader from '@components/PageHeader.astro'
 
 /**
  * Accessibility statement — written as an engineering note, not boilerplate
@@ -27,8 +27,9 @@ const lastVerified = 'August 2026'
   title="Accessibility — Bishal Upadhyaya"
   description="How bishal.ai is built for accessibility, what it is measured against, and what is still imperfect."
 >
-  <PageHero
-    title="Accessibility"
+  <PageHeader
+    eyebrow="This site"
+    title="Accessibility."
     subtitle="What this site is measured against, and where it still falls short."
   />
 
@@ -160,7 +161,7 @@ const lastVerified = 'August 2026'
   }
 
   .a11y-no {
-    color: var(--marigold);
+    color: var(--marigold-text);
   }
 
   /* The 1px grid gap is the hairline — no borders to keep in sync. */
@@ -256,7 +257,7 @@ const lastVerified = 'August 2026'
   }
 
   .a11y-mail:hover {
-    color: var(--marigold);
+    color: var(--marigold-text);
   }
 
   .a11y-updated {

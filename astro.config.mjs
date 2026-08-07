@@ -96,10 +96,11 @@ export default defineConfig({
   // Retired routes. The old /vibeset/* subtree described a version of the
   // company that no longer exists; the landing section is the current story.
   redirects: {
-    '/vibeset': '/#vibeset',
-    '/vibeset/studios': '/#vibeset',
-    '/vibeset/studios/[id]': '/#vibeset',
+    '/vibeset': '/#work',
+    '/vibeset/studios': '/#work',
+    '/vibeset/studios/[id]': '/#work',
     '/contact': '/#contact',
+    '/work': '/#work',
     '/sitemap': '/',
   },
   integrations: [
@@ -118,7 +119,13 @@ export default defineConfig({
     }),
     icon(),
     mdx(),
-    sitemap(),
+    // /naam/approve is a moderation screen carrying <meta robots="noindex">.
+    // Listing a noindex URL in the sitemap contradicts the page itself and
+    // advertises the moderation surface; everything else stays indexed.
+    // /naam and its approve screen both carry <meta robots="noindex">. Listing
+    // a noindex URL in the sitemap contradicts the page itself, and /naam is
+    // reached by a link sent to family rather than by search.
+    sitemap({ filter: (page) => !page.includes('/naam') }),
     react(),
   ],
   vite: viteConfig,

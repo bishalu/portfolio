@@ -1,0 +1,4580 @@
+---
+/**
+ * /naam — a family asking for help naming their son, as an app.
+ * Spec: docs/design/DESIGN.md (Alpenglow) · docs/design/MOTION.md.
+ *
+ * WHY THIS PAGE IS A SHELL AND NOT A DOCUMENT. It used to be a long editorial
+ * page: hero, wizard, shortlist, a 2,098-row browser, a form, a wall. It
+ * worked and it passed every gate, but it was a document *about* naming rather
+ * than an instrument *for* naming. This is one screen — rail, stream, three
+ * slots, composer — and the page's only job now is to hand the viewport to
+ * NaamApp.tsx and get out of the way.
+ *
+ * WHY IT IS LIGHT. DESIGN.md P1 reads "one world, three depths, zero themes".
+ * This page breaks it deliberately and the exception is scoped so tightly it
+ * cannot leak: every light token is declared on #naam-app, never on :root, so
+ * no other route can inherit one and the site keeps `color-scheme: dark`. The
+ * ACCENTS DO NOT CHANGE — crimson and marigold carry over from the dark site
+ * untouched, only the ground flips. Same family, different room. Contrast was
+ * recomputed from scratch against the light ground rather than inherited; see
+ * the token block below, which records the ratio for every pairing that
+ * carries text.
+ *
+ * WHY THE SHELL RULES ARE ALL UNDER html:not(.no-js). With JavaScript off the
+ * app is display:none and this is an ordinary scrolling document again — the
+ * .nm-fallback below, which is server-rendered into the NORMAL DOM rather than
+ * into a <noscript>. Two reasons that matters: axe and Lighthouse both run
+ * with JavaScript enabled and would never see a <noscript>, so it would ship
+ * behind a gate that structurally cannot check it; and the app-shell CSS still
+ * applies with JS off, which would lay the fallback out inside a clipped
+ * 100svh box and leave it unreachable.
+ *
+ * WHY prerender STAYS TRUE: the readFileSync below only works at build time.
+ * Under SSR it throws on Netlify.
+ *
+ * WHY THE STYLES ARE HERE AND is:global: island CSS cannot live in
+ * _widgets.scss, which is inside the global bundle every route pays for; a
+ * page style block is chunked per page in Astro 5. is:global is required
+ * because Astro's scoping never reaches React-rendered DOM. Every class is
+ * .nm-* so it cannot collide with anything.
+ *
+ * The PDF is untracked and this repo is public, so page numbers are cited as
+ * text and the document itself is not served.
+ */
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import DefaultLayout from '@layouts/DefaultLayout.astro'
+import NaamApp from '@components/NaamApp.tsx'
+import NaamCard from '@components/NaamCard.tsx'
+import { NAAM_COPY, NAAM_RELATIONS } from '@/lib/naam/copy'
+import { NAAM_SEED_DOCUMENTED } from '@/lib/naam/seeds'
+import { NAAM_FEATURED, NAAM_PROVENANCE } from '@/generated/naam-facts'
+import { isNaamGold, type NaamLetter, type NaamRow } from '@/types/naam'
+
+export const prerender = true
+
+const C = NAAM_COPY
+
+/**
+ * Read at build time, not imported: a 1.1 MB JSON import would hand tsc a
+ * 2,097-element literal to infer and drag the whole dataset into the server
+ * bundle. This runs at prerender time only, off the project root — resolving
+ * against import.meta.url would land in the adapter's build directory. The
+ * browser fetches the same file on mount (src/lib/naam/tray.ts).
+ */
+const rows = JSON.parse(readFileSync(resolve(process.cwd(), 'public/naam/names-core.json'), 'utf8')) as NaamRow[]
+const byId = new Map(rows.map((row) => [row.id, row]))
+
+/**
+ * The no-JS shortlist. FOUR per letter, not twelve: this is the fallback, not
+ * the page, and the app's TBT budget is 200ms — every card here is DOM that
+ * the app's own visitors download, parse and then never see.
+ */
+const PER_LETTER = 4
+const LETTERS: NaamLetter[] = ['B', 'S', 'V']
+
+const fallbackRows = LETTERS.flatMap((letter) => {
+  const featured = NAAM_FEATURED.map((id) => byId.get(id)).filter(
+    (row): row is NaamRow => row !== undefined && row.letter === letter,
+  )
+  const taken = new Set(featured.map((row) => row.id))
+  const gold = rows.filter(
+    (row) => row.letter === letter && isNaamGold(row) && !row.badges.hardCluster && !taken.has(row.id),
+  )
+  return [...featured, ...gold].slice(0, PER_LETTER)
+})
+
+/**
+ * Byan is a real row — Vyan / Byan, p.120 — so the family strip can render it
+ * with its own Devanagari and its working व/ब spelling. It is also the seed
+ * that silently vanished once: the document files it under "More", this page
+ * reads only names-core.json, and `byId.get('vyan')` returned undefined with
+ * no error and no gap in the layout. scripts/naam/build-dataset.mjs now forces
+ * it into core (CORE_EXTRA_IDS); this throws rather than shrugging if that
+ * ever stops being true.
+ */
+const seedRow = byId.get(NAAM_SEED_DOCUMENTED.id)
+if (!seedRow) {
+  throw new Error(
+    `/naam: the documented seed '${NAAM_SEED_DOCUMENTED.id}' is not in public/naam/names-core.json. ` +
+      'Add it to CORE_EXTRA_IDS in scripts/naam/build-dataset.mjs and re-run `npm run naam:build`.',
+  )
+}
+---
+
+<DefaultLayout title={C.meta.title} description={C.meta.description} appShell>
+  <!-- noindex: this page exists for people who are sent the link. Search
+       discovery adds nothing to that job, and the page carries a child's
+       candidate names plus a public wall of what visitors typed. `follow` stays
+       on so the links back into the site still count. Remove this line and the
+       /naam clause in astro.config.mjs's sitemap filter to list it again. -->
+  <meta slot="head" name="robots" content="noindex, follow" />
+  <link slot="head" rel="preload" href="/fonts/Mukta-Devanagari-400.woff2" as="font" type="font/woff2" crossorigin />
+  <!-- No preload for names-core.json, deliberately. `as="fetch"` preloads in
+       CORS mode, but tray.ts fetches same-origin with default credentials, so
+       the two never match: Chrome downloaded the file twice and logged
+       "preload ... not used because the request credentials mode does not
+       match" plus an unused-preload warning — two console problems against a
+       zero-console gate, in exchange for a slower load. Matching them would
+       mean crossorigin here AND credentials:'omit' there, which is a lot of
+       coupling for one hop. The interactivity fix that actually mattered was
+       moving the fetch off onIdle() and into the mount effect; that stands. -->
+
+  <div id="naam-app" class="nm nm-app">
+    <NaamApp seed={seedRow} client:load />
+  </div>
+
+  <!-- The no-JS half, in the normal DOM. Field names match
+       public/__forms.html byte-for-byte or Netlify discards the submission
+       silently, and every label wraps its control rather than pairing by id —
+       so nothing here can collide with the app's own nma-* ids. -->
+  <div class="nm nm-fallback">
+    <div class="nm-fallback-inner">
+      <h1 class="nm-fallback-title">{C.hero.headline}</h1>
+      <p class="nm-fallback-standfirst">{C.hero.standfirst}</p>
+      <p class="nm-fallback-standfirst">{C.noscript}</p>
+      <p class="nm-fallback-letters">{C.hero.letters}</p>
+
+      <h2 class="nm-fallback-h2">{C.shortlist.heading}</h2>
+      <div class="nm-grid">
+        {fallbackRows.map((row) => <NaamCard row={row} preferB={true} />)}
+      </div>
+
+      <h2 class="nm-fallback-h2">{C.form.heading}</h2>
+      <p class="nm-fallback-standfirst">{C.form.standfirst}</p>
+
+      <!--
+        POSTS TO THE ENDPOINT, NOT TO NETLIFY FORMS.
+
+        `data-netlify` was never working on this site and it is documented in
+        api/naam-submit.ts why: the adapter claims '/*' with preferStatic, and
+        preferStatic only covers GET, so the POST lands in the SSR function
+        which renders a page and returns 200 while Forms never sees it —
+        verified against production on four paths. A form that reports success
+        and delivers nothing is worse than no fallback at all.
+
+        It posts form-encoded to the same endpoint the app uses, which answers
+        a browser with a redirect and the app with JSON, and the honeypot is
+        read there now instead of at the edge.
+      -->
+      <form class="nm-form" name="naam-suggestion" method="POST" action="/api/naam-submit">
+        <p hidden>
+          <label>bot-field<input name="bot-field" tabindex="-1" autocomplete="off" /></label>
+        </p>
+
+        <label class="nm-field">
+          <span class="label-mono">{C.form.name.label}</span>
+          <input type="text" name="from" required maxlength={C.limits.name} autocomplete="name" />
+        </label>
+
+        <label class="nm-field">
+          <span class="label-mono">{C.form.relation.label}</span>
+          <select name="relation" required>
+            <option value="">{C.form.relation.placeholder}</option>
+            {NAAM_RELATIONS.map((relation) => <option value={relation}>{relation}</option>)}
+          </select>
+        </label>
+
+        <label class="nm-field">
+          <span class="label-mono">{C.form.names.label}</span>
+          <input
+            type="text"
+            name="names"
+            maxlength={C.limits.names}
+            autocomplete="off"
+            placeholder={C.form.names.placeholder}
+          />
+        </label>
+        <p class="nm-fallback-help">{C.form.names.helper}</p>
+
+        <label class="nm-field">
+          <span class="label-mono">{C.form.reason.label}</span>
+          <textarea name="reason" rows="3" maxlength={C.limits.reason}></textarea>
+        </label>
+
+        <!-- The tray is a JavaScript thing, so with JS off this is empty and
+             the free-text field above is what carries a name. It is registered
+             in public/__forms.html and must be posted either way. -->
+        <input type="hidden" name="picks" value="[]" />
+
+        <button type="submit" class="btn-pill nm-fallback-send">{C.form.submit}</button>
+      </form>
+
+      <p class="nm-fallback-provenance">{NAAM_PROVENANCE}</p>
+      <p class="label-mono label-mono--sm nm-fallback-provenance">{C.card.devanagariNote}</p>
+      <p class="nm-fallback-provenance">{C.hero.nwaran}</p>
+    </div>
+  </div>
+</DefaultLayout>
+
+<style lang="scss" is:global>
+  /* ═══════════════════════════════════════════════════════════════════════
+     /naam — page-scoped, is:global because Astro's scoping does not reach
+     React-rendered DOM. Every class is .nm-* .
+     Tokens: docs/design/DESIGN.md §1 (P1, P3), src/styles/tokens.css.
+     ═══════════════════════════════════════════════════════════════════════ */
+
+  /* One new script, not one new role (DESIGN.md P5). Mukta covers Devanagari
+     and nothing else, so Bricolage and Atkinson keep every Latin role they
+     already have. font-display: optional, never swap — swap is a CLS
+     generator and the CLS floor is 0. U+200C-200D must stay in the range or
+     conjuncts and half-forms stop rendering. */
+  @font-face {
+    font-style: normal;
+    font-weight: 400;
+    src: url('/fonts/Mukta-Devanagari-400.woff2') format('woff2');
+    font-family: 'Mukta';
+    font-display: optional;
+    unicode-range: U+0900-097F, U+200C-200D, U+20A8, U+25CC, U+A830-A839;
+  }
+
+  /* The system fallback, restricted to the same range by the same mechanism.
+     A bare 'Noto Sans Devanagari' in the stack would also serve Latin, and
+     would beat Atkinson to it — this way both Devanagari faces can only ever
+     answer for Devanagari. */
+  @font-face {
+    font-style: normal;
+    font-weight: 400;
+    src: local('Noto Sans Devanagari'), local('Nirmala UI'), local('Mangal'), local('Kohinoor Devanagari');
+    font-family: 'Naam Deva Fallback';
+    font-display: optional;
+    unicode-range: U+0900-097F, U+200C-200D;
+  }
+
+  /* ── The shell, and the one blocker it exists to defeat ───────────────
+     tailwind.css sets `body { min-height: 100vh }`. 100vh is the LARGE
+     viewport, so on iOS Safari with the URL bar showing the body is 60–110px
+     taller than what is visible and the document scrolls by exactly the
+     chrome height — even with every child at 100svh and the footer gone.
+     `min-height: 0` is what kills it.
+
+     100svh, never dvh: dvh tracks a viewport that on this page never changes,
+     so it can only ever introduce jumps. --kb-inset is written by NaamApp
+     from visualViewport, because iOS does not resize the layout viewport for
+     the soft keyboard (Android does, via interactive-widget=resizes-content
+     in the layout's viewport meta).
+
+     Every rule is scoped under html:not(.no-js): with JavaScript off this is
+     an ordinary document again. ─────────────────────────────────────────── */
+  html:not(.no-js) body[data-app] {
+    height: calc(100svh - var(--kb-inset, 0px));
+    min-height: 0;
+    overflow: clip;
+    overscroll-behavior: none;
+  }
+
+  /* min-height: 0 is the one everyone forgets: a column flex item's
+     min-height is `auto`, which floors it at content height and makes
+     flex-shrink silently do nothing. */
+  html:not(.no-js) body[data-app] > main {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow: clip;
+  }
+
+  html:not(.no-js) body[data-app] > footer {
+    display: none;
+  }
+
+  /* Do not subtract the header — put it in flow. No token, no calc(), no
+     ResizeObserver, and the mobile-nav-open case then solves itself: the menu
+     grows the header, main shrinks, the app reflows instead of being
+     overlapped. */
+  html:not(.no-js) body[data-app] #site-header {
+    position: sticky;
+    flex: 0 0 auto;
+  }
+
+  /* #naam-app, not .nm-app. The light tokens and the flex column are declared
+     on the ID (1,0,0), so `html.no-js .nm-app` (0,2,1) lost the cascade and a
+     visitor with JavaScript off got the dead app stacked on top of the working
+     fallback. Matching the ID here makes it (1,1,1) and it wins. */
+  html.no-js #naam-app {
+    display: none;
+  }
+
+  html:not(.no-js) .nm-fallback {
+    display: none;
+  }
+
+  /* ── Roles, and the ground under them ─────────────────────────────────
+     .nm is both surfaces' root because --font-deva is declared here and
+     consumed in a dozen places; rename it and every Devanagari glyph silently
+     becomes tofu. The --nm-* roles resolve to the site's dark tokens by
+     default, which is what the no-JS fallback is rendered on, and are
+     REDECLARED on #naam-app for the light app. One card component, one set of
+     rules, two grounds. ──────────────────────────────────────────────────── */
+  .nm {
+    /* Both members are unicode-range-restricted, so this prefix can be put in
+       front of any role stack without touching a single Latin glyph. */
+    --font-deva: 'Mukta', 'Naam Deva Fallback';
+    --nm-canvas: var(--void);
+    --nm-surface: var(--ink);
+    --nm-surface-2: var(--ink-2);
+    --nm-text: var(--paper);
+    --nm-text-soft: var(--paper-soft);
+    --nm-hair: var(--hairline-on-ink);
+    --nm-hair-strong: var(--hairline-strong);
+    --nm-accent-text: var(--crimson-text);
+    --nm-keep: var(--marigold);
+    /* Mixed from the token rather than restated as a literal: the fill and the
+       mark have to be the same hue, and they stopped being so the moment
+       --marigold was re-chosen for a light ground. 14% of the old marigold on
+       bone was also invisible. */
+    --nm-keep-fill: color-mix(in srgb, var(--marigold) 18%, transparent);
+    --nm-live: var(--glacier);
+    /* THE EMBER COLOUR, declared here beside the wall's paper and for the same
+       reason: fire is not a different colour in a different room, so #naam-app
+       does not override it. Mixed rather than picked — the page owns exactly
+       two warm tokens and an ember is where they meet.
+
+       It was written for the diyo's flame, which is gone; the sparks that lift
+       off the third filled slot still read it. Kept as its own token because
+       the version before it was `var(--nm-accent)`, which is declared nowhere
+       on this site — only --nm-accent-text exists — and an unresolvable var()
+       in stop-color is invalid at computed-value time, so it fell back to
+       BLACK and the flame burned from a black base. A named token cannot fail
+       that way silently. */
+    --nm-ember: color-mix(in srgb, var(--crimson) 55%, var(--marigold) 45%);
+
+    /* THE CONVERSATION'S OWN SURFACE. The page is one room with a lamp at the
+       right-hand end of it, so the left is the side of the room the light has
+       not reached: a shade cooler and a shade lighter than the canvas, enough
+       to read as a different place to stand without a line drawn to say so.
+       It is a mix rather than a literal so it stays correct on both grounds —
+       the dark one resolves cool-dark, the light one resolves cool-pale, and
+       neither needs a second declaration. */
+    --nm-talk: color-mix(in srgb, var(--nm-surface) 62%, var(--nm-canvas));
+
+    /* THE LEAF, and it is declared on .nm rather than on #naam-app on purpose:
+       a palm leaf is a physical thing and it does not change colour because the
+       room it is in is dark. These three are the only colours on this page that
+       do not resolve differently between the two grounds.
+
+       Palm ochre, not post-it yellow. #e3d3a8 is aged palm; the ink is #33291c,
+       an iron-gall brown, never black; the margin rule is the red ochre that
+       actually runs down a pothi page. Contrast, measured on the leaf itself:
+         #33291c on #e3d3a8   9.4:1   the Devanagari and the Latin
+         at 60% opacity       4.9:1   the least-supported name, still AA
+       So even a name nobody has chosen yet stays properly readable — which
+       matters more here than anywhere, because ink weight is how this shelf
+       shows support and the lightest leaf is the one asking to be noticed. */
+    --nm-leaf: #e3d3a8;
+    --nm-leaf-ink: #33291c;
+    --nm-leaf-rule: #a8442e;
+
+    /* Mukta is FIRST in every stack on this page and that is safe: its
+       @font-face carries a unicode-range, so it can only ever supply
+       Devanagari and every Latin glyph falls straight through to Bricolage,
+       Atkinson or DM Mono. Without this, any Devanagari outside .nm-deva —
+       a starter chip, the व/ब control, a name inside a reason — renders as
+       tofu, and shipping boxes is worse than shipping no Devanagari at all. */
+    font-family: var(--font-deva), var(--font-body);
+  }
+
+  .nm h1,
+  .nm h2,
+  .nm h3 {
+    font-family: var(--font-deva), var(--font-display);
+  }
+
+  .nm .label-mono,
+  .nm .pulse-caption {
+    font-family: var(--font-deva), var(--font-mono);
+  }
+
+  /* ── THE ONE SANCTIONED LIGHT SURFACE ─────────────────────────────────
+     Declared here and nowhere else. Cool stone with hot marigold and crimson
+     on top is how Nepali festival colour actually reads — bright warm objects
+     against grey sky and stone — and it is deliberately NOT warm cream with
+     terracotta, which is the most common machine-generated light palette in
+     circulation and would make this page look like every other AI-designed
+     page rather than like Nepal.
+
+     CONTRAST, recomputed from scratch against the light ground. The dark-mode
+     ratios carry no information here:
+       ink   #1A1D2E on rice  16.0:1   body text
+       ink/65%        on rice  5.1:1   secondary text (4.6:1 on sky)
+       crimson-deep   on rice  5.7:1   the accent that carries text
+       crimson        on rice  4.2:1   focus ring and borders only — NOT text
+       marigold       on rice  ~2:1    FILL AND BORDER ONLY, never type
+       glacier        on rice  2.7:1   the live dot and its border, never type
+     ────────────────────────────────────────────────────────────────────── */
+  #naam-app {
+    --naam-sky: #edeff2;
+    --naam-rice: #fafaf8;
+    --naam-ink: #1a1d2e;
+    --nm-canvas: var(--naam-sky);
+    --nm-surface: var(--naam-rice);
+    --nm-surface-2: #f1f3f6;
+    --nm-text: var(--naam-ink);
+    --nm-text-soft: rgb(26 29 46 / 65%);
+    --nm-hair: rgb(26 29 46 / 13%);
+    --nm-hair-strong: rgb(26 29 46 / 26%);
+    --nm-accent-text: var(--crimson-deep);
+    --nm-keep-fill: color-mix(in srgb, var(--marigold) 20%, transparent);
+    --nm-shadow: 0 1px 2px rgb(26 29 46 / 5%), 0 10px 24px -16px rgb(26 29 46 / 30%);
+
+    display: flex;
+    flex-direction: column;
+    background: var(--nm-canvas);
+    height: 100%;
+    color: var(--nm-text);
+  }
+
+  .nm-shell {
+    display: flex;
+    position: relative;
+    flex: 1 1 0;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  /* ── THE THREAD AND THE PLATE ─────────────────────────────────────────
+     Two columns from 1100px, and the split is not a way to use up width — it
+     is the only arrangement in which the agent can lead.
+
+     Stacked, an arriving hand of cards is ~370px of a 439px stream, so the
+     model's sentence was pushed above the fold the instant it was answered
+     (measured: top:-180 at 1280×800, -581 at 390). Reply + line + cards is
+     506px of content and no scroll offset fits that into 439.
+
+     The two columns are also two different KINDS of thing, which is why this
+     reads as a room rather than as a sidebar. The left is a thread — a mala,
+     turns strung in the order they happened, and you pass along it. The right
+     is a plate — a thali, where what is being weighed is laid out and three of
+     it is chosen. Words go on the thread; names go on the plate. The lamp
+     stands at the foot of the plate and lights it, so the two halves sit at
+     different temperatures: the conversation stays cool paper, the offering is
+     warm. That is the whole of the separation — there is no rule between them,
+     because a hairline would say "two panels" where the light already says
+     "one room, lit from over here".
+
+     Below 1100 it stacks back and the hand becomes a band you swipe. */
+  @media (min-width: 1100px) {
+    .nm-shell {
+      display: grid;
+      /* Two rows since the topbar went: the columns, then the composer. */
+      grid-template-rows: minmax(0, 1fr) auto;
+      /* The plate is sized from the CARD, not from the leftovers. Three cards
+         plus the gaps and the tray's padding need ~700px before a gloss stops
+         breaking mid-phrase — at 46vw the cards came out 180px and "to shine,
+         be bright" wrapped to two lines while "from the document" broke across
+         two more. 56vw gives ~218px each at 1280 and the thread still keeps
+         ~560px, which is a comfortable measure for prose and more than the
+         invitation was getting when it had the whole width. */
+      grid-template-columns: minmax(0, 1fr) clamp(31rem, 56vw, 46rem);
+      /* The composer belongs to the CONVERSATION, not to the page. Spanning
+         the full width it read as a page-level toolbar sitting under two
+         unrelated columns; under the left column it is plainly the bottom of
+         the thing you are talking into, and the plate on the right becomes one
+         uninterrupted object from the hand down to the slots. */
+      /* The hand sits between the conversation and the box it is answered in.
+         It is on this side because the names being weighed belong beside the
+         words weighing them — and it is a BAND of its own, not part of the
+         scroller, because inside the scroller a hand of cards pushes the
+         model's reply off the top (measured: 439px of stream, 370px of cards,
+         reply at top:-180). */
+      grid-template-areas:
+        'stream tray'
+        'hand tray'
+        'composer tray';
+    }
+
+    .nm-hand {
+      grid-area: hand;
+      /* ── INSIDE THE CONVERSATION, NOT BESIDE IT ─────────────────────────
+         The hand spanned the full 704px column while every line of the thread
+         is inset past the mala rail and held to a measure — so the cards ran
+         wider than anything they were dealt in answer to and read as a
+         separate shelf that happened to be on the left.
+
+         Same left inset as .nm-turn-body: the stream's own padding, plus the
+         rail and its gap. The cards now start on the text's left edge and end
+         where it ends, which is what makes them part of the exchange rather
+         than a tray that moved. */
+      padding-right: clamp(0.75rem, 2.4vw, 1.4rem);
+      padding-left: calc(clamp(0.75rem, 2.4vw, 1.4rem) + var(--nm-rail, 30px) + var(--nm-rail-gap, 0.8rem));
+    }
+
+    .nm-streamwrap {
+      grid-area: stream;
+      min-height: 0;
+    }
+
+    .nm-tray {
+      grid-area: tray;
+      justify-content: center;
+      min-height: 0;
+      overflow: clip;
+    }
+
+    /* THE HAND IS THE PART THAT GIVES. It is the only band whose height varies
+       — opening "from the document" adds a verbatim block to a card — so it
+       takes the slack and scrolls internally rather than pushing the composer
+       down or the conversation off. */
+    .nm-hand {
+      min-height: 0;
+      max-height: 46vh;
+      /* A hairline where the reading stops and the choosing starts. The same
+         weight as the composer's, because it is the same kind of edge: the
+         thread above, a thing to act on below. */
+      border-top: 1px solid var(--nm-hair);
+      padding-top: 0.55rem;
+      padding-bottom: 0.2rem;
+    }
+
+    /* ── A TRAY LAID ON THE CONVERSATION ─────────────────────────────────
+       Held to the text's own measure and given a surface of its own, one step
+       off the paper it rests on. Without it the cards were loose objects on
+       a bare strip; with it they are a set, put down together, inside the
+       column rather than across it.
+
+       THE TRAY'S SURFACE IS GONE, AND SO IS ITS PADDING. Giving it a fill of
+       its own meant it had to be inset from the cards, which put the CARDS 8px
+       right of the text they answer — and the left edge is the one thing on
+       this page every block shares. The cards sit on the conversation's own
+       paper now, starting exactly where the sentence above them starts. */
+    .nm-hand > .nm-deal {
+      justify-content: start;
+      padding: 0;
+    }
+
+    .nm-hand > .nm-deal {
+      max-height: 46vh;
+      /* A row cut flush against the composer reads as broken rather than as
+         scrollable. The padding leaves the clipped row visibly mid-card, which
+         is what says "there is more below" — and the fade makes it a soft edge
+         rather than a guillotine. */
+      mask-image: linear-gradient(to bottom, #000 calc(100% - 1.5rem), transparent 100%);
+      padding-bottom: 0.75rem;
+      overflow-y: auto;
+    }
+
+    .nm-tray-head,
+    .nm-slots {
+      flex: 0 0 auto;
+    }
+
+    .nm-composer {
+      grid-area: composer;
+      /* No border between the columns. The conversation side is a surface and
+         the plate is the lit ground; two materials at two temperatures say
+         "different place" without a rule drawn to announce it. */
+      border-top: 0;
+    }
+
+    /* ── ONE COLUMN, ONE SURFACE ────────────────────────────────────────
+       .nm-hand was missing from this list, and it is a full-height grid band
+       between two opaque ones — so the valley showed through a strip right
+       across the middle of the conversation. The cards floated on the sky
+       while the words above and the composer below sat on paper, which read
+       as the hand belonging to the right-hand plate rather than to the
+       thread, and put an animated backdrop behind text that has to be read.
+
+       All three now, so the conversation side is one uninterrupted material
+       from the first line down to the composer. */
+    .nm-streamwrap,
+    .nm-hand,
+    .nm-composer {
+      background: var(--nm-talk);
+    }
+
+    /* ── AND IT HAS TO BE POSITIONED TO WIN ──────────────────────────────
+       Declaring the background was not enough, and the checker that read
+       `getComputedStyle(hand).backgroundColor` said PASS while the screenshot
+       still showed the valley through it — it was grading the declaration,
+       not the paint.
+
+       .nm-valley and .nm-room are positioned with `z-index: 0`. A grid item
+       with `z-index: auto` and no `position` paints its background in the
+       block-background phase, which is UNDER every positioned descendant of
+       the same stacking context — so the sky was drawn over the paper. Its two
+       neighbours never had the bug because .nm-streamwrap is already
+       `position: relative` (the doodle hangs off it) and .nm-composer already
+       carries `z-index: 2` for exactly this reason.
+
+       `relative` with no z-index is enough: that puts it in the positioned
+       layer, where DOM order decides, and it comes after the canvas. */
+    .nm-hand {
+      position: relative;
+    }
+
+    /* The lamp moved into the right column, so its light moves with it.
+       Leaving the pool at 50% would light the room from a point the lamp
+       visibly is not — the same lie this page already fixed once vertically. */
+    .nm-room {
+      background:
+        radial-gradient(58% 52% at 78% 84%, color-mix(in srgb, var(--nm-keep) 17%, transparent) 0%, transparent 70%),
+        radial-gradient(105% 64% at 78% 100%, color-mix(in srgb, var(--nm-keep) 8%, transparent) 0%, transparent 62%);
+    }
+  }
+
+  /* ── The lamp, and the room it lights ─────────────────────────────────
+     The page used to be inert between clicks, which is the whole reason it
+     read as a document rather than as something you were inside. One element
+     is now always alive, and it is a light source rather than a decoration —
+     so the ground is LIT instead of painted, which is what games do and what
+     a flat hex fill can never do.
+
+     The flicker must not look like a loop. Two animations run at deliberately
+     incommensurate periods (2.3s and 3.7s); a single sine reads as CSS, two
+     out of phase read as fire. The ground rides the same clock at a fifth of
+     the amplitude, so the paper breathes without anyone noticing why. */
+
+  /* The pool is centred ON the lamp — which sits low, with the tray — and
+     throws its light UPWARD across the conversation. It was at 50% 34% while
+     the lamp was at 3% 6%, and a room lit from somewhere the light source
+     visibly is not is a thing the eye catches even when it cannot say why. */
+  /* ── THE ROOM ANSWERS ──────────────────────────────────────────────────
+     The empty half of this screen was a painted rectangle with a slow breath
+     on it. A game's negative space is not decoration — it is the clearest
+     channel the thing has for telling you what state you are in, and it costs
+     nothing to read because you are not reading it.
+
+     So the light is driven by two numbers, both published on .nm-shell by
+     NaamApp, and everything here is one compositable property away from them:
+
+       --lit    how far the pool opens and how bright it is
+       --warm   how much of the marigold is in it
+
+     THINKING: the pool draws IN and cools slightly — the room holding its
+     breath while the lamp works. It is the opposite of a spinner: nothing new
+     appears, the space you are already looking at changes.
+
+     KEPT: each name warms the ground one step. Three names and the whole room
+     is lamp-coloured. That is the reward for finishing, delivered in the part
+     of the screen that has no content in it — which is exactly the part a
+     document would have left dead.
+
+     The transition is 900ms and eased, so a state change is a swell rather
+     than a switch, and the 3.7s breath keeps running underneath it. */
+  /* ────────────────────────────────────────────────────────────────────────
+     THE VALLEY — dusk over the Kathmandu valley, drawn in PixiJS.
+
+     Behind everything, taking no input, carrying no information. The page is
+     complete without it: the gradient declared here is what shows while the
+     ~117 kB chunk loads, if WebGL is blocked, if the context is lost, or if the
+     import simply fails. Those are the same outcome and none of them is an
+     error — the weather does not arrive, and nothing else changes.
+
+     The gradient is not a placeholder for the scene, it is the scene's own
+     first two stops: paper on the left where the room is, dusk on the right
+     where the window is. So the swap when Pixi mounts is a deepening rather
+     than a replacement, and there is no flash of a different page.
+     ──────────────────────────────────────────────────────────────────────── */
+  /* z-index 0, NOT -1. The page root paints --nm-canvas opaquely, and a
+     negative index puts the canvas behind that fill rather than behind the
+     content — the scene rendered perfectly and was never visible. Everything
+     above it (.nm-room is 0, the stream and tray are higher) already sits in
+     the same stacking context, so 0 with the canvas first in DOM order is what
+     puts it underneath them and on top of the page's own background. */
+  .nm-valley {
+    position: absolute;
+    z-index: 0;
+    inset: 0;
+    /* The scene's own first stops, not a stand-in for them: cool paper where
+       the room is, thin cold sky, then the rose band the range stands against.
+       So when the chunk lands and Pixi takes over, the picture deepens rather
+       than swapping — no flash of a different page. */
+    background: linear-gradient(
+      104deg,
+      var(--nm-canvas) 0%,
+      var(--nm-canvas) 36%,
+      #dbe1ec 62%,
+      #e9d3cb 88%,
+      #f1cec2 100%
+    );
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  .nm-room {
+    --lit: 1;
+    --warm: 0;
+
+    position: absolute;
+    transform: scale(var(--lit));
+    opacity: calc(0.72 + var(--warm) * 0.28);
+    z-index: 0;
+    animation: nm-room-breathe 3.7s ease-in-out infinite;
+    transition:
+      opacity 900ms cubic-bezier(0.4, 0, 0.2, 1),
+      transform 900ms cubic-bezier(0.4, 0, 0.2, 1);
+    inset: 0;
+    background:
+      radial-gradient(
+        78% 58% at 50% 88%,
+        color-mix(in srgb, var(--nm-keep) calc(15% + var(--warm) * 13%), transparent) 0%,
+        transparent 70%
+      ),
+      radial-gradient(
+        140% 70% at 50% 100%,
+        color-mix(in srgb, var(--nm-keep) calc(7% + var(--warm) * 7%), transparent) 0%,
+        transparent 62%
+      );
+    pointer-events: none;
+  }
+
+  /* One step of warmth per name kept. Written as sibling selectors rather than
+     as an inline style so the numbers stay in the stylesheet with the gradient
+     they feed. */
+  .nm-shell[data-kept='1'] .nm-room {
+    --warm: 0.34;
+  }
+
+  .nm-shell[data-kept='2'] .nm-room {
+    --warm: 0.67;
+  }
+
+  .nm-shell[data-kept='3'] .nm-room {
+    --warm: 1;
+  }
+
+  /* The room holds its breath while the model is out. */
+  .nm-shell[data-thinking] .nm-room {
+    --lit: 0.94;
+
+    opacity: 0.6;
+  }
+
+  /* ── THE FIRST MOVE ────────────────────────────────────────────────────
+     Before anything has been asked, the plate is an empty table: three sockets
+     and an unlit label for names that do not exist yet. It is drawn from the
+     first frame on purpose (endowed progress — a counter that starts visible is
+     finished far more often than one that appears when you earn it), but drawn
+     is not the same as COMPETING, and on first load it was pulling the eye away
+     from the only thing there is to do.
+
+     So until the first ask it stands down: two thirds opacity, slightly
+     desaturated, and NOT interactive — it has nothing to receive yet, so
+     inert is honest rather than a trick. Everything that IS actionable keeps
+     full strength: the invitation, the chips, the composer.
+
+     Dimmed, never hidden. The shape of the ask has to stay legible — you are
+     being told "three names, that way", and a plate that appeared out of
+     nowhere on your first Keep would be a surprise instead of a promise. */
+  .nm-slots,
+  .nm-quiet-label {
+    transition:
+      opacity 700ms cubic-bezier(0.4, 0, 0.2, 1),
+      filter 700ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* THE SLOTS STAND DOWN, NOT THE WHOLE TRAY — and the difference is a bug I
+     shipped for one build. Dimming .nm-tray dimmed the LAMP inside it, and the
+     exemption written for it, `opacity: 2.9` on the child, cannot work at all:
+     opacity is clamped to 0–1 and a child's value MULTIPLIES its parent's, so
+     the light source sat at 0.34 × 1 on the one frame whose entire job is to
+     look worth staying for. There is no way to opt a descendant out of an
+     ancestor's opacity. The only fix is to never put it inside one, so the
+     dimming now names the two things that are genuinely not usable yet and the
+     lamp is simply not in the set. */
+  .nm-shell[data-first] .nm-slots,
+  .nm-shell[data-first] .nm-quiet-label {
+    opacity: 0.52;
+    filter: saturate(0.6);
+  }
+
+  /* NOT pointer-events: none, and that used to be here. It was correct while a
+     slot could only RECEIVE a name kept from the deck — nothing had been dealt,
+     so there was nothing it could take. It stopped being correct the moment an
+     empty slot became the way to put in a name of your own: the one visitor it
+     locked out is the relative who arrived already knowing what they wanted to
+     say, which is the best visitor this page gets. Dimmed is a statement about
+     emphasis; inert is a statement about what works, and only the first one was
+     ever true here. */
+  .nm-shell[data-first] .nm-slot-empty:hover,
+  .nm-shell[data-first] .nm-slot-empty:focus-visible {
+    opacity: 1;
+    filter: none;
+  }
+
+  /* The composer is the one control that matters on the first frame, so it is
+     the one thing that gains rather than merely keeping its ground: a warmer
+     ring, and the lamplight pooled under it. It settles the moment there is a
+     conversation to carry. */
+  .nm-shell[data-first] .nm-composer-in {
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--nm-keep) 34%, transparent),
+      0 6px 22px -12px color-mix(in srgb, var(--nm-keep) 60%, transparent);
+  }
+
+  /* Under an optional field, explaining the one thing a label cannot: that any
+     spelling is fine and it need not come from the document. */
+  .nm-field-help {
+    display: block;
+    margin-top: 0.2rem;
+    color: var(--nm-text-soft);
+  }
+
+  /* What the topbar used to hold, at the weight it deserved all along. */
+  .nm-utility {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    margin: 0.3rem auto 0;
+    width: 100%;
+    max-width: 720px;
+    min-height: 1rem;
+  }
+
+  .nm-utility .nm-rail-a11y {
+    margin-left: auto;
+  }
+
+  /* The one number on the page that is a fact rather than a feeling, so it is
+     set as data: small, mono, and quieter than the invitation it sits under. */
+  .nm-said--quiet {
+    color: var(--nm-text-soft);
+    font-size: 0.8rem;
+    line-height: 1.7;
+    letter-spacing: 0.01em;
+  }
+
+  /* Dust in the lamplight — the ambient-particle technique without confetti,
+     and what a real butter lamp actually looks like. Suspended while typing
+     ([data-calm]) because it is the part that can pull the eye; the flame is
+     not, because a lamp that goes out when you start writing is worse than one
+     that flickers beside you. */
+  .nm-motes {
+    position: absolute;
+    opacity: 0.5;
+    z-index: 0;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .nm-mote {
+    position: absolute;
+    animation: nm-mote-drift linear infinite;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--nm-keep) 55%, transparent);
+    width: 2px;
+    height: 2px;
+  }
+
+  .nm[data-calm='true'] .nm-motes {
+    opacity: 0;
+    transition: opacity 600ms ease;
+  }
+
+  @keyframes nm-room-breathe {
+    0%,
+    100% {
+      opacity: 0.86;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes nm-mote-drift {
+    0% {
+      transform: translate3d(0, 0, 0);
+      opacity: 0;
+    }
+    18% {
+      opacity: 0.7;
+    }
+    82% {
+      opacity: 0.5;
+    }
+    100% {
+      transform: translate3d(14px, -190px, 0);
+      opacity: 0;
+    }
+  }
+
+  /* transform STRING, not individual properties: individual transforms animate
+     CSS variables and are not composited. */
+  /* Three stops, not two, and roughly double the amplitude of the first
+     attempt. Two stops make a pendulum — the eye predicts it instantly and it
+     reads as a CSS animation. A third stop off-centre breaks the symmetry, and
+     because the gutter beneath runs at 2.3s against this 3.7s, the pair never
+     lands in the same relative phase twice inside a sitting. */
+  @keyframes nm-flame-sway {
+    0%,
+    100% {
+      transform: rotate(-3deg) scaleY(0.97);
+    }
+    38% {
+      transform: rotate(2.2deg) scaleY(1.06);
+    }
+    64% {
+      transform: rotate(-0.8deg) scaleY(1.01);
+    }
+  }
+
+  @keyframes nm-flame-gutter {
+    0%,
+    100% {
+      transform: scale(1) translateY(0);
+    }
+    40% {
+      transform: scale(0.9) translateY(1px);
+    }
+    70% {
+      transform: scale(1.06) translateY(-1px);
+    }
+  }
+
+  @keyframes nm-flame-glow {
+    0%,
+    100% {
+      opacity: 0.8;
+    }
+    45% {
+      opacity: 1;
+    }
+  }
+
+  /* Thinking: the flame narrows and leans. This IS the loading state — there
+     is no separate spinner and no pulse-line while the lamp can say it. */
+  /* A name lands: the flame flares once and settles. */
+  @keyframes nm-flame-flare {
+    0% {
+      transform: scale(1);
+    }
+    45% {
+      transform: scale(1.22);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  /* Flying names. position: fixed, so this layer carries no geometry — it is
+     here only so the tokens inherit the light tokens and React never diffs
+     them. */
+  .nm-fx {
+    position: absolute;
+    z-index: 40;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  /* A spark off the lamp when the third name lands — the page's one particle
+     moment, and it is deliberately NOT confetti. Confetti is paper falling at a
+     party; this is a flame throwing embers, which is the only thing on this
+     screen that could throw anything. Warm-only, and small enough that twelve
+     of them read as a lift rather than as a burst. Positioned and animated from
+     NaamApp; this is only what one looks like. */
+  /* 6px with a glow, not 4px with a soft edge. The first version measured 3px
+     wide at 0.47 opacity once the gradient's falloff and the animation's scale
+     were applied — a spark that existed in the DOM, animated correctly, and was
+     invisible on screen. A warm dot on a warm lit ground needs a hot core and
+     something to bloom into, or the lamplight it is rising through simply eats
+     it. */
+  .nm-ember {
+    position: absolute;
+    box-shadow: 0 0 7px 1px color-mix(in srgb, var(--nm-keep) 45%, transparent);
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff6de 0%, var(--nm-keep) 58%, transparent 76%);
+    width: 6px;
+    height: 6px;
+    pointer-events: none;
+  }
+
+  /* The rail that used to sit across the top is gone — .nm-topbar, .nm-brand
+     and .nm-swap-rail with it. See the comment in NaamApp.tsx for where each
+     of its five pieces went and why none of them were simply dropped. */
+
+  /* DESIGN.md §4 — two of the three words, and never a fourth. */
+  .nm-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border: 1px solid var(--nm-hair-strong);
+    border-radius: 999px;
+    padding: 0.15rem 0.55rem;
+    color: var(--nm-text-soft);
+
+    /* Glacier is 2.7:1 on rice, so it is the dot and the border. The word is
+       set in --nm-text-soft, which is 5.1:1. */
+    &[data-source='live'] {
+      border-color: var(--nm-live);
+    }
+
+    &[data-source='live']::before {
+      display: block;
+      border-radius: 999px;
+      background: var(--nm-live);
+      width: 6px;
+      height: 6px;
+      content: '';
+    }
+  }
+
+  /* ── The stream ───────────────────────────────────────────────────────── */
+  /* ── The invitation stands; the transcript scrolls ────────────────────────
+     Measured at 1440x900: the invitation ended around y=600 and the starter
+     chips began at y=1030, leaving roughly 430px of empty column holding
+     nothing but the arrow. Top-aligned copy in a full-height column dumps all
+     of its whitespace at the bottom, and a void that size under three short
+     paragraphs reads as a page that failed to finish loading.
+
+     Before anything is asked this column holds ONE standing block, so it is
+     placed optically rather than pinned to the top. The moment a question is
+     asked it becomes a transcript, where top-alignment and scroll-to-bottom
+     are the only correct behaviour — and `data-first` is dropped on submit, so
+     the rule stops applying by itself.
+
+     AUTO MARGINS, NOT FLEX SPACERS. The first cut used ::before/::after at
+     flex:1, which claim their share of the column whether or not there is any
+     to spare. On a 375px phone that pushed the second and third paragraphs —
+     including "What kind of name are you looking for?", which is the question
+     the whole page exists to ask — clean off the bottom of the screen. An auto
+     margin only absorbs FREE space, so it centres while the block fits and
+     collapses to zero the instant it does not. Scoped to the side-by-side
+     layout as well, because a stacked one has no free space to give — and to
+     1100, which is where that layout actually begins. It read 900, so between
+     900 and 1099 the page was stacked and being centred as though it were
+     not. */
+  @media (min-width: 1100px) {
+    .nm-shell[data-first] .nm-stream {
+      display: flex;
+      /* Turning the list into a flex column let each turn size to its own
+         content on the cross axis, so the shortest paragraph came out narrower
+         than the others and its rail bead sat 45px right of the two above it —
+         the mala visibly kinked. The turns are a grid of rail plus body and
+         must always span the full column. */
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .nm-shell[data-first] .nm-stream > * {
+      flex: 0 0 auto;
+      width: 100%;
+    }
+
+    .nm-shell[data-first] .nm-stream > :first-child {
+      margin-block-start: auto;
+    }
+
+    .nm-shell[data-first] .nm-stream > :last-child {
+      margin-block-end: auto;
+    }
+  }
+
+  .nm-streamwrap {
+    display: flex;
+    /* The doodle hangs off this. */
+    position: relative;
+    flex: 1 1 0;
+    min-height: 0;
+  }
+
+  .nm-stream {
+    flex: 1 1 auto;
+    margin: 0;
+    padding: var(--space-m) clamp(0.75rem, 2.4vw, 1.4rem) var(--space-s);
+    min-height: 0;
+    /* ── THE BOUNDARY FADES ───────────────────────────────────────────────
+       A scroller cuts whatever is at its edge, and for a line of prose that
+       reads as text continuing. For a ROW OF OBJECTS it reads as breakage:
+       measured on a 412px phone, the family's name row spans 464–572 and the
+       stream clips at 541, so five lanterns were sliced through the middle
+       with the lamp sitting directly under their severed tops.
+
+       A soft edge fixes every case at once — the row, the cards, a half line
+       of the invitation — and doubles as the only cue that there is more to
+       scroll. At 375 the stream hides 324px of content and said nothing.
+
+       THE DEEP FADE MOVED TO THE TOP. This transcript is pinned to its end,
+       so the direction it actually continues in is upward — a 36px fade at
+       the bottom was dimming the newest line and pointing at nothing. The
+       bottom keeps a 1rem fade, which lands inside the stream's own padding
+       when pinned and only softens an edge once the visitor has scrolled up
+       and there IS something down there to cut. */
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      #000 2.25rem,
+      #000 calc(100% - 1rem),
+      transparent 100%
+    );
+    /* overflow-anchor would fight the scroll-to-bottom on every insertion. */
+    overflow-anchor: none;
+    overflow-y: auto;
+    /* Without `contain` an overscroll chains to the document and fires
+       pull-to-refresh on a page that must never move. */
+    overscroll-behavior: contain;
+    list-style: none;
+  }
+
+  /* ── The thread, and the beads strung on it ───────────────────────────
+     A log is a column of blocks all shouting at the same volume, and it gets
+     louder the longer you use it — which is exactly why this screen felt
+     overwhelming three turns in. This is a counting object instead: a thread
+     down the left, one bead per turn, and the beads you have passed worn
+     smaller, fainter and compressed to a single line.
+
+     THE GAP BELONGS TO THE TURN BELOW IT, as padding-top rather than as the
+     margin-bottom this used to be, and that is not a style preference. The
+     thread has to bridge the space between two beads, and a pseudo-element can
+     only read its OWN element's custom properties — so with the gap as a bottom
+     margin the connector would have had to know the PREVIOUS turn's spacing,
+     which CSS cannot express. As padding-top, --nm-gap is right there.
+
+     That also makes the compression free: a passed turn simply declares a
+     smaller --nm-gap, so the mala tightens where you have already been and
+     keeps its air around the exchange you are on.
+
+     No timeline library. Every one of them (react-chrono,
+     react-vertical-timeline-component, shadcn's blocks) renders a vertical rule
+     with cards hanging off it, which is precisely the log being escaped. This
+     is a two-column grid, two pseudo-elements and one keyframe. ────────────── */
+  .nm-turn {
+    --nm-gap: var(--space-m);
+    /* The rail's width and the bead's, in one place: the narrow breakpoint
+       re-declares these three and every offset below follows.
+
+       IT WAS TOO SMALL TO BE AN OBJECT. At a 22px rail with 12px beads on a
+       563px column, every bit of craft below — the turned highlight, the
+       inset shade, the counting beads strung along the cord — landed under
+       the threshold where any of it is legible, and the whole thing collapsed
+       into what it most resembles at that size: a dotted left border with
+       three dots on it. The shapes were right and the scale was wrong, which
+       is why making the beads MORE correct did not make the mala more
+       obvious. A mala is a held object. It has to be big enough to read as
+       one. */
+    --nm-rail: 30px;
+    --nm-rail-gap: 0.8rem;
+    --nm-bead: 17px;
+    /* Where the bead's top sits, so it lands on the optical centre of the
+       first line of text beside it (1rem at 1.7 line-height is a 27px box). */
+    --nm-bead-top: 5px;
+
+    display: grid;
+    grid-template-columns: var(--nm-rail) minmax(0, 1fr);
+    column-gap: var(--nm-rail-gap);
+    margin: 0 auto;
+    padding-top: var(--nm-gap);
+    max-width: 720px;
+  }
+
+  /* Nothing is strung above the first bead, and the stream's own top padding
+     is already the air above it. 0px, not 0: it is read inside calc(). */
+  .nm-turn:first-child {
+    --nm-gap: 0px;
+  }
+
+  .nm-turn[data-past] {
+    --nm-gap: var(--space-2xs);
+  }
+
+  /* The .sr-only speaker label is position:absolute, so it is out of flow and
+     never takes a grid cell — the rail and the body auto-place into the two
+     columns without anything having to be placed by hand. */
+  .nm-turn-rail {
+    position: relative;
+  }
+
+  /**
+   * THE CSS CORD STANDS DOWN WHEN THE ROPE ARRIVES.
+   *
+   * The gradient cord is the no-JS and no-WebGL fallback and it has to keep
+   * working — it is what a visitor sees for the first 320ms, and forever if the
+   * chunk fails or the context is blocked. But once the simulated rope is up,
+   * both drawing at once is two cords an inch apart.
+   *
+   * The flag goes on the shell rather than on each rail because the rope is one
+   * object spanning every turn, and a per-turn class would have to be applied
+   * to turns that do not exist yet.
+   */
+  .nm-shell[data-rope] .nm-turn-rail::before,
+  .nm-shell[data-rope] .nm-turn-rail::after {
+    opacity: 0;
+  }
+
+  /* The marker beads STAY. They are the anchors the rope is nailed to, they are
+     positioned by the same grid as the text so they track it for free, and they
+     are what a visitor sees if the rope never loads. */
+
+  /* The cord: a continuous faint line with diagonal ticks laid over it. Two
+     layers, because either one alone is wrong — the ticks by themselves render
+     as a dashed border, which is worse than a plain rule, and a plain 1px
+     vertical rule IS the timeline-library look. Together the line carries the
+     continuity a strung object needs and the ticks give it a twist, and at
+     13% under 26% neither is individually legible. */
+  /* THE CORD IS STRUNG WITH BEADS, and that is what was missing. It used to be
+     a 2px line with a diagonal twist laid over it — honest about being a cord,
+     and it read as a hairline rule, because the thing that makes a mala legible
+     is not the thread. It is that the thread is COVERED in beads.
+
+     So the cord carries its own: a repeating radial-gradient of 4px beads every
+     7px down its length, each one lit from the top-left like the big ones. The
+     line between the turns stops being empty. At a glance you see a strung
+     object; at reading distance you see the beads that matter sitting among the
+     ones that are only counting. */
+  .nm-turn-rail::before,
+  .nm-turn-rail::after {
+    position: absolute;
+    /* Half the cord's own width, so it stays centred in the rail when either
+       number changes. It was hard-coded to 3px for a 6px cord and would have
+       drifted a pixel and a half off-centre the moment the cord widened. */
+    left: calc(var(--nm-rail) / 2 - 4.5px);
+    background-image:
+      /* THE COUNTING BEADS ARE THE SAME WOOD AS THE BIG ONES. They were mixed
+         from --nm-text, which is this page's INK — so they came out blue-grey,
+         and the cord read as a dashed rule with wooden beads parked on it.
+         That is two objects, not one strung thing. Cut from the same browns
+         now, lit from the same top-left, on a warm thread rather than a
+         hairline. */
+      /* YOU HAVE TO SEE THE THREAD BETWEEN THEM. The counting beads were 5.6px
+         across on a 6.8px pitch — 1.2px of cord showing — so they fused into a
+         single dashed stroke and the rail read as a dotted border. What makes a
+         strung object legible is not that the thread is covered; it is that you
+         can see each bead END and the cord carry on to the next. At 8px on a
+         12px pitch there are 4px of visible thread between beads and they
+         separate into countable things. */
+      repeating-radial-gradient(
+        circle at 50% 4px,
+        #c39c6c 0 1.6px,
+        #a3804f 1.6px 2.8px,
+        #7a5931 2.8px 3.6px,
+        #543c20 3.6px 4px,
+        transparent 4.1px 6px
+      ),
+      linear-gradient(#8a7048 0 100%);
+    background-position:
+      center top,
+      center top;
+    background-size:
+      9px 12px,
+      2px 100%;
+    background-repeat: repeat-y, repeat-y;
+    width: 9px;
+    content: '';
+  }
+
+  /* THE CONNECTOR, and it draws. The line REACHING the new bead is the progress
+     signal; a node simply appearing is not, and instant appearance is what
+     makes a sequence read as a log. scaleY off a top origin rather than an SVG
+     stroke-dashoffset: on a straight 2px vertical the two are pixel-identical,
+     and this one composites and costs no element. */
+  .nm-turn-rail::before {
+    top: calc(-1 * var(--nm-gap));
+    transform-origin: top;
+    animation: nm-thread 500ms cubic-bezier(0.05, 0.7, 0.1, 1) backwards;
+    height: calc(var(--nm-gap) + var(--nm-bead-top));
+  }
+
+  .nm-turn-rail::after {
+    top: calc(var(--nm-bead-top) + var(--nm-bead));
+    bottom: 0;
+  }
+
+  .nm-turn:first-child .nm-turn-rail::before {
+    display: none;
+  }
+
+  /* The thread ends at the bead you are on. There is nothing strung after it
+     yet, and a cord running past the last bead into empty space is the log's
+     "and it continues" — the opposite of what a counting object says. */
+  .nm-turn:last-child .nm-turn-rail::after {
+    display: none;
+  }
+
+  @keyframes nm-thread {
+    from {
+      transform: scaleY(0);
+    }
+
+    to {
+      transform: scaleY(1);
+    }
+  }
+
+  /* FIVE SILHOUETTES, NEVER ONE REPEATED DOT — the repeated bullet is the
+     single thing that makes a vertical sequence read as a log, and a mala is
+     not one shape repeated either. All of it is one empty <span>: no SVG, no
+     icon font, no per-turn element beyond this one.
+
+     `rotate` and `scale` are used as INDIVIDUAL transform properties rather
+     than as a transform string, and that is the point of them here: the facet
+     beads are permanently turned 45° and the worn state permanently scales, so
+     writing both into one `transform` would mean every worn facet has to
+     restate the rotation. They are static, so the note about individual
+     transforms not compositing does not apply — nothing animates them. */
+  /* ROUND, ALWAYS, AND TURNED. The previous cut gave each kind of turn its own
+     silhouette — a facet at 45°, a strip, a ring — on the reasoning that one
+     repeated dot is what makes a vertical sequence read as a log. That reasoning
+     is sound and it produced the wrong object, because A MALA IS ONE SHAPE
+     REPEATED. That is the entire thing that makes it recognisable. Five
+     silhouettes on a cord is a chart legend.
+
+     So every bead is the same round bead now, lit from the top-left and shaded
+     to the bottom-right the way a turned wooden one is, and the TYPE is carried
+     in colour and in a little size — which is also true of a real mala, where
+     the marker beads and the guru differ in material and scale, never in shape. */
+  .nm-bead {
+    display: block;
+    position: absolute;
+    top: var(--nm-bead-top);
+    left: calc((var(--nm-rail) - var(--nm-bead)) / 2);
+    transition:
+      opacity var(--dur-base) ease,
+      scale var(--dur-base) ease,
+      filter var(--dur-base) ease;
+    /* Scaled with the bead. A 1px inset shade reads as turned wood at 12px and
+       as a flat disc at 17px — the shading has to keep its proportion to the
+       sphere or the bead stops being round. Three layers, and each is doing one
+       job: the dark inset is the far side curving away, the white inset is the
+       specular where the light lands, and the outer drop is the bead sitting
+       ON the cord rather than being printed on it. */
+    box-shadow:
+      inset -1.5px -2px 3px color-mix(in srgb, #2a1c0c 34%, transparent),
+      inset 1.5px 1.5px 2.5px rgb(255 255 255 / 52%),
+      0 1.5px 2.5px color-mix(in srgb, #2a1c0c 28%, transparent);
+    border-radius: 50%;
+    width: var(--nm-bead);
+    height: var(--nm-bead);
+  }
+
+  /* The agent spoke. The ordinary counting bead, and the one there are most
+     of, so it is the quietest. */
+  .nm-bead[data-bead='said'] {
+    background: radial-gradient(circle at 34% 30%, #b08a5e, #7d5a34 62%, #5d4023);
+  }
+
+  /* You asked. Open, because a question is. */
+  /* You asked. The paler bead a mala uses as a counting marker. */
+  .nm-bead[data-bead='asked'] {
+    background: radial-gradient(circle at 34% 30%, #f4ece0, #d9c7ad 62%, #b39c7d);
+  }
+
+  /* Names came. The facet — the bead that catches the light. */
+  /* Names came. The amber bead — same bead, different stone. */
+  .nm-bead[data-bead='dealt'] {
+    background: radial-gradient(circle at 34% 30%, #e8b970, #c8862c 60%, #8f5d18);
+  }
+
+  /* The shelf: the shape of the leaf it summarises — a narrow strip, not a
+     square of paper. */
+  /* The shelf. Bone, against all the wood. */
+  .nm-bead[data-bead='note'] {
+    background: radial-gradient(circle at 34% 30%, #f0e6cf, #d8c9a5 62%, #ad9c76);
+  }
+
+  /* Nothing came back. A facet that did not fill. */
+  /* Nothing came back. The dark bead. */
+  .nm-bead[data-bead='stuck'] {
+    background: radial-gradient(circle at 34% 30%, #a9736b, #7d443c 62%, #582b25);
+  }
+
+  /* The send: the large bead a mala is counted from and finished at. The ring
+     is box-shadow rather than a bigger box, so the bead keeps the same
+     geometry as every other one and the worn scale still centres on it. */
+  /* THE GURU BEAD. The one every mala is counted from and finished at, and the
+     only bead allowed to be a different size — it is larger on a real one, so it
+     is larger here, with the tassel's knot below it. */
+  .nm-bead[data-bead='guru'] {
+    top: calc(var(--nm-bead-top) - 2px);
+    left: calc((var(--nm-rail) - var(--nm-bead) - 5px) / 2);
+    box-shadow:
+      inset -1px -2px 3px color-mix(in srgb, #2a1c0c 34%, transparent),
+      inset 1px 1px 2px rgb(255 255 255 / 46%),
+      0 1px 2px color-mix(in srgb, #2a1c0c 30%, transparent);
+    background: radial-gradient(circle at 34% 30%, #d8a24e, #a8681c 60%, #6d3f0c);
+    width: calc(var(--nm-bead) + 5px);
+    height: calc(var(--nm-bead) + 5px);
+  }
+
+  /* WORN. Smaller, fainter, desaturated — the beads you have already passed
+     through your fingers. It is the bead that carries the wear and not the
+     text: washing out a summary line would cost contrast for an effect the
+     bead gives for free. */
+  .nm-turn[data-past] .nm-bead {
+    scale: 0.72;
+    opacity: 0.55;
+    filter: saturate(0.35);
+  }
+
+  .nm-turn[data-past]:hover .nm-bead,
+  .nm-turn[data-past]:focus-within .nm-bead {
+    scale: 0.92;
+    opacity: 1;
+    filter: none;
+  }
+
+  .nm-turn-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    min-width: 0;
+  }
+
+  /* A passed turn, compressed. It is a real <button> with a real accessible
+     name — `bead.reopen` rides along in .sr-only text, because a control
+     labelled only "Ways to start" says what it is and not what pressing it
+     does — and it is a button rather than a clickable div because axe is the
+     gate that decides that (P10). */
+  .nm-turn-shut {
+    display: block;
+    position: relative;
+    transition: color var(--dur-base) ease;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    background: none;
+    padding: 0;
+    min-width: 0;
+    min-height: 24px;
+    color: var(--nm-text-soft);
+    text-align: left;
+
+    &:hover {
+      color: var(--nm-text);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--crimson);
+      outline-offset: 3px;
+    }
+  }
+
+  /* The bead is in the other grid column and is aria-hidden, so it cannot be
+     its own control — this stretches the button's hit area left across the
+     rail so that tapping the bead is tapping the turn, which is the gesture
+     the object suggests. */
+  .nm-turn-shut::before {
+    position: absolute;
+    inset: 0 0 0 calc(-1 * (var(--nm-rail) + var(--nm-rail-gap)));
+    content: '';
+  }
+
+  .nm-turn-shut-line {
+    display: block;
+    overflow: hidden;
+    font-size: 0.88rem;
+    line-height: 1.7;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* A turn is a typographic block. No bubble, no avatar, no right-aligned
+     user message — that is the single clearest chat-widget tell and P11
+     forbids the grammar. The speaker is stated in .sr-only text instead. */
+  /* The conversation is the page's voice and it was set at body size, which is
+     what you use for text somebody has to get THROUGH. Nobody is skimming here
+     — there are three sentences and then a question — so it is set at the size
+     you would use for the one paragraph on a page. 62ch stays: the measure is
+     what makes a long line readable, and enlarging the type without holding the
+     measure just makes a wider block of the same problem. */
+  .nm-said {
+    margin: 0;
+    max-width: 62ch;
+    color: var(--nm-text-soft);
+    font-size: 1.12rem;
+    line-height: 1.72;
+  }
+
+  /* ── The invitation's own voice ───────────────────────────────────────────
+     Three faults, all of them against the brief this page was written to.
+
+     · It was set in --font-display, and Bricolage is a characterful grotesque
+       whose job on this site is headlines. This is not a headline. It is two
+       people asking their family for help, which is READING text, and Atkinson
+       is the humanist face already in the stack for exactly that.
+     · letter-spacing: -0.02em. Negative tracking is a display device — it
+       tightens a line so it reads as a title. An invitation is not tightened.
+     · line-height: 1.35 on a line that opens in Devanagari. Matras sit both
+       above and below the baseline, so नमस्ते at 1.35 crowds the line above it;
+       1.55 is the floor where the vowel marks get their own air.
+
+     What carries the warmth here is scale and spacing, not ornament: one long
+     measure under 34ch, generous leading, and tracking left alone. */
+  .nm-said--lead {
+    max-width: 26ch;
+    color: var(--nm-text);
+    font-size: clamp(1.35rem, 3.2vw, 1.72rem);
+    line-height: 1.55;
+    font-family: var(--font-deva), var(--font-body);
+    font-weight: 400;
+    letter-spacing: 0;
+  }
+
+  /* What the visitor said. It used to carry a 2px crimson rule down its left
+     edge; the thread now runs down the same side about thirty pixels further
+     out and the bead beside this turn is the crimson ring, so the rule became
+     the second vertical mark in a row saying the same word. One signal: the
+     bead says who spoke, the ink weight says it is not the page talking. */
+  .nm-said--you {
+    color: var(--nm-text);
+  }
+
+  .nm-said--note {
+    color: var(--nm-accent-text);
+  }
+
+  .nm-quiet-label {
+    margin: 0;
+    color: var(--nm-text-soft);
+  }
+
+  /* ── The wall, inline, as a turn ──────────────────────────────────────
+     Not behind an "Everyone" tab: a tab is a filing decision, and it makes the
+     family something you go and look up. You are choosing next to people who
+     already chose, so it is in the conversation.
+
+     WHY IT IS NO LONGER A ROW OF PILLS. A pill row on a page whose every other
+     pill is a control (the starters, the badge, the swap) reads as filters —
+     something you are expected to click — and nothing here is clickable. It is
+     a record of what other people put up, and the object that says that without
+     a word of explanation is a wall of pinned notes. It is also the only place
+     on this screen where other people accumulate, which is half the answer to
+     "nothing grows".
+
+     PURE CSS, ZERO DEPENDENCIES, and every number below is doing a job. */
+  /* ── THE SHELF ─────────────────────────────────────────────────────────
+     Not post-it notes. A post-it is an office object, and it was the one thing
+     on this page borrowed from nobody's world in particular — the names on it
+     come out of a Sanskrit and Pali source that was copied for centuries in
+     POTHI form: long narrow leaves, a double red rule down the margin, a
+     binding hole where the cord passes through. That is the actual shape a list
+     of these names has had for a thousand years, so it is what the shelf is
+     made of. It is also not the tourist shorthand — no prayer flags, no
+     mandala, no om — which is the rule this whole page is built on.
+
+     WHY IT MOVED TO THIS COLUMN. In the conversation it was something that had
+     already happened: two turns later it had scrolled away and was never seen
+     again. Here it is the surface being ADDED TO. A kept name lands on the same
+     shelf the family's names sit on, agreeing with one they already keep gives
+     that leaf another bead instead of writing the name twice, and the order
+     re-sorts underneath the visitor as they choose. The right-hand column stops
+     being an output and becomes the thing that changes.
+
+     WHY BEADS AND NOT SIZE OR A NUMBER — see the long note in NaamWall.tsx. */
+  /* THE SHELF IS BOUNDED, because it is the one region on this page that grows
+     without limit — every approved suggestion adds a leaf, forever. Unbounded
+     it took 210px of a 669px column on the day it was built and squeezed the
+     hand until the cards were clipped at both ends. It gets a share and
+     scrolls; the hand keeps the rest. */
+  /* ────────────────────────────────────────────────────────────────────────
+     LAMPS IN THE VALLEY — what the shelf of pothi leaves became.
+
+     The shelf was a scrolling stack of six names at full contrast, each with a
+     tally, sitting in the same column as the scene: two objects competing for
+     one space, and the heaviest thing on the right of the page. What the list
+     SAYS is that these names are burning somewhere in the family, so now it
+     says it in the world.
+
+     The wrapper takes no space and no input. It is a positioning surface
+     stretched over the canvas, and only the lamps inside it are hit targets —
+     otherwise it would swallow every click meant for the tray beneath it.
+     ──────────────────────────────────────────────────────────────────────── */
+  .nm-shelfwrap {
+    position: absolute;
+    /* BEHIND THE CARDS, and stated rather than left to DOM order. This and
+       .nm-tray were both z-index 1, so which one won was decided by source
+       position — which is not a decision, it is a coincidence that happens to
+       hold. The lanterns are part of the world; a dealt hand is the thing the
+       visitor is being asked to act on, and it always paints over the world. */
+    z-index: 1;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  /* The heading still exists for screen readers and for anyone who wants to
+     know what the lights are, but it no longer prints a label over the sky. */
+  .nm-shelfwrap .nm-quiet-label {
+    position: absolute;
+    clip-path: inset(50%);
+    margin: -1px;
+    border: 0;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .nm-lamps {
+    position: absolute;
+    margin: 0;
+    padding: 0;
+    inset: 0;
+    list-style: none;
+  }
+
+  /* ── No lanterns on a phone ───────────────────────────────────────────────
+     Measured on the built page: at 375x667 the occupied bands are 0.039-0.73
+     (the invitation), 0.366-0.49 (the lamp), 0.502-0.605 (the slots) and
+     0.651-1 (the starters and the box). The biggest empty strip in the whole
+     frame is 3.9% of its height. There is no sky to float anything in.
+
+     Floating them anyway put six names across "look through them with you",
+     which is the sentence asking the visitor to do the thing the page is for.
+
+     So the list keeps its semantics and its labels for assistive tech — the
+     family's choices are still announced — and draws nothing over the copy.
+     This is a real limitation of the stacked layout, not a decision that the
+     names matter less on a phone.
+
+     AND IT IS 1099, NOT 599. The side-by-side layout begins at 1100, so every
+     width below it is stacked — but this stood the sky down only below 600,
+     which left 600–1099 rendering lanterns over a single-column page. Measured
+     at 1024: all eight of them printed across the conversation, one sitting on
+     top of the three slots. There are two layouts, not three, and every rule
+     that follows the layout has to say the same number. */
+  @media (max-width: 1099px) {
+    /* Hidden outright, not sr-only. The stream now carries a real, visible row
+       of these names (see .nm-wallrow), so leaving a second copy in the
+       accessibility tree would announce every name twice. */
+    .nm-lamps {
+      display: none;
+    }
+  }
+
+  .nm-lamp {
+    position: absolute;
+    /* Revealed by the label loop in NaamWall, which is the only thing that
+       knows where this belongs and whether its lantern has arrived yet. Every
+       early exit from that effect reveals on its way out, so a name is never
+       left hidden by a path that simply does not animate. */
+    opacity: 0;
+    /* THE PAPER'S BOX LIVES HERE, not on the button inside it. A percentage
+       height on .nm-lamp-hit resolved against a parent that had no height of
+       its own, so every lantern measured 0x0 and every name sat outside a box
+       with no size. This li is absolutely positioned inside .nm-lamps, which is
+       inset:0 over the panel — so a percentage here resolves against the panel,
+       whose height equals the canvas's exactly. */
+    height: var(--lantern-h, 44px);
+    aspect-ratio: var(--lantern-aspect, 1.28);
+    /* Size container, so the inscription can be set in cqh — type scaled to
+       the lantern that carries it rather than to the viewport. */
+    container-type: size;
+    /* Positioned from the SAME lanternSpots() the canvas draws from, so the
+       hit target is exactly on the light rather than near it. */
+    translate: -50% -50%;
+  }
+
+  /* The hit target IS the paper now. It used to be a fixed 44px square over an
+     8px glyph; the lantern is larger than 44px at every depth, so the control
+     can simply be the object — which is also what makes the name inside it
+     clickable rather than decorative. */
+  .nm-lamp-hit {
+    display: grid;
+    position: relative;
+    place-items: center;
+    transition:
+      transform var(--dur-base) cubic-bezier(0.34, 1.2, 0.64, 1),
+      opacity var(--dur-base) ease;
+    cursor: pointer;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: auto;
+  }
+
+  /* ── THE NAME IS WRITTEN ON THE PAPER ────────────────────────────────────
+     Two faults, one after the other. First the label was opacity 0 until hover,
+     so the family's choices were invisible on the built page. Then it was
+     legible but floating well above an 8px glyph — a caption beside a marker,
+     not a name on a lantern.
+
+     It sits INSIDE the paper now. The lantern is sized to hold two lines of
+     type (see LANTERN_H), the label is centred in that box, and the type scales
+     with the lantern rather than with the viewport — so a distant lantern
+     carries smaller writing, which is what distance does to writing.
+
+     The ink is a warm brown rather than the page's near-black: this is a mark
+     made on lit paper, and black on a glowing amber ground is a sticker. */
+  .nm-lamp-name {
+    display: flex;
+    position: absolute;
+    /* Centred in the paper, sitting slightly high — the mouth of the lantern
+       is the bottom fifth and nobody writes across the opening. */
+    top: 42%;
+    left: 50%;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.02em;
+    transform: translate(-50%, -50%);
+    transition:
+      opacity 220ms ease,
+      transform 220ms cubic-bezier(0.34, 1.2, 0.64, 1);
+    opacity: calc(0.68 + var(--lantern-glow, 1) * 0.32);
+    /* Type scaled to the lantern's own height. `calc()` on the percentage did
+       not work — a percentage font-size resolves against the PARENT's font
+       size, so `calc(11% * 0.2)` asked for 2.2% of the body text rather than a
+       fifth of the paper. cqh is the unit that means what was intended, and the
+       px value below it is the fallback where it is unsupported. */
+    font-size: 13px;
+    font-size: 19cqh;
+    line-height: 1.15;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .nm-lamp-hit:hover .nm-lamp-name,
+  .nm-lamp-hit:focus-visible .nm-lamp-name {
+    /* The centring translate only. The old rule also re-applied the scale that
+       used to size the label, which now belongs to the paper. */
+    transform: translate(-50%, -50%);
+    opacity: 1;
+  }
+
+  /* Both in em, off .nm-lamp-name's cqh size, so the whole inscription scales
+     with its own lantern as one block. They were in rem, which is why every
+     name measured the same 37px tall no matter how big the paper under it was —
+     the label scaled and the two lines inside it did not. */
+  .nm-lamp-deva {
+    color: #5c3a1c;
+    font-size: 1em;
+    line-height: 1.28;
+  }
+
+  .nm-lamp-latin {
+    color: #7a5330;
+    font-size: 0.7em;
+    line-height: 1.2;
+    letter-spacing: 0.01em;
+  }
+
+  /* Yours, in the same valley. A ring rather than a different colour: the
+     lamps are all the same kind of thing and only one of them is yours. */
+  .nm-lamp[data-mine] .nm-lamp-hit::after {
+    position: absolute;
+    opacity: 0.5;
+    border: 1px solid var(--nm-keep);
+    border-radius: 999px;
+    width: 22px;
+    height: 22px;
+    content: '';
+  }
+
+  .nm-lamp-hit:hover,
+  .nm-lamp-hit:focus-visible {
+    transform: scale(1.12);
+  }
+
+  .nm-shelf {
+    display: flex;
+    flex-direction: column;
+    /* Objects with air around them, not rows in a table. */
+    gap: 6px;
+    /* A hard cut through the middle of a leaf reads as a rendering fault. The
+       mask fades the last few pixels so the edge says "there is more of this"
+       — which is true, and is the only honest way to end a list that grows. */
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 18px), transparent 100%);
+    margin: 0;
+    padding: 0;
+    max-height: clamp(5.5rem, 21vh, 11rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    list-style: none;
+  }
+
+  /* ONE LEAF. The palm ochre, the two red rules and the binding hole are the
+     whole of the reference and none of them is decoration: the rules are why
+     the name has a left margin to sit against, and the hole is why the leaf has
+     a left edge that is not the text. */
+  .nm-leaf {
+    display: flex;
+    position: relative;
+    align-items: baseline;
+    gap: 0.5rem;
+    transition:
+      background var(--dur-base) ease,
+      box-shadow var(--dur-base) ease;
+    box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--nm-leaf-ink) 8%, transparent);
+    /* The leaf, and its grain: palm is fibrous along its length. */
+    background:
+      repeating-linear-gradient(
+        to right,
+        transparent 0 3px,
+        color-mix(in srgb, var(--nm-leaf-ink) 3%, transparent) 3px 4px
+      ),
+      var(--nm-leaf);
+    padding: 0.36rem 0.6rem 0.36rem 1.35rem;
+    color: var(--nm-leaf-ink);
+  }
+
+  .nm-leaf:first-child {
+    border-radius: 3px 3px 0 0;
+  }
+
+  .nm-leaf:last-child {
+    box-shadow: none;
+    border-radius: 0 0 3px 3px;
+  }
+
+  /* The double red margin rule, and the binding hole between them. */
+  .nm-leaf::before {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0.5rem;
+    border-right: 1px solid var(--nm-leaf-rule);
+    border-left: 1px solid var(--nm-leaf-rule);
+    width: 4px;
+    content: '';
+  }
+
+  .nm-leaf::after {
+    position: absolute;
+    top: 50%;
+    left: 0.62rem;
+    transform: translateY(-50%);
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--nm-leaf-ink) 26%, transparent);
+    width: 3px;
+    height: 3px;
+    content: '';
+  }
+
+  .nm-leaf-name {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: baseline;
+    gap: 0.45rem;
+    min-width: 0;
+  }
+
+  /* SUPPORT IS INK. A name written over and over is a darker line on the page,
+     which is the one strength cue this material can carry honestly. It never
+     works alone: the beads count it and the .sr-only line says it in words. */
+  .nm-leaf-deva {
+    opacity: calc(0.66 + var(--support, 1) * 0.068);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    font-family: var(--font-deva), var(--font-body);
+  }
+
+  .nm-leaf-latin {
+    flex: 0 1 auto;
+    opacity: calc(0.6 + var(--support, 1) * 0.08);
+    overflow: hidden;
+    font-weight: calc(400 + var(--support, 1) * 40);
+    font-size: 0.82rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .nm-leaf-tally {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .nm-leaf-bead {
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--nm-leaf-ink) 62%, transparent);
+    width: 5px;
+    height: 5px;
+  }
+
+  .nm-leaf-many {
+    color: color-mix(in srgb, var(--nm-leaf-ink) 72%, transparent);
+  }
+
+  .nm-leaf-who {
+    flex: 0 1 auto;
+    opacity: 0.62;
+    max-width: 8rem;
+    overflow: hidden;
+    font-size: 0.58rem;
+    font-family: var(--font-mono);
+    letter-spacing: var(--tracking-label);
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  /* YOURS. A marigold edge down the binding margin — the same colour the lamp
+     throws and the same colour a kept card carries, so "this one is mine" is
+     one idea in one colour everywhere it appears. It arrives with a single
+     settle, because a leaf being laid on a stack is the moment worth marking. */
+  .nm-leaf[data-mine] {
+    animation: nm-leaf-settle 420ms cubic-bezier(0.05, 0.7, 0.1, 1);
+    background:
+      repeating-linear-gradient(
+        to right,
+        transparent 0 3px,
+        color-mix(in srgb, var(--nm-leaf-ink) 3%, transparent) 3px 4px
+      ),
+      color-mix(in srgb, var(--nm-keep) 12%, var(--nm-leaf));
+  }
+
+  .nm-leaf[data-mine]::before {
+    border-right-color: var(--nm-keep);
+    border-left-color: var(--nm-keep);
+  }
+
+  @keyframes nm-leaf-settle {
+    from {
+      transform: translateY(-6px);
+      opacity: 0;
+    }
+
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
+
+  .nm-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2xs);
+  }
+
+  .nm-chip {
+    transition:
+      border-color var(--dur-base) ease,
+      color var(--dur-base) ease;
+    cursor: pointer;
+    border: 1px solid var(--nm-hair-strong);
+    border-radius: 999px;
+    background: var(--nm-surface);
+    padding: 0.4rem 0.85rem;
+    color: var(--nm-text-soft);
+    font-size: 0.92rem;
+    line-height: 1.7;
+    /* Mukta first, chips included: a starter that reads ▯▯▯▯ is what a
+       missing Devanagari face looks like, and this row is where it shows. */
+    font-family: var(--font-deva), var(--font-body);
+
+    &:hover {
+      border-color: var(--crimson);
+      color: var(--nm-text);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+  }
+
+  .nm-chip-hide {
+    cursor: pointer;
+    border: none;
+    background: none;
+    padding: 0.4rem 0.2rem;
+    color: var(--nm-text-soft);
+
+    &:hover {
+      color: var(--nm-accent-text);
+    }
+  }
+
+  /* ── Thinking: P8, never a spinner ────────────────────────────────────── */
+  .nm-thinking {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    max-width: 320px;
+  }
+
+  #naam-app .pulse-line {
+    background: var(--nm-hair);
+  }
+
+  /* Lowercase: it is a caption, not a label (DESIGN.md §3). */
+  .nm-caption {
+    margin: 0;
+    color: var(--nm-text-soft);
+    text-transform: lowercase;
+  }
+
+  /* ── The deal ─────────────────────────────────────────────────────────
+     Names are not shown, they are DEALT: 100ms apart (under ~50 reads as
+     "they all appeared"), 420ms each on Material's emphasized-decelerate,
+     out of a seeded ±3° rotation so a card lands at the same angle every
+     time. This is the page's signature and its one boldness budget.
+
+     No data-reveal anywhere in here: anything inserted into the stream never
+     intersects the observer's root, so it would stay at opacity 0 forever. */
+  .nm-deal {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: var(--space-2xs);
+  }
+
+  @keyframes nm-deal {
+    from {
+      transform: translateY(16px) rotate(var(--tilt, 0deg)) scale(0.97);
+      opacity: 0;
+    }
+
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
+
+  .nm-dealt {
+    display: flex;
+    /* Cards land slower too, and staggered: nine arriving together is a grid
+       appearing, nine arriving in sequence is a hand being dealt. */
+    animation: nm-deal 620ms cubic-bezier(0.05, 0.7, 0.1, 1) backwards;
+    animation-delay: calc(var(--i, 0) * 65ms);
+    animation-delay: calc(var(--i, 0) * 100ms);
+  }
+
+  .nm-dealt > .nm-card {
+    flex: 1 1 auto;
+  }
+
+  /* ── The hand, lying on the plate ─────────────────────────────────────── */
+  .nm-hand {
+    min-width: 0;
+  }
+
+  /* ── AS MANY AS FIT, AT A FIXED WIDTH ───────────────────────────────────
+     `repeat(3, 1fr)` made the card a function of the column: at 1440 that was
+     199px each and the row spanned the whole measure, and at 1280 it was 159px
+     — the same card at two sizes, neither of them chosen.
+
+     11rem is chosen. Three land inside a 616px measure with 88px to spare, so
+     the deal reads as a set of objects sitting in the conversation rather than
+     as a band across it, and a narrower column simply fits fewer rather than
+     squeezing what it has. auto-fill, not auto-fit: auto-fit collapses the
+     empty tracks and re-centres a short row, which would move the cards. */
+  @media (min-width: 1100px) {
+    .nm-hand > .nm-deal {
+      grid-template-columns: repeat(auto-fill, 11rem);
+      justify-content: start;
+    }
+  }
+
+  /* Stacked, the hand is a band above the slots and you swipe along it. Three
+     full-height cards in one column would leave the conversation about 200px,
+     which is the problem this move exists to solve, not a smaller version of
+     it. Sideways, one card is legible, the next is visibly there, and the
+     agent's words keep the top of the screen. */
+  @media (max-width: 1099px) {
+    .nm-hand > .nm-deal {
+      display: flex;
+      gap: var(--space-2xs);
+      /* The dealt cards lift and rotate; without the padding the top of that
+         motion is clipped by the scroller's own edge. */
+      padding-block: 2px 0.3rem;
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      scroll-snap-type: x mandatory;
+    }
+
+    /* 11rem here too, so a phone shows two whole cards and the edge of a
+       third — 72vw showed one and a sliver, which reads as "there is one" far
+       more than as "swipe". The card is the same object at every width now. */
+    .nm-hand .nm-dealt {
+      flex: 0 0 min(46vw, 11rem);
+      scroll-snap-align: start;
+    }
+
+    /* NEVER SQUASHED, AND THE MEASUREMENT THAT FOUND IT.
+       On a 375px phone the card's content was 183px and its box was 83px, with
+       overflow visible — so the Latin name spilled out of the bottom of the
+       card and lay across the tray beneath it. "Samaya" was cut through the
+       middle on a page whose entire subject is names.
+
+       The cause is the default: on a phone the deal is a horizontal row, and a
+       row flex container stretches its items to the CONTAINER's height. The
+       hand had 90px, so every card was compressed a hundred pixels below what
+       it had to show. `start` lets each card be as tall as its content and
+       leaves the scrolling to .nm-deal, which was already set up for it. */
+    .nm-hand > .nm-deal {
+      align-items: start;
+    }
+
+    #naam-app .nm-wallrow {
+      display: grid;
+    }
+
+    /* Shorter chips: at 108px the row was taller than the gap it usually has
+       to fit into, so it straddled the scroll boundary more often than not. */
+    #naam-app .nm-wallrow-item {
+      padding: 0.3rem 0.5rem 0.36rem;
+      min-width: 4.1rem;
+    }
+
+    #naam-app .nm-wallrow-deva {
+      font-size: 0.86rem;
+    }
+
+    #naam-app .nm-wallrow-latin {
+      font-size: 0.62rem;
+    }
+
+    /* ── THE LAMP STANDS BESIDE ITS LABEL ────────────────────────────────
+       On a phone the tray was three stacked bands — lamp, then label, then
+       slots — inside 150px. Set side by side the lamp and its label are one
+       band instead of two, which is ~34px back to the conversation and one
+       fewer horizontal line for the eye to cross on the way down. */
+    #naam-app .nm-tray-head {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    /* ── A HAND ON A PHONE ────────────────────────────────────────────────
+       Measured with cards dealt at 375x667: stream 132 + tray 188 + hand 88 +
+       composer 218. The card is 292px in an 88px band, so the names the page
+       just dealt were three-quarters hidden behind the starter chips.
+
+       Two things give. The card drops its syllable rail here — it is the most
+       decorative row on it, and a phone reading the name and its meaning does
+       not also need the beat marks. And the tray's floor comes down once there
+       is a hand, because when names are on the table they matter more than the
+       empty slots waiting for them. */
+    /* 15.2rem when the card was a 234-260px object with a KEEP row on it. The
+       card is 117px now and the gloss is hard-clamped to two lines, so its
+       height no longer varies with the answer — the band can hug it. Measured
+       after: 117px card in a 132px band, nothing clipped on either target. */
+    #naam-app .nm-hand {
+      min-height: 8.25rem;
+    }
+
+    /* ── THE GLOSS GIVES, NOT THE KEEP ────────────────────────────────────
+       Card height varies with the length of the meaning — measured at 234px
+       and 260px on consecutive deals — so sizing the band to "the card" is
+       chasing a number that changes with every answer. Two nudges in and it
+       was still 7px short, clipping exactly the row that carries KEEP.
+
+       So the card is capped to the band and the GLOSS is the flexible part.
+       It is already clamped to two lines here and it is the one row that can
+       lose a line without losing meaning; the name, the toggle and the button
+       cannot. */
+    #naam-app .nm-hand .nm-card {
+      max-height: 100%;
+    }
+
+    #naam-app .nm-hand .nm-gloss {
+      flex: 0 1 auto;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* Starts on the text's own left edge. The inset is what makes the row read
+       as part of the thread rather than a band bolted underneath it. Padding
+       on the SCROLLER rather than the band, so the last card can still reach
+       the frame edge as the row is swiped. */
+    #naam-app .nm-hand > .nm-deal {
+      /* SCROLL-PADDING TOO, or the padding is cancelled the moment it renders.
+         The row is scroll-snapped, and snap aligns the first card to the SCROLL
+         PORT's edge — which is inside the padding — so the browser immediately
+         scrolls by exactly the inset to satisfy it. Measured: padding-left
+         43.6px, scrollLeft 44, first card at x=0. The inset was applied and
+         undone in the same frame. */
+      scroll-padding-left: calc(
+        clamp(0.75rem, 2.4vw, 1.4rem) + var(--nm-rail, 22px) + var(--nm-rail-gap, 0.6rem)
+      );
+      padding-left: calc(clamp(0.75rem, 2.4vw, 1.4rem) + var(--nm-rail, 22px) + var(--nm-rail-gap, 0.6rem));
+    }
+
+    /* Starts on the text's own left edge, and runs off the right.
+       The inset makes the row read as part of the thread rather than a band
+       bolted under it; letting it bleed off the right is what says there are
+       more cards that way. Padding on the SCROLLER, not the band, so the last
+       card can still reach the edge. */
+    #naam-app .nm-hand > .nm-deal {
+      /* SCROLL-PADDING TOO, or the padding is cancelled the moment it renders.
+         The row is scroll-snapped, and snap aligns the first card to the SCROLL
+         PORT's edge — which is inside the padding — so the browser immediately
+         scrolls by exactly the inset to satisfy it. Measured: padding-left
+         43.6px, scrollLeft 44, first card at x=0. The inset was applied and
+         undone in the same frame. */
+      scroll-padding-left: calc(
+        clamp(0.75rem, 2.4vw, 1.4rem) + var(--nm-rail, 22px) + var(--nm-rail-gap, 0.6rem)
+      );
+      padding-left: calc(clamp(0.75rem, 2.4vw, 1.4rem) + var(--nm-rail, 22px) + var(--nm-rail-gap, 0.6rem));
+    }
+
+    /* ── THE STARTERS STAND DOWN ONCE THERE IS A HAND, on a phone only ──────
+       You asked for the chips to stay after the first question and on the wide
+       layout they do. At 375x667 they cannot: the budget is stream + hand +
+       tray + composer against 626px, the card is 226px on its own, and the
+       chips are 94px of the composer. Something had to give and this is the
+       part whose job is already done — they are ways to START, and once names
+       are on the table the visitor is choosing between them, not looking for
+       an opening.
+
+       They come back the moment the hand is cleared, and the composer is right
+       there either way. */
+    #naam-app .nm-shell:has(.nm-card) .nm-starters {
+      display: none;
+    }
+
+    /* THE BEAT MARKS GO.
+       An earlier version hid only the dots and syllables, because the rail
+       also carried the व/ब toggle and that control was worth its row. The
+       toggle is gone, so what was left was an empty rule with no beats on
+       it — the rail goes whole.
+
+       (An even earlier attempt hid `.nm-syllables`, which is not a class this
+       card has: valid CSS matching nothing, and the card shrank by an
+       unrelated 26px while appearing to work.) */
+    #naam-app .nm-hand .nm-rail {
+      display: none;
+    }
+
+    /* ── The phone's vertical budget, stated ──────────────────────────────
+       Measured at 375x667: shell 626 = stream 220 + tray 188 + composer 218,
+       exactly. The invitation is 473px, so 253px of it sits below the fold and
+       the visitor has to scroll the stream to reach "What kind of name are you
+       looking for?".
+
+       Two things took that room and both were asked for: the starter chips
+       (94px, two rows) and the tray's floor (188px, so three empty slots read
+       as three sockets rather than one hairline). Neither is worth removing.
+       What IS recoverable is the slack in each:
+
+       What IS recoverable is the tray's floor, WHILE THERE ARE NO CARDS. 188px
+       was sized to hold a dealt hand; the head and slots together are 141px, so
+       before the first deal the floor can sit just above its own content. That
+       is 38px back to the invitation.
+
+       The lead's leading is NOT recoverable and the attempt made it worse: the
+       narrow layout was already resolving to 1.36 from another rule, so setting
+       1.42 here cost 8px rather than saving any. Measured, then reverted.
+
+       The rest is a real constraint rather than an oversight. The stream
+       scrolls, and the composer's own placeholder — "even one word is enough" —
+       carries the same instruction as the paragraph below the fold, so nobody
+       is stranded by it. */
+    #naam-app .nm-shell[data-first] .nm-tray {
+      min-height: min(26%, 150px);
+    }
+
+    /* Long glosses are the other overflow, and they are the document's words —
+       so this clamps rather than truncates the source: the full line is always
+       one tap away under "from the document". Two lines on a phone rather than
+       three: the card has to fit beside a thumb, and the gloss is the part of
+       it that is already available in full one tap below. */
+    .nm-hand .nm-gloss {
+      display: -webkit-box;
+      overflow: hidden;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+  }
+
+  /* ── The stacked height budget, and why it is written as a cap ─────────
+     The conversation needs a floor, or the tray — which is `flex: 0 0 auto` —
+     simply takes what it wants and starves the stream to two lines. But a floor
+     ALONE is how I pushed the composer off the bottom of a phone: measured at
+     390×780, stream 176 + tray 503 + composer 70 came to 793 in a 739px shell,
+     the send button's bottom landed at 834, and because the document is
+     `overflow: clip` there was nowhere for it to go. It was not clipped or
+     scrolled to — it was unreachable, so a visitor on a phone could ask once
+     and never again.
+
+     So the floor is modest and the HAND carries the cap. The tray may shrink,
+     the hand may not exceed a share of the viewport, and the composer is
+     therefore reachable by construction rather than by arithmetic that happens
+     to work on the one handset I measured. svh, not vh: on iOS Safari `vh` is
+     the tall viewport with the toolbars retracted, which is exactly the 90px
+     lie that puts a control under the browser chrome. */
+  @media (max-width: 1099px) {
+    .nm-streamwrap {
+      flex: 1 1 auto;
+      min-height: 5.5rem;
+    }
+
+    /* The shelf is the newest thing competing for a column that was already
+       tight, so on a phone it takes the smallest workable share — two leaves
+       and a scroll. Here it is a record you glance at; the surface you work on
+       is the hand and the three slots under it. */
+    .nm-shelf {
+      max-height: 4.4rem;
+    }
+
+    /* A SHARE of the shell, not a fixed cap. Independent floors and ceilings
+       can each look reasonable and still sum past the viewport — that is
+       exactly how 360×640 kept the send button 77px below the fold after the
+       390×780 numbers had been fixed. A percentage cannot: whatever the tray
+       takes, the stream and the composer keep the rest. */
+    /* A FLOOR AS WELL AS A CAP. The cap stops the tray eating the conversation;
+       without a floor the opposite happened — a long reply pushed the tray down
+       to 224px, of which the hand got 90, which is half a card. The names are
+       what the visitor came to choose between, so they get a guaranteed share
+       of the screen rather than whatever is left over. */
+    /* #naam-app, and not for emphasis. The base .nm-tray rule is declared LATER
+       in this file, and a media query adds no specificity — so this block's
+       flex and min-height were silently losing to it, and had been all along.
+       Measured: computed flex `1 1 auto`, min-height `0px`, neither of them
+       from here. */
+
+
+    /* A FLOOR, BUT ONLY ONCE THERE IS A HAND TO PUT ON IT.
+       Without a floor a long reply squeezed the tray to 224px, of which the
+       hand got 90 — half a card, with the name spilling out of the bottom.
+       With an unconditional floor the opposite broke: on the first screen there
+       are no cards at all, so the reserved space sat empty while the invitation
+       above it — the paragraph that explains what this page is — was cut off
+       mid-sentence behind the lamp.
+
+       `:has(.nm-card)` says the actual rule: the hand gets a guaranteed share
+       of a phone screen exactly when it has something to show, and the
+       conversation keeps the whole screen until then. */
+    /* ── THE TRAY TAKES WHAT IT NEEDS, AND NO MORE ────────────────────────
+       It was capped at a fraction of the screen and clipped to it, which is
+       fine until its contents grow: the moment a name is kept a send button
+       appears, and head 43 + slots 64 + send 48 is 155 against a 150px cap.
+       `overflow: clip` then ate the difference — measured, the three slots
+       were sliced through the middle with the Devanagari numerals cut in half.
+       A tray that hides the slots is not a tray.
+
+       So on a phone it sizes to its content and the CONVERSATION gives, which
+       is the right way round: the stream scrolls and can afford to be shorter,
+       while the slots are the state of the whole page and are never optional.
+       This is the same rule the wide layout already follows — the part that
+       varies is the part that yields — applied to the axis a phone actually
+       has. */
+    #naam-app .nm-tray {
+      flex: 0 0 auto;
+      min-height: 0;
+      max-height: none;
+    }
+
+    .nm-hand {
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+
+    /* Sideways between cards, and up and down inside one when the phone is too
+       short to show a whole card at once. Clipping instead would hide Keep,
+       which is the only thing on the card that does anything. */
+    .nm-hand > .nm-deal {
+      max-height: 100%;
+      overflow: auto;
+    }
+
+    /* The lamp is the page's light source, not its subject, and on a phone it
+       was spending 79px of a budget the send button needed. It still reads —
+       the flicker is what matters and that survives the scale. */
+  }
+
+  /* Offered rather than yanked: the stream sticks to the bottom only while
+     you are within 100px of it. */
+  .nm-jump {
+    position: absolute;
+    bottom: var(--space-2xs);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    cursor: pointer;
+    box-shadow: var(--nm-shadow, none);
+    border: 1px solid var(--nm-hair-strong);
+    border-radius: 999px;
+    background: var(--nm-surface);
+    padding: 0.35rem 0.85rem;
+    color: var(--nm-text);
+  }
+
+  /* नमस्ते is a gesture before it is a word, and this is the gesture. Set
+     SMALLER than the line it opens — the greeting is the largest type on the
+     page and an emoji matched to it reads as a sticker — and given an explicit
+     emoji stack, because the body face has no glyph for it and an unresolved
+     one renders as a hollow box in exactly the place a visitor first looks. */
+  .nm-namaste {
+    vertical-align: 0.06em;
+    margin-right: 0.4rem;
+    font-size: 0.72em;
+    line-height: 1;
+    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+  }
+
+  /* ── THE OPENING, AS A SEQUENCE ────────────────────────────────────────
+     Three lines arrived at once, at reading size, and then sat there. Nothing
+     about that says a person is on the other side — it is a paragraph.
+
+     They are staged now, one beat apart, in the order they are meant to be
+     read: who is asking, what the list is, what to do. Each rises a few pixels
+     as it fades, which is the difference between text appearing and text being
+     SAID. `backwards` holds each one invisible through its own delay, so
+     nothing flashes at full opacity before its turn.
+
+     And they are BIGGER. The opening is the only thing on this half of the
+     screen and it was set as if it were competing for room it does not have to
+     compete for. */
+  /* THE IRREGULARITY IS HAND-AUTHORED, and that is the whole point. Identical
+     durations with an identical delay step is the single loudest tell that a
+     stagger was generated rather than composed — and Math.random() at runtime is
+     worse, because noise that re-rolls every load is both untestable and reads
+     as jitter rather than as a hand. So these six numbers are picked, fixed, and
+     slightly wrong on purpose: 430/500/460ms at 0/120/360ms, lifting 10/8/11px.
+
+     Total run 820ms. Past about 1.2s a visitor is no longer being greeted, they
+     are waiting — the first cut ran 1260ms and felt exactly that long. */
+  .nm-shell[data-first] .nm-said {
+    font-size: 1.2rem;
+    line-height: 1.74;
+  }
+
+  /* ────────────────────────────────────────────────────────────────────────
+     THE OPENING ARRIVES ONE BLOCK AT A TIME.
+
+     This was three animation-delays on :nth-of-type — 0, 120 and 360ms, an
+     820ms cascade. Two faults, and only one was about speed.
+
+     The timing one: 820ms is a menu opening, not somebody speaking. These three
+     blocks are a real sequence — greet, say what the document is, ask the
+     question — so the beat is the pause a person leaves between sentences,
+     which src/lib/naam/opening.ts sets at 1150ms.
+
+     The structural one, and the reason none of this is animation-delay any
+     more: `data-first` is removed the instant somebody submits, so every rule
+     here vanished with it and blocks two and three POPPED to full opacity. CSS
+     cannot say "finish early but still finish" — a delay cannot be shortened
+     once it has started. So the sequence is state (opening.stage), the
+     un-arrived blocks carry `data-wait`, and this is a TRANSITION that runs
+     whenever the attribute clears. Same arrival on the slow beat and the rushed
+     one, because the transition does not care what changed the attribute.
+
+     The travel is small on purpose: 12px and a fifth of a degree. What carries
+     the sequence is the WAITING between blocks, not the distance each one
+     covers — a big move would make three arrivals feel like three events.
+     ──────────────────────────────────────────────────────────────────────── */
+  .nm-shell[data-first] .nm-turn .nm-said {
+    transform: none;
+    opacity: 1;
+    transition:
+      opacity 520ms cubic-bezier(0.05, 0.7, 0.1, 1),
+      transform 620ms cubic-bezier(0.05, 0.7, 0.1, 1);
+  }
+
+  .nm-shell[data-first] .nm-turn[data-wait] .nm-said {
+    transform: translateY(12px) rotate(0.2deg) scale(0.99);
+    opacity: 0;
+    /* No transition on the way OUT. A block that has not arrived yet should be
+       absent, not fading — and on first paint every one of them is in this
+       state, so a transition here would animate the whole opening to invisible
+       before animating it back. */
+    transition: none;
+  }
+
+  /* The bead lands before the words it belongs to. A mala is a COUNTING object;
+     letting the bead arrive first and the sentence follow puts it to work
+     instead of leaving it as decoration beside the text. 180ms is enough to
+     read as cause and effect rather than as two things starting together. */
+  .nm-shell[data-first] .nm-turn .nm-bead {
+    transform: none;
+    opacity: 1;
+    transition:
+      opacity 300ms ease,
+      transform 420ms cubic-bezier(0.34, 1.3, 0.64, 1);
+  }
+
+  .nm-shell[data-first] .nm-turn[data-wait] .nm-bead {
+    transform: scale(0.3);
+    opacity: 0;
+    transition: none;
+  }
+
+  .nm-shell[data-first] .nm-turn:not([data-wait]) .nm-said {
+    transition-delay: 180ms;
+  }
+
+  .nm-shell[data-first] .nm-said--lead {
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    line-height: 1.36;
+  }
+
+  .nm-shell[data-first] .nm-said--quiet {
+    font-size: 0.95rem;
+  }
+
+  /* The sub-degree settle is what reads as hand-set type rather than as a
+     transform. Above about half a degree it stops being a settle and starts
+     being a tilt. */
+  @keyframes nm-say {
+    from {
+      transform: translateY(var(--rise, 9px)) rotate(var(--tilt-in, 0deg)) scale(0.985);
+      opacity: 0;
+    }
+
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
+
+  /* AS YOU TYPE, THE OPENING MAKES WAY. It has said its piece the moment
+     somebody answers it, so it rises and thins rather than vanishing — a
+     paragraph that disappears on a keystroke reads as a bug, and one that
+     drifts up out of the way reads as the room turning to listen. It is still
+     there, still legible, just no longer the loudest thing. */
+  /* ── EVERY TURN ARRIVES ────────────────────────────────────────────────
+     Nothing here animated on mount. The opening was staged, and then every
+     message after it — yours and the agent's — was simply inserted into the
+     list at full opacity, which is the "choppy" the page was accused of. A
+     conversation where the last line teleports into place has no sense of
+     someone speaking; it has the sense of a log being written to.
+
+     So the arrival lives on .nm-turn and runs for all of them, and the two
+     speakers arrive DIFFERENTLY, because they are doing different things:
+
+       YOU  travel further and land with an overshoot — cubic-bezier's
+            1.52 control point carries it a few pixels past the mark and
+            settles back. That is the physics of something you threw.
+       THE AGENT does not overshoot. It rises a little, scales up from 0.985
+            and fades in on an emphasized-decelerate curve, so it reads as
+            arriving rather than as being launched — a voice, not an object.
+
+     No library. A spring's whole visible signature at this scale is an
+     overshoot and a settle, and a back-out bezier is that curve; motion.dev's
+     springs would be ~30kB gzipped to reproduce a shape one line of CSS
+     already draws, on a page whose entire JS budget is 80kB. */
+  /* SLOWER, BECAUSE IT HAS TO BE FELT.
+     500ms and 560ms are correct for a UI acknowledging an action and too quick
+     for this: the arrival of a turn is the page's main event, and at that speed
+     it registers as "the text changed" rather than as something coming. The
+     duration is roughly doubled, which is still well inside the range where a
+     transition reads as responsive — what changes is that there is time to
+     watch it land.
+
+     The two speakers keep their different curves, because they are doing
+     different things: yours is a thing you threw and overshoots, the agent's
+     rises and settles without overshooting because a voice is not an object. */
+  .nm-turn {
+    animation: nm-say 940ms cubic-bezier(0.05, 0.7, 0.1, 1) backwards;
+  }
+
+  .nm-turn:has(.nm-said--you) {
+    --rise: 22px;
+    animation-duration: 1040ms;
+    animation-timing-function: cubic-bezier(0.34, 1.42, 0.64, 1);
+
+    animation-name: nm-turn-you;
+  }
+
+  .nm-said,
+  .nm-turn {
+    transition:
+      transform 820ms cubic-bezier(0.34, 1.2, 0.64, 1),
+      opacity 820ms ease,
+      font-size 520ms ease;
+  }
+
+  /* The still frame of an arrival: it still arrives, it just does not travel. */
+  @keyframes nm-fade-in {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes nm-turn-you {
+    from {
+      transform: translateY(var(--rise, 18px));
+      opacity: 0;
+    }
+
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
+
+  /* NOTHING MOVES WHILE YOU TYPE. The stream used to lift 10px and drop to 55%
+     opacity, and the invitation used to shrink, the moment a first character
+     was entered — an effect that fires while the visitor's eyes are on the
+     keyboard and their sentence is half-formed. It read as noise, and it moved
+     the very words they were answering. Submitting is the event worth marking,
+     and submitting already changes the whole stream. */
+
+  /* ── THE DOODLE ────────────────────────────────────────────────────────
+     A drawn hint rather than a written one. "Type here" is an instruction and
+     reads as an apology for the interface; a line curving down to the box is
+     the gesture a person makes when they point at something across a table.
+
+     It draws itself once — stroke-dashoffset from the full length to zero, so
+     the line is made rather than revealed — then sways a degree and a half on a
+     slow loop so it stays alive without asking for attention. It leaves the
+     instant the visitor types. */
+  /* IT SPANS THE GAP IT IS POINTING ACROSS. It used to be an 81px scribble in
+     the bottom-left corner of a 255px void — pointing, but from nowhere in
+     particular to nowhere in particular. Anchored to the bottom of the stream
+     and given real height, it starts under the last line of the invitation and
+     ends just above the composer, so the thing it connects is legible as a
+     connection.
+
+     Bottom-anchored rather than top-anchored because the invitation's height
+     changes with the viewport and the composer's does not: measuring down from
+     the fixed end is the one that cannot drift into the text. */
+  /* IT SITS UNDER THE TEXT, WHICH IS WHERE IT WAS POINTING FROM.
+     Measured at 1280: the invitation's lines run 56→541 with their centre at
+     298 and the composer's input centre at 265, while the doodle sat at 46→110,
+     centred on 78. It was not under the invitation at all — it hung off the left
+     margin, over the mala's rail, and pointed down past the corner of the box.
+     A gesture across a table only reads as one when it starts where you were
+     looking, so it is centred on the column both ends share.
+
+     `left` and a negative half-width rather than translateX, because the sway
+     and the arrival both animate `transform` and a static translate on the same
+     element is simply overwritten by them. */
+  .nm-doodle {
+    position: absolute;
+    /* `top` and `height` are written by NaamApp from the measured gap between
+       the last line of the invitation and the composer. Nothing here may set
+       either, or the arrow goes back to floating. */
+    left: 50%;
+    /* 90px because the viewBox is 90 units wide: at 1:1 there is no scaling, so
+       the generated height IS the height on screen and the arrow lands exactly
+       where it was measured to. The old clamp() width scaled the drawing, which
+       silently shortened it by the same factor. */
+    margin-left: -45px;
+    width: 90px;
+    z-index: 3;
+    animation: nm-doodle-in 400ms ease 900ms backwards;
+    pointer-events: none;
+
+    /* ── The colour, and why the old one looked dirty ──────────────────────
+       It was `color-mix(in srgb, var(--nm-keep) 74%, var(--nm-text-soft))` —
+       marigold #b87413 mixed with a dark navy. Those sit on opposite sides of
+       the warm/cool axis, and sRGB interpolation runs the blend through the
+       desaturated middle, so the result was khaki: the exact mud you get
+       mixing complementary poster paints.
+
+       The fix is not a nicer brown. It is to stop crossing the axis at all,
+       and to pick a hue with a reason. This page's source document is a pothi
+       manuscript, and that tradition rules its margins and marks its
+       annotations in RED — so a red annotation on the paper is what this
+       gesture actually is. It also pulls the arrow clear of the mala's brown,
+       which is the other half of "these two feel the same".
+
+       Mixed in oklab and toward the PAPER rather than toward the ink:
+       lightening a hue against the ground it sits on desaturates it without
+       dulling it. */
+    color: color-mix(in oklab, var(--crimson-text) 74%, var(--nm-canvas));
+  }
+
+
+  /* The shaft is FILLED, not stroked — it is an outline with real width that
+     varies along its length (see NaamApp). The barbs stay strokes: a barb is a
+     flick, short enough that varying its width would be invisible work. */
+  .nm-doodle-line {
+    fill: currentcolor;
+    stroke: none;
+  }
+
+  .nm-doodle-reveal,
+  .nm-doodle-barb {
+    /* Normalised by pathLength="100" on both, so this one number is correct
+       regardless of their real lengths. */
+    stroke-dasharray: 100;
+  }
+
+  .nm-doodle-barb {
+    stroke: currentcolor;
+    /* Matched to the ink where the shaft ends, not to its widest point — a barb
+       heavier than the line it finishes reads as a separate mark. */
+    stroke-width: 1.7;
+  }
+
+  /* ONE CONFIDENT STROKE, 480ms. The first cut ran 1100ms on an ease-in-out,
+     which is the speed AND the evenness of a progress bar rather than a pen — a
+     ~140px line drawn at roughly 0.29px/ms is a hand moving. This curve
+     accelerates into the middle of the stroke and decelerates at the tip, which
+     is what a wrist does; `linear` is the plotter tell. */
+  /* DRAWN SLOWLY ENOUGH TO FOLLOW.
+     480ms for a ~230px path is roughly 0.5px/ms — the speed of a hand, and far
+     too fast to WATCH. The point of a drawn hint is that you see it being made:
+     at 480ms it has already happened by the time the eye reaches it, which
+     makes it indistinguishable from a hint that simply appeared. 2200ms is
+     about 0.1px/ms, closer to somebody doodling absently than signing their
+     name, and it gives the two loops time to read as loops rather than as a
+     blur that resolves into one.
+
+     The delay is 900ms rather than 3400 because the arrow no longer runs on its
+     own clock: it is not rendered at all until the opening has finished (see
+     NaamApp), so this is measured from the end of the invitation rather than
+     from a page load that knows nothing about it. */
+  /* The mask is what moves; the ink underneath it never changes. */
+  .nm-doodle-reveal {
+    animation: nm-doodle-draw 2200ms cubic-bezier(0.4, 0, 0.5, 1) 900ms backwards;
+  }
+
+  /* The barbs land after the shaft arrives, 40ms apart, because that is the
+     order and the rhythm a hand draws them in. */
+  /* The barbs land after the shaft arrives — 3100ms in, 40ms apart, because
+     that is the order and the rhythm a hand draws them in. Still quick: a barb
+     is a flick, not a stroke. */
+  .nm-doodle-barb {
+    animation: nm-doodle-draw 170ms cubic-bezier(0.65, 0, 0.35, 1) 3100ms backwards;
+  }
+
+  .nm-doodle-barb--b {
+    animation-delay: 3860ms;
+  }
+
+  @keyframes nm-doodle-draw {
+    from {
+      stroke-dashoffset: 100;
+    }
+
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @keyframes nm-doodle-in {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes nm-doodle-sway {
+    0%,
+    100% {
+      rotate: -1.5deg;
+    }
+
+    50% {
+      rotate: 1.5deg;
+    }
+  }
+
+  /* The hint leaves when the question is answered, not when it is being typed.
+     It stays mounted and fades rather than unmounting, so there is something to
+     animate — an element removed from the tree cannot transition. */
+  .nm-doodle[data-gone] {
+    transform: translateY(8px);
+    opacity: 0;
+    transition:
+      opacity 320ms ease,
+      transform 320ms ease;
+  }
+
+  /* ── THE COMPOSER, ARRIVING AND ANSWERING ──────────────────────────────
+     Two moments, and both exist because a text field is the least alive thing
+     an interface can put in front of someone.
+
+     THE ARRIVAL is a page-load sequence, not an effect: the invitation is
+     already on screen and the composer rises into place a beat later, so the
+     order you read it in is the order it happens — here is who is asking, here
+     is what we are asking, here is where you answer. It runs once.
+
+     THE ANSWER is the ring. At rest it is a hairline; the moment the field has
+     focus or a single character in it, the ring warms to lamp colour and the
+     lamplight pools under it. Nothing moves — a field that jumps as you type is
+     unusable — the LIGHT changes, which is the same language the rest of this
+     page speaks. */
+  /* ── The family's choices, in the transcript ─────────────────────────────
+     Phone only. The wide layout hangs these in the sky as lanterns; a phone has
+     no sky to hang them in, so they take the one axis it has to spare — width.
+     A sideways scroller costs nothing vertically, which is the entire reason
+     this works where the sky version could not.
+
+     Each is a lantern in miniature: the same warm paper, the same amber base
+     glow, the name on it. Small enough to read three at a glance and swipe for
+     the rest. */
+  .nm-wallrow {
+    display: none;
+  }
+
+  .nm-wallrow-lead {
+    margin: 0 0 0.45rem;
+    color: var(--nm-text-soft);
+  }
+
+  .nm-wallrow-list {
+    display: flex;
+    gap: 0.45rem;
+    margin: 0;
+    padding: 0 0 0.2rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    list-style: none;
+    /* The row runs to the edge of the screen rather than stopping at the text
+       measure — a scroller that ends inside the margin looks broken. */
+    scrollbar-width: none;
+  }
+
+  .nm-wallrow-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nm-wallrow-list > li {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+
+  .nm-wallrow-item {
+    display: flex;
+    position: relative;
+    cursor: pointer;
+    /* 44px of thumb. These are the phone's only way to agree with a name. */
+    min-height: 44px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.05rem;
+    /* The paper: warm, lit from the base, with the pinched mouth the canvas
+       lanterns have. Drawn in CSS because six of these do not justify a second
+       canvas on the device least able to afford one. */
+    border: 1px solid #c98a4c66;
+    border-radius: 44% 44% 38% 38% / 52% 52% 30% 30%;
+    background:
+      radial-gradient(ellipse 60% 34% at 50% 88%, #ffd79acc, transparent 70%),
+      linear-gradient(180deg, #fbeacd 0%, #f6dfbd 100%);
+    padding: 0.42rem 0.6rem 0.5rem;
+    min-width: 4.6rem;
+  }
+
+  .nm-wallrow-deva {
+    color: #5c3a1c;
+    font-size: 0.94rem;
+    line-height: 1.25;
+  }
+
+  .nm-wallrow-latin {
+    color: #7a5330;
+    font-size: 0.68rem;
+    line-height: 1.2;
+  }
+
+  /* ── The send sheet ───────────────────────────────────────────────────────
+     Sending is a decision, not a remark, so it gets the page's attention
+     rather than another slot in the transcript. Centred over a dimmed room:
+     the scene stays visible behind it because the names being sent are up
+     there, and hiding the sky to ask about the sky would be perverse. */
+  .nm-overlay {
+    display: grid;
+    position: fixed;
+    place-items: center;
+    z-index: 80;
+    inset: 0;
+    padding: var(--space-s);
+  }
+
+  /* Full-bleed, behind the sheet, and it is a real button — see NaamApp. */
+  .nm-overlay-scrim {
+    position: absolute;
+    animation: nm-overlay-in 220ms ease backwards;
+    cursor: default;
+    border: 0;
+    background: color-mix(in srgb, var(--naam-ink) 46%, transparent);
+    padding: 0;
+    inset: 0;
+    /* The room dims but does not disappear. */
+    backdrop-filter: blur(2px);
+  }
+
+  .nm-overlay-sheet {
+    display: flex;
+    position: relative;
+    flex-direction: column;
+    gap: 0.75rem;
+    animation: nm-overlay-rise 260ms cubic-bezier(0.16, 0.7, 0.3, 1) backwards;
+    box-shadow: 0 2px 4px rgb(26 29 46 / 12%), 0 18px 44px -12px rgb(26 29 46 / 28%);
+    border: 1px solid var(--nm-hair);
+    border-radius: 14px;
+    background: var(--nm-surface);
+    padding: clamp(1rem, 3vw, 1.6rem);
+    width: min(30rem, 100%);
+    max-height: min(88vh, 40rem);
+    overflow-y: auto;
+  }
+
+  /* The sheet's own title, not the invitation's. .nm-said--lead is the page's
+     biggest type — right for the one sentence that opens the page, far too
+     loud for a dialog heading, where it filled three lines before the first
+     field. */
+  .nm-overlay-sheet .nm-said--lead {
+    max-width: none;
+    font-size: 1.12rem;
+    line-height: 1.4;
+  }
+
+  /* One frame, not two. The form carries its own border for the days it sits
+     in the transcript; inside the sheet that reads as a box in a box. */
+  .nm-overlay-sheet .nm-send {
+    border: 0;
+    background: transparent;
+    padding: 0;
+  }
+
+  .nm-overlay-close {
+    align-self: center;
+    transition: color var(--dur-base) ease;
+    cursor: pointer;
+    border: 0;
+    background: transparent;
+    padding: 0.4rem 0.8rem;
+    min-height: 44px;
+    color: var(--nm-text-soft);
+  }
+
+  .nm-overlay-close:hover,
+  .nm-overlay-close:focus-visible {
+    color: var(--nm-accent-text);
+  }
+
+  @keyframes nm-overlay-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes nm-overlay-rise {
+    from {
+      transform: translateY(12px) scale(0.98);
+      opacity: 0;
+    }
+  }
+
+  /* ── Ways in ──────────────────────────────────────────────────────────────
+     Three chips above the box, before the first turn only.
+
+     They are deliberately NOT the loudest thing here. The composer is where the
+     page wants people to end up, and a row of filled buttons above it would
+     out-shout the box and turn an invitation into a menu — the visitor's own
+     words are the point, and these exist for the visitor who has not found
+     theirs yet. So: the paper ground, a hairline, and the same quiet ink as the
+     rest of the rail. The border warms on hover rather than the fill changing,
+     which is how every other quiet control on this page behaves.
+
+     PHONE FIRST. At 375px three chips do not fit abreast, and shrinking the
+     type until they do would make them the smallest text on the screen. They
+     wrap instead, and each one keeps a 44px hit area — the row is allowed to be
+     two lines tall, because two readable lines beat three cramped ones. */
+  /* ── THE SPACE IS RESERVED BEFORE THE CHIPS EXIST ────────────────────────
+     One chip row tall, always, whether or not anything is in it. The chips
+     are chosen at random on mount and cannot be server-rendered, so without
+     this the row arrives after hydration and shoves the composer. 44px is the
+     chip's own min-height — the tap-target floor — so the reserved space is
+     exactly what will fill it. */
+  /* ── ONE ROW, TWO OCCUPANTS, STACKED ────────────────────────────────────
+     A grid with a single cell that both children sit in, so the status and the
+     chips crossfade in place instead of one collapsing to make room for the
+     other. The row's height is the chip's 44px tap-target floor whatever is in
+     it — which is what makes the composer's height constant, which is what
+     removes the layout animation this replaced. */
+  .nm-starters-slot {
+    display: grid;
+    grid-template: 'cue' minmax(44px, auto) / 1fr;
+    margin-bottom: 0.5rem;
+    place-items: center;
+  }
+
+  .nm-starters-slot > * {
+    grid-area: cue;
+    width: 100%;
+  }
+
+  /* Both fade on opacity only. `visibility` rides the same transition so the
+     one that is out cannot be tabbed to or hit — opacity alone leaves an
+     invisible row of live buttons over the top of the visible one. */
+  .nm-cue-reading,
+  .nm-starters-slot .nm-starters {
+    transition:
+      opacity 260ms ease,
+      visibility 0s linear 260ms;
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .nm-cue-reading[data-on],
+  .nm-starters-slot .nm-starters[data-on] {
+    transition:
+      opacity 260ms ease,
+      visibility 0s;
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .nm-cue-reading {
+    margin: 0;
+    color: var(--nm-text-soft);
+    text-align: center;
+  }
+
+  .nm-starters {
+    display: flex;
+    /* Centred over the box they feed. Left-aligned they read as a list the
+       composer happens to sit under; centred they read as three ways into the
+       one thing below them.
+
+       NOWRAP, AND IT IS NOT ONLY A LAYOUT PREFERENCE. Wrapped, the row's
+       height depends on which three labels were drawn — measured at 412px,
+       three chips came out 163/179/159 and took two lines and 94px, and a
+       different draw would have taken one. A row whose height is decided by a
+       random pick cannot have its space reserved above, and the whole reason
+       the reserving works is that the number is knowable in advance. */
+    flex-wrap: nowrap;
+    justify-content: center;
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* Wider than the frame on a phone, so it scrolls — the same idiom the dealt
+     cards already use there, and the third chip peeking is what says so. */
+  @media (max-width: 1099px) {
+    .nm-starters {
+      justify-content: flex-start;
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      scrollbar-width: none;
+
+      &::-webkit-scrollbar {
+        display: none;
+      }
+    }
+
+    .nm-starters > li {
+      flex: 0 0 auto;
+    }
+  }
+
+  /* Into a space that was already theirs, so nothing moves — only the ink
+     arrives. Staggered by a breath so it reads as three things offered rather
+     than one row switched on. */
+  .nm-starter {
+    animation: nm-fade-in 300ms ease both;
+  }
+
+  .nm-starters > li:nth-child(2) .nm-starter {
+    animation-delay: 70ms;
+  }
+
+  .nm-starters > li:nth-child(3) .nm-starter {
+    animation-delay: 140ms;
+  }
+
+  .nm-starter {
+    display: inline-flex;
+    align-items: center;
+    /* 44px of thumb, without a 44px-tall pill: the padding does the work and
+       min-height guarantees the floor on the shortest label. */
+    min-height: 44px;
+    transition:
+      border-color var(--dur-base) ease,
+      color var(--dur-base) ease;
+    cursor: pointer;
+    border: 1px solid var(--nm-hair);
+    border-radius: 999px;
+    background: transparent;
+    padding: 0.3rem 0.85rem;
+    color: var(--nm-text-soft);
+    font-size: 0.9rem;
+    font-family: var(--font-body, inherit);
+    line-height: 1.2;
+    text-align: center;
+  }
+
+  .nm-starter:hover,
+  .nm-starter:focus-visible {
+    border-color: var(--nm-keep);
+    color: var(--nm-accent-text);
+  }
+
+  .nm-composer-in {
+    animation: nm-composer-arrive 620ms cubic-bezier(0.05, 0.7, 0.1, 1) 420ms backwards;
+  }
+
+  @keyframes nm-composer-arrive {
+    from {
+      transform: translateY(10px);
+      opacity: 0;
+    }
+
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
+
+  .nm-composer-in:focus-within,
+  .nm-composer[data-typing] .nm-composer-in {
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, var(--nm-keep) 16%, transparent),
+      0 8px 26px -14px color-mix(in srgb, var(--nm-keep) 72%, transparent);
+    border-color: var(--nm-keep);
+  }
+
+  /* The send button is dead weight until there is something to send, and then
+     it is the only warm thing in the column. */
+  .nm-composer-go:not(:disabled) {
+    background: var(--nm-keep-fill);
+    color: var(--nm-text);
+  }
+
+  /* ── THE LEAVES FLOAT ──────────────────────────────────────────────────
+     What makes a rendered scene read as a space rather than a picture of one is
+     never the texture — it is that things sit at different DEPTHS and betray it
+     when anything moves. Three cues, all of them cheap, all composited:
+
+       PARALLAX. NaamWall publishes the pointer's offset from the shelf's centre
+       as --px/--py; each leaf multiplies it by its own depth, so they slide
+       past each other rather than together. This is the one that does most of
+       the work, and it is why the listener is on the window rather than on
+       hover — a scene answers where you are, not whether you are touching it.
+
+       AN IDLE BOB, per leaf, on its own clock. Durations are 5.3/6.1/7.3s and
+       deliberately incommensurate: a shelf where everything breathes together
+       is a shelf that is animating, and one where nothing quite lines up is a
+       shelf that is alive. Same trick as the flame.
+
+       A CONTACT SHADOW AND A LIFT SHADOW, and the gap between them IS the
+       height. One blurred shadow is a card in a list; a hard shadow directly
+       under the object plus a wide soft one further out is an object above a
+       surface.
+
+     DEPTH IS SUPPORT. A name several people have chosen floats higher, casts a
+     longer shadow and travels further under the pointer. So the thing the eye
+     reads as "closest to me" is the thing the family keeps coming back to, and
+     the tally stops being an annotation and becomes the arrangement. */
+  .nm-shelf {
+    /* The leaves need somewhere to float IN. Without a perspective the whole
+       thing is 2D sliding and the eye knows. */
+    perspective: 700px;
+  }
+
+  .nm-leaf {
+    /* Support sets the height, and POSITION IN THE STACK breaks the ties. With
+       depth from support alone, a shelf where nothing has been chosen twice yet
+       gives every leaf the same value, and six things displacing by an
+       identical 6.5px is not parallax — it is the whole slab sliding, which the
+       eye reads as one flat object moving. Leaves in a real stack do not share a
+       height. The index term runs the same way the sort does (most-supported
+       first, so deeper as you go down), which means it reinforces the order
+       rather than muddling it. */
+    --depth: calc(0.42 + var(--support, 1) * 0.15 - var(--i, 0) * 0.045);
+
+    translate: calc(var(--px, 0) * var(--depth) * -7px) calc(var(--py, 0) * var(--depth) * -4px);
+    animation: nm-leaf-float calc(5.3s + var(--i, 0) * 0.62s) ease-in-out calc(var(--i, 0) * -1.7s) infinite;
+    transition: translate 220ms cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow:
+      0 1px 1px color-mix(in srgb, var(--nm-leaf-ink) 16%, transparent),
+      0 calc(2px + var(--depth) * 9px) calc(6px + var(--depth) * 16px) calc(-4px - var(--depth) * 2px)
+        color-mix(in srgb, var(--nm-leaf-ink) 26%, transparent);
+    border-radius: 3px;
+  }
+
+  @keyframes nm-leaf-float {
+    0%,
+    100% {
+      transform: translateY(0) rotateX(0deg);
+    }
+
+    50% {
+      transform: translateY(calc(var(--depth) * -3.5px)) rotateX(1.4deg);
+    }
+  }
+
+  /* A leaf lifts out of the stack under the pointer — the one place the shelf
+     answers a touch directly rather than a position. */
+  .nm-leaf:hover {
+    z-index: 1;
+    box-shadow:
+      0 1px 1px color-mix(in srgb, var(--nm-leaf-ink) 18%, transparent),
+      0 calc(6px + var(--depth) * 10px) calc(14px + var(--depth) * 18px) calc(-4px - var(--depth) * 2px)
+        color-mix(in srgb, var(--nm-leaf-ink) 32%, transparent);
+  }
+
+  /* ── The card, on both grounds ────────────────────────────────────────── */
+  .nm-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: var(--space-s);
+    margin-top: var(--space-m);
+  }
+
+  .nm-card {
+    display: flex;
+    /* The stretched Keep overlay is positioned against this. */
+    position: relative;
+    flex-direction: column;
+    gap: var(--space-2xs);
+    transition:
+      border-color var(--dur-base) ease,
+      box-shadow var(--dur-base) ease,
+      transform var(--dur-base) ease;
+    box-shadow: var(--nm-shadow, none);
+    border: 1px solid var(--nm-hair);
+    border-radius: 12px;
+    background: var(--nm-surface);
+    padding: var(--space-s);
+  }
+
+  /* DESIGN.md P2 is emphasis by glow — but glow is a dark-ground device, and
+     on rice a 28px marigold bloom is invisible. The light branch spends the
+     same meaning as a fill and a border, which is all marigold is allowed to
+     be here: at ~2:1 on rice it can never carry type. */
+  .nm-card[data-picked='true'] {
+    box-shadow: var(--glow-marigold);
+    border-color: var(--nm-keep);
+  }
+
+  #naam-app .nm-card[data-picked='true'] {
+    box-shadow: none;
+    background: var(--nm-keep-fill);
+  }
+
+  .nm-card-name {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  /* Devanagari gets a fixed block so a late font swap shifts nothing, and
+     1.65 line-height because matras collide below about 1.6. */
+  /* ── SMALL ENOUGH TO SIT INSIDE THE CONVERSATION ────────────────────────
+     The card was 194x261 and the row of them spanned the whole text measure,
+     which is why it kept reading as too big however much the type came down:
+     a block as wide as the paragraph above it is not IN the conversation, it
+     IS the conversation for as long as it is on screen.
+
+     Three rows came out — the Devanagari and the Latin share a line's worth of
+     stacking rather than three, the syllable rail is inside the name now, and
+     the KEEP pill is a ring in the corner. What is left is the name, the
+     sound, and what it means, which is the whole of what a person choosing
+     between names needs. */
+  .nm-card {
+    gap: 0.15rem;
+    border-radius: 10px;
+    padding: 0.55rem 0.65rem 0.6rem;
+  }
+
+  /* ── A CARD IS PART OF THE CONVERSATION, NOT LOUDER THAN IT ──────────────
+     The name was set at 1.7rem against 17.9px body text, so every card
+     announced itself more forcefully than the sentence that dealt it — and
+     with the reserved 2.8rem line box it cost 75px of a 324px card before a
+     meaning had been printed.
+
+     1.35rem still leads the card and still carries Devanagari comfortably
+     (matras need the line-height, which is why that stays generous relative to
+     the size), while sitting just above the prose rather than over it. */
+  /* 1.25rem is the floor, not a preference. 1.15rem measured 18.4px and the
+     card gate wants 20px on the Devanagari — the script carries meaning above
+     and below the baseline, so it loses more at a small size than a Latin
+     face does. The two pixels came out of the leading rather than the glyph. */
+  .nm-deva {
+    display: block;
+    min-height: 1.8rem;
+    color: var(--nm-text);
+    font-size: 1.25rem;
+    /* Matras sit above the line and below it; a tight leading clips them. */
+    line-height: 1.8rem;
+    font-family: var(--font-deva), var(--font-body);
+  }
+
+  /* ── THE ALTERNATE ALWAYS SITS ON ITS OWN LINE ──────────────────────────
+     Inline, it fitted beside most names and wrapped beside the long ones —
+     "Ba·rsha·tra Varshatra" took two lines while "Ba·ri·sha Varisha" took one,
+     so a row of cards came out 117px in one place and 137px in another. In a
+     grid every row stretches to its tallest card, which turns one long name
+     into a ragged deal.
+
+     Its own line, always, whether or not there is one to show: every card is
+     then the same height and the deal is a grid rather than a staircase. The
+     line costs 16px and buys a number that does not depend on which names came
+     back. */
+  .nm-latin {
+    display: grid;
+    gap: 0;
+    margin: 0;
+  }
+
+  .nm-latin-alt {
+    min-height: 1rem;
+    line-height: 1rem;
+  }
+
+  .nm-latin-main {
+    color: var(--nm-text);
+    font-size: 1rem;
+    font-family: var(--font-display);
+  }
+
+  .nm-latin-alt {
+    color: var(--nm-text-soft);
+    text-transform: none;
+  }
+
+  /* The syllable break, where the reader already is. Quiet enough to read as
+     punctuation rather than as a character of the name. */
+  .nm-syl {
+    margin: 0 0.04em;
+    color: var(--nm-text-soft);
+    opacity: 0.55;
+  }
+
+  /* The document's own `!` — a harder consonant cluster, marked on the break
+     that opens it. It was a crimson dot on a 32px rail; it is a crimson dot on
+     a separator now, which is the same mark in a tenth of the space. */
+  .nm-syl[data-cluster='true'] {
+    color: var(--crimson);
+    opacity: 1;
+  }
+
+  /* ── The sound rail ───────────────────────────────────────────────────
+     width: max-content is what makes this an instrument rather than a
+     divider: the rule ends at the last tick, so its length IS the syllable
+     count (DESIGN.md P4).
+
+     It used to reserve 26px above the first tick for the व/ब toggle. The
+     toggle is gone and the headroom went with it — otherwise every card on
+     the page keeps paying for a control none of them have. */
+
+  .nm-ticks {
+    display: flex;
+    position: relative;
+    align-items: flex-start;
+    gap: clamp(0.9rem, 4vw, 1.75rem);
+    margin: 0;
+    padding: 0;
+    width: max-content;
+    max-width: 100%;
+    list-style: none;
+
+    &::before {
+      position: absolute;
+      top: 4px;
+      right: 0;
+      left: 0;
+      border-radius: 999px;
+      background: var(--grad-signal);
+      height: 2px;
+      content: '';
+    }
+  }
+
+  .nm-tick {
+    display: flex;
+    position: relative;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .nm-tick-dot {
+    display: block;
+    border-radius: 999px;
+    background: var(--nm-text);
+    width: 10px;
+    height: 10px;
+  }
+
+  .nm-tick-syllable {
+    color: var(--nm-text-soft);
+    text-transform: uppercase;
+  }
+
+  /* The document's own `!` — a harder consonant cluster, marked on the
+     syllable whose onset carries it. */
+  .nm-tick[data-cluster='true'] .nm-tick-dot {
+    box-shadow: var(--ring-crimson);
+    background: var(--crimson);
+  }
+
+  .nm-tick[data-cluster='true'] .nm-tick-syllable {
+    color: var(--nm-accent-text);
+  }
+
+  /* The document is speaking, and P5 says mono is the voice of data. Clamped
+     to three lines: Monier-Williams glosses run from four characters to four
+     hundred, and in a grid every row stretches to its tallest card. The full
+     text is one tap away in the disclosure directly below. */
+  /* Two lines, not three. Monier-Williams glosses run from four characters to
+     four hundred, and in a grid every row stretches to its tallest card — a
+     third line costs every card in the deal to serve the longest one. */
+  .nm-gloss,
+  .nm-source-gloss {
+    display: -webkit-box;
+    margin: 0;
+    overflow: hidden;
+    color: var(--nm-text-soft);
+    font-size: 0.82rem;
+    line-height: 1.5;
+    font-family: var(--font-deva), var(--font-mono);
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .nm-source-gloss {
+    display: block;
+    margin: 0 0 0.35rem;
+    overflow: visible;
+  }
+
+  .nm-undocumented,
+  .nm-card-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2xs) var(--space-s);
+    margin-top: auto;
+    padding-top: var(--space-2xs);
+  }
+
+  /* ── KEEP ──────────────────────────────────────────────────────────────
+     THE WHOLE CARD IS THE TARGET. A quiet outlined pill in a corner asks the
+     visitor to notice it, aim at it, and work out that it — and not the name
+     above it — is the thing that chooses. Three steps for one idea.
+
+     The click lives on the <article> in NaamCard.tsx; the real <button> is
+     still there and still does the work, so keyboard and screen-reader users
+     get one properly-labelled control per card and nothing is nested inside
+     anything interactive.
+
+     I tried the stretched-pseudo-element pattern first — `.nm-pick::after`
+     with `inset: 0` over the card — and it is written up everywhere, but it
+     did not survive verification here: `elementFromPoint` reported the button
+     at every point on the card while a real mouse press produced no click at
+     all. Rather than ship an interaction whose only evidence was a synthetic
+     event I had dispatched onto the button myself, it went.
+
+     The pill is FILLED now rather than outlined. Marigold is ~2:1 on rice and
+     can never carry type here, so the fill is the pale keep-fill with a
+     marigold edge and the word stays in --nm-text: it reads as a control at a
+     glance without putting text on a colour that cannot hold it. */
+/* ── THE WHOLE CARD, MARKED BY A RING ───────────────────────────────────
+     This was a 59x44 pill on a row of its own, which is to say it spent the
+     single widest and one of the tallest things on the card saying the one
+     thing the card is already for.
+
+     Now it covers the card. The target went UP — 176x118 rather than 59x44 —
+     while the visible mark came down to a 14px ring in the corner, so the tap
+     target and the ink are no longer the same measurement. `inset: 0` over a
+     `position: relative` card, transparent, with the ring drawn by the child.
+
+     It cannot be `display: none` under any condition: there are no cards on
+     the page until somebody asks a question, so every automated sweep of tap
+     targets runs against a page with no cards in it and would never see it. */
+  .nm-pick {
+    position: absolute;
+    z-index: 1;
+    cursor: pointer;
+    inset: 0;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    padding: 0;
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--nm-keep);
+      outline-offset: 2px;
+    }
+  }
+
+  /* Small, quiet, and unmistakably a thing you fill. An empty ring reads as a
+     socket; the same ring filled reads as taken — which is the whole state
+     this control has, said in one shape rather than in a word that changes. */
+  .nm-pick-mark {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.6rem;
+    transition:
+      background var(--dur-base) ease,
+      border-color var(--dur-base) ease,
+      box-shadow var(--dur-base) ease;
+    border: 1.5px solid color-mix(in srgb, var(--nm-keep) 55%, transparent);
+    border-radius: 50%;
+    width: 14px;
+    height: 14px;
+  }
+
+  .nm-card:hover .nm-pick-mark,
+  .nm-pick:focus-visible .nm-pick-mark {
+    border-color: var(--nm-keep);
+    background: color-mix(in srgb, var(--nm-keep) 22%, transparent);
+  }
+
+  .nm-pick[aria-pressed='true'] .nm-pick-mark {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--nm-keep) 22%, transparent);
+    border-color: var(--nm-keep);
+    background: var(--nm-keep);
+  }
+
+  /* The card is the target, so the card is what reacts — and it reacts to
+     :focus-within too, or a keyboard user gets none of the feedback a mouse
+     user gets for free. */
+  .nm-card:has(.nm-pick:not(:disabled)) {
+    cursor: pointer;
+  }
+
+  .nm-card:has(.nm-pick:not(:disabled)):hover,
+  .nm-card:has(.nm-pick:focus-visible) {
+    transform: translateY(-2px);
+    box-shadow:
+      0 2px 4px -2px color-mix(in srgb, var(--nm-text) 14%, transparent),
+      0 12px 24px -14px color-mix(in srgb, var(--nm-keep) 70%, transparent);
+    border-color: var(--nm-keep);
+  }
+
+  .nm-card:has(.nm-pick:not(:disabled)):hover .nm-pick,
+  .nm-card:has(.nm-pick:focus-visible) .nm-pick {
+    background: var(--nm-keep-fill);
+  }
+
+  .nm-source {
+    summary {
+      cursor: pointer;
+      color: var(--nm-text-soft);
+    }
+
+    summary:hover {
+      color: var(--nm-accent-text);
+    }
+  }
+
+  .nm-source-body {
+    margin-top: var(--space-2xs);
+    border-left: 1px solid var(--nm-hair);
+    padding-left: var(--space-2xs);
+  }
+
+  .nm-source-meta,
+  .nm-source-note {
+    opacity: 0.8;
+    margin: 0;
+    color: var(--nm-text-soft);
+  }
+
+  /* ── The tray: ONE shape, three parts missing ─────────────────────────
+     Apple's rings work by Gestalt closure — an open ring is a perceptually
+     unfinished shape. Three separate grey rectangles are not, which is why
+     the prototype's tray was the weakest thing in it. So the three slots are
+     drawn as a single ring, and every EMPTY slot erases its segment of the
+     top and bottom edge. Filling slot two closes the middle third and
+     changes what one and three look like. There is no "1/3 KEPT" counter:
+     the shape says it, and a counter is the gamification cliché. */
+  /* TRANSPARENT, not --nm-canvas. An opaque tray sat on top of .nm-room and
+     cut the lamplight off in a hard horizontal line right where the lamp is —
+     the light stopped at the edge of the thing emitting it. The border-top goes
+     for the same reason: a rule across the pool is a seam in the room. The tray
+     still reads as a distinct surface because the light falls off toward the
+     edges, which is how a lit surface separates from its background anyway. */
+  /* THE CONTROLS STAY IN THE OPEN SKY, and this is the one that took two tries.
+     When the shelf of leaves left the flow to become lamps, the tray lost the
+     block that had been holding it down, so I grew it to fill the column and
+     pushed the contents to the bottom — on the reasoning that a lamp rests on
+     something. What that actually did was drop the three keep-slots and their
+     label into the busiest part of the scene, where the town, the flags and the
+     lamps are, and neither the slots nor their Devanagari numerals could be
+     read at all. A control has to win against whatever is behind it.
+
+     So the tray keeps its natural height and its contents sit high, in the
+     empty band above the range where nothing competes. The diyo does float
+     there rather than resting on ground — which is fine, and arguably better: a
+     flame against the alpenglow is the picture, and the valley below it is
+     where everyone else's lamps are. */
+  .nm-tray {
+    display: flex;
+    position: relative;
+    /* FILLS THE COLUMN, and it has to. `.nm-hand` is `flex: 1 1 auto` with
+       `max-height: 100%; overflow-y: auto` so a nine-card deal scrolls — but a
+       tray sized to its content gives the hand nothing to be bounded BY, so the
+       grid simply overflowed and the third row was unreachable. Measured:
+       dealScrollable false against a 645px grid. min-height: 0 is the other
+       half of it — without it a flex child refuses to shrink below its content
+       and the overflow rule never engages. */
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 0.5rem;
+    /* Above .nm-shelfwrap's 1: the cards win over the lanterns. */
+    z-index: 2;
+    min-height: 0;
+    background: transparent;
+    padding: 0.6rem clamp(0.75rem, 2.4vw, 1.4rem);
+  }
+
+  /* The lamp stands above the label, both centred over the three slots, so the
+     light and the thing it lights share an axis. `align-items: baseline` would
+     hang a 79px SVG off a 10px label's baseline — the lamp needs its own row. */
+  /* The one rescued index link. Sits after the badge, deliberately the
+     quietest thing in the rail — it is a legal obligation, not a destination. */
+  /* ── The sound switch ─────────────────────────────────────────────────
+     Quieter than the व/ब toggle beside it, because it changes how the page
+     sounds rather than what it says. The glyph is a struck bowl seen from the
+     side — a dot for the strike and a ring for the ring — which fills when the
+     sound is on. It is not a speaker with waves coming out of it: this page
+     does not have speakers in it, it has a bowl. */
+  .nm-sound {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: color var(--dur-base) ease;
+    cursor: pointer;
+    margin-left: var(--space-s);
+    border: 0;
+    background: transparent;
+    padding: 0.25rem 0;
+    color: var(--nm-text-soft);
+
+    &:hover,
+    &:focus-visible {
+      color: var(--nm-accent-text);
+    }
+  }
+
+  .nm-sound-glyph {
+    display: inline-block;
+    transition:
+      background var(--dur-base) ease,
+      box-shadow var(--dur-base) ease,
+      border-color var(--dur-base) ease;
+    border: 1px solid var(--nm-hair-strong);
+    border-radius: 50%;
+    width: 8px;
+    height: 8px;
+
+    &[data-on] {
+      /* The strike, and the ring going out from it. */
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--nm-keep) 26%, transparent);
+      border-color: var(--nm-keep);
+      background: var(--nm-keep);
+    }
+  }
+
+  /* On a phone the rail has the wordmark, two toggles and a link in 44px. The
+     switch keeps its glyph — which is the state — and drops the word. */
+  @media (max-width: 599px) {
+    .nm-sound-word {
+      position: absolute;
+      clip-path: inset(50%);
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+  }
+
+  .nm-rail-a11y {
+    margin-left: var(--space-s);
+    color: var(--nm-text-soft);
+    font-size: 0.62rem;
+    text-decoration: none;
+  }
+
+  .nm-rail-a11y:hover,
+  .nm-rail-a11y:focus-visible {
+    color: var(--nm-accent-text);
+    text-decoration: underline;
+  }
+
+  .nm-tray-head {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    margin: 0 auto;
+    width: 100%;
+    max-width: 720px;
+  }
+
+  /* The site footer is hidden on this page, so its index rides here — but it is
+     chrome, not content, and it was arriving at the same visual weight as
+     "YOUR THREE" with crimson underlines competing beside the slots. It keeps
+     its 24px targets and its contrast; it loses the decoration and drops half a
+     step in size so the eye reaches the slots first. */
+  .nm-index {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.75rem;
+    margin-left: auto;
+    font-size: 0.62rem;
+
+    a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      color: var(--nm-text-soft);
+      text-decoration: none;
+
+      &:hover,
+      &:focus-visible {
+        color: var(--nm-accent-text);
+        text-decoration: underline;
+      }
+    }
+  }
+
+  /* ONE shape, three parts missing — not three boxes.
+     An open ring is perceptually unfinished in a way three separate rectangles
+     never are (this is why Apple's activity rings work and a progress bar does
+     not), so the tray is a single continuous outline and each EMPTY slot punches
+     a gap out of its top and bottom edge. Filling a slot does not paint a box;
+     it closes the ring. That is also why filling slot 2 changes how 1 and 3
+     read — the shape is shared, so the gaps are relative to each other.
+     overflow:hidden so a filled slot's marigold clips to the rounded corners
+     instead of spilling past them. */
+  /* A CONTROL HAS TO WIN AGAINST WHATEVER IS BEHIND IT.
+     These sat on paper when they were designed; they now sit over a valley at
+     dusk, and wherever the tray happens to land — which moves with the deal
+     size and the viewport — the town, the prayer flags and the lamps can end up
+     directly behind them. Twice in this pass the three Devanagari numerals
+     became unreadable and both times I fixed it by moving the scene, which is
+     fixing the symptom at whichever width I happened to be looking at.
+     A translucent paper surface fixes it at every width instead: the slots
+     always read, and the valley is still visible through them. */
+  .nm-slots {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    backdrop-filter: blur(3px);
+    margin: 0 auto;
+    box-shadow: 0 1px 12px -6px rgb(26 29 46 / 22%);
+    border: 1.5px solid var(--nm-hair-strong);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--nm-surface) 76%, transparent);
+    width: 100%;
+    max-width: 460px;
+    overflow: hidden;
+    list-style: none;
+  }
+
+  /* The label above them, same reasoning, lighter touch. */
+  .nm-quiet-label {
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--nm-canvas) 68%, transparent);
+    padding: 0.1rem 0.4rem;
+  }
+
+  .nm-slot {
+    display: grid;
+    position: relative;
+    place-items: center;
+    min-height: 62px;
+  }
+
+  /* The divider between parts, so "three" is legible without three borders. */
+  .nm-slot + .nm-slot {
+    border-left: 1.5px solid var(--nm-hair-strong);
+  }
+
+  .nm-slot::before,
+  .nm-slot::after {
+    position: absolute;
+    height: 1.5px;
+    content: '';
+  }
+
+  .nm-slot::before {
+    top: -1.5px;
+  }
+
+  .nm-slot::after {
+    bottom: -1.5px;
+  }
+
+  /* Empty: the ring is missing here. Exactly the border's own thickness, so the
+     gap reads as absence rather than as a drawn dash. */
+  .nm-slot:not([data-filled])::before,
+  .nm-slot:not([data-filled])::after {
+    right: 18%;
+    left: 18%;
+    background: var(--nm-canvas);
+  }
+
+  /* Kept: the ring is not merely present, it is marigold — fill and border,
+     which is the only thing marigold is allowed to be on a light ground. */
+  .nm-slot[data-filled] {
+    background: var(--nm-keep-fill);
+  }
+
+  .nm-slot[data-filled]::before,
+  .nm-slot[data-filled]::after {
+    right: 0;
+    left: 0;
+    background: var(--nm-keep);
+  }
+
+  .nm-slot:first-child[data-filled]::before,
+  .nm-slot:first-child[data-filled]::after {
+    left: 7px;
+  }
+
+  .nm-slot:first-child[data-filled] {
+    border-radius: 9px 0 0 9px;
+  }
+
+  .nm-slot:last-child[data-filled]::before,
+  .nm-slot:last-child[data-filled]::after {
+    right: 7px;
+  }
+
+  .nm-slot:last-child[data-filled] {
+    border-radius: 0 9px 9px 0;
+  }
+
+  .nm-slot-take {
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    border: none;
+    background: none;
+    padding: 0.3rem;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* A name is in flight toward this slot. The slot is already filled — state
+     never waits for an animation — so the seat is held blank until the token
+     lands on it, and the name appears in exactly the frame the token is
+     removed. NaamApp sets and clears the attribute imperatively. */
+  .nm-slot[data-landing] .nm-token {
+    visibility: hidden;
+  }
+
+  /* AN EMPTY SLOT IS A CONTROL NOW, so it has to look like one can be pressed
+     without shouting at three of them on the first frame. At rest it is what it
+     always was — a Devanagari numeral in a waiting box — and the + only fades up
+     under a pointer or a focus ring. The whole box is the target. */
+  .nm-slot-empty {
+    display: grid;
+    position: relative;
+    place-items: center;
+    transition:
+      background var(--dur-base) ease,
+      border-color var(--dur-base) ease;
+    cursor: pointer;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .nm-slot-add {
+    position: absolute;
+    right: 0.42rem;
+    bottom: 0.28rem;
+    transform: scale(0.8);
+    opacity: 0;
+    transition:
+      opacity var(--dur-base) ease,
+      transform var(--dur-base) ease;
+    color: var(--nm-accent-text);
+    font-size: 0.95rem;
+    line-height: 1;
+  }
+
+  .nm-slot-empty:hover,
+  .nm-slot-empty:focus-visible {
+    background: color-mix(in srgb, var(--nm-keep) 9%, transparent);
+  }
+
+  .nm-slot-empty:hover .nm-slot-add,
+  .nm-slot-empty:focus-visible .nm-slot-add {
+    transform: none;
+    opacity: 1;
+  }
+
+  .nm-slot-empty:hover .nm-slot-ord,
+  .nm-slot-empty:focus-visible .nm-slot-ord {
+    opacity: 0.35;
+  }
+
+  /* Typing straight into the slot. It fills the box rather than sitting in it,
+     so the box does not appear to gain a second, smaller box. */
+  /* 1rem IS A HARD FLOOR, not a taste. iOS Safari zooms the viewport when a
+     focused input's font-size is under 16px, and on a page whose whole premise
+     is that it never scrolls, that zoom breaks the layout the moment somebody
+     taps a slot. The visible text is smaller elsewhere on this row; this one
+     control cannot be.
+
+     line-height 1.6 for the same reason the cards use it: Devanagari matras sit
+     above and below the baseline and clip inside a 64px box at 1.2. */
+  .nm-slot-input {
+    border: 0;
+    border-bottom: 1.5px solid var(--nm-keep);
+    border-radius: 0;
+    background: transparent;
+    padding: 0 0.4rem;
+    width: 100%;
+    height: 100%;
+    color: var(--nm-text);
+    font-size: 1rem;
+    line-height: 1.6;
+    font-family: var(--font-deva), var(--font-body);
+    text-align: center;
+  }
+
+  .nm-slot-input:focus {
+    outline: none;
+  }
+
+  /* The way out of the tray. Quiet until there is something to send, and then
+     it is the warmest thing under the slots. */
+  /* The height of the button plus its top margin, held whether or not the
+     button is in it — see the comment in NaamApp.tsx. Measured at 37px of
+     button and 0.55rem of margin. */
+  .nm-tray-send-slot {
+    display: flex;
+    justify-content: center;
+    min-height: 2.85rem;
+  }
+
+  .nm-tray-send {
+    animation: nm-say 420ms cubic-bezier(0.05, 0.7, 0.1, 1) backwards;
+    transition:
+      background var(--dur-base) ease,
+      border-color var(--dur-base) ease;
+    cursor: pointer;
+    margin: 0.55rem auto 0;
+    border: 1.5px solid var(--nm-keep);
+    border-radius: 999px;
+    background: var(--nm-keep-fill);
+    padding: 0.42rem 1.1rem;
+    color: var(--nm-text);
+    font-size: 0.9rem;
+  }
+
+  .nm-tray-send:hover,
+  .nm-tray-send:focus-visible {
+    background: color-mix(in srgb, var(--nm-keep) 26%, transparent);
+  }
+
+  /* Devanagari numerals. Free, and unmistakably Nepali. */
+  /* १ २ ३ — the only thing in an empty slot, so it has to carry it. At 0.55
+     opacity on the soft token they read as smudges rather than as an invitation
+     to fill something. Devanagari also needs the looser line-height: matras sit
+     above the baseline and clip at 1.0. */
+  .nm-slot-ord {
+    opacity: 0.75;
+    color: var(--nm-text-soft);
+    font-size: 1.45rem;
+    line-height: 1.7;
+    font-family: var(--font-deva), var(--font-body);
+  }
+
+  /* Apple's Breathe band is 6–15s per breath, and above ~2% scale it stops
+     reading as life and starts reading as movement. It stops the moment the
+     slot is filled — see also [data-calm], which suspends it while the
+     composer is in use. */
+  @keyframes nm-breathe {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.72;
+    }
+
+    50% {
+      transform: scale(1.012);
+      opacity: 1;
+    }
+  }
+
+  /* ── BREATHE THE LEAVES, NOT THE BUTTON ──────────────────────────────────
+     This ran on `.nm-slot-empty`, which is a button with three spans inside
+     it, and animating a container costs style recalculation across its whole
+     subtree every frame — even for opacity and transform, and even with
+     `will-change` on it.
+
+     Measured on a 412px phone at 4x CPU, as a share of one core:
+
+       three slots breathing ....... 7.3% style recalc
+       one slot breathing .......... 4.2%
+       the same animation on a LEAF  1.8%
+       no breathing at all ......... 1.4%
+
+     It was the single largest cost on the page, larger than everything this
+     page's own script does, for three sockets pulsing 1.2%. Neither
+     `will-change` nor dropping the transform nor unclipping the tray moved it
+     — the subtree is the whole of it.
+
+     So the two visible children breathe instead. They are centred in the
+     button, so scaling each about its own centre and scaling the button about
+     its centre differ by well under a pixel at 1.2%; the third child is
+     screen-reader-only and has nothing to animate. */
+  .nm-slot:not([data-filled]) .nm-slot-ord,
+  .nm-slot:not([data-filled]) .nm-slot-add {
+    animation: nm-breathe 9s ease-in-out infinite;
+  }
+
+  .nm-slot:nth-child(2) .nm-slot-ord,
+  .nm-slot:nth-child(2) .nm-slot-add {
+    animation-delay: 1.1s;
+  }
+
+  .nm-slot:nth-child(3) .nm-slot-ord,
+  .nm-slot:nth-child(3) .nm-slot-add {
+    animation-delay: 2.2s;
+  }
+
+  /* Only one thing breathes at a time, and never while someone is typing.
+     Follows the animation onto the leaves — left on the button it would have
+     paused nothing. */
+  .nm-shell[data-calm='true'] .nm-slot-ord,
+  .nm-shell[data-calm='true'] .nm-slot-add {
+    animation-play-state: paused;
+  }
+
+  /* The seated name, and the same object mid-flight — one class, so what
+     lands is identical to what was already there and removing the flying
+     copy is invisible. */
+  .nm-token {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .nm-token-deva {
+    max-width: 100%;
+    overflow: hidden;
+    color: var(--nm-text);
+    font-size: 1.2rem;
+    line-height: 1.7;
+    font-family: var(--font-deva), var(--font-body);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .nm-token-latin {
+    color: var(--nm-text);
+    font-size: 0.8rem;
+    line-height: 1.4;
+    font-family: var(--font-display);
+  }
+
+  /* OPAQUE, and it has to be. The slot underneath is filled the instant the
+     click lands — state never waits for an animation — so a translucent copy
+     shows the seated name through the flying one and the whole gesture reads
+     as a rendering bug. Two stacked backgrounds put the marigold fill over an
+     opaque ground in one property. */
+  .nm-token--flying {
+    display: flex;
+    position: fixed;
+    justify-content: center;
+    z-index: 60;
+    will-change: transform, opacity;
+    margin: 0;
+    box-shadow: var(--nm-shadow, none);
+    border: 1.5px solid var(--nm-keep);
+    border-radius: 9px;
+    background: linear-gradient(var(--nm-keep-fill), var(--nm-keep-fill)), var(--nm-surface);
+    pointer-events: none;
+  }
+
+  /* ── The composer: LAST IN-FLOW ITEM, never position: fixed ───────────
+     A fixed element sits against the layout viewport and ends up underneath
+     the iOS keyboard permanently. */
+  .nm-composer {
+    display: flex;
+    position: relative;
+    /* ABOVE THE VALLEY. It has an opaque background but no stacking position,
+       so the moment a positioned canvas went in behind the shell the composer
+       lost the paint order and the input vanished under the sky — a functional
+       break, not a cosmetic one. The one place on this page a visitor must be
+       able to see and reach cannot depend on source order. */
+    z-index: 2;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 0.4rem;
+    border-top: 1px solid var(--nm-hair);
+    background: var(--nm-surface);
+    /* env(safe-area-inset-bottom) is 0 here — the site has no
+       viewport-fit=cover — but written defensively so adding one later
+       cannot put the composer under the home indicator. */
+    padding: 0.6rem clamp(0.75rem, 2.4vw, 1.4rem) max(0.6rem, env(safe-area-inset-bottom));
+  }
+
+  .nm-composer-in {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: border-color var(--dur-base) ease;
+    margin: 0 auto;
+    border: 1.5px solid var(--nm-hair-strong);
+    border-radius: 999px;
+    background: var(--nm-surface);
+    padding: 0.2rem 0.2rem 0.2rem 0.9rem;
+    width: 100%;
+    max-width: 720px;
+
+    &:focus-within {
+      border-color: var(--crimson);
+    }
+  }
+
+  .nm-composer-input {
+    flex: 1 1 auto;
+    border: none;
+    background: none;
+    padding: 0.45rem 0;
+    min-width: 0;
+    color: var(--nm-text);
+    /* Never below 1rem — iOS Safari zooms the viewport on focus under 16px, and
+       this page does not survive a zoom. */
+    font-size: 1.08rem;
+    line-height: 1.7;
+    font-family: var(--font-deva), var(--font-body);
+
+    &::placeholder {
+      color: var(--nm-text-soft);
+    }
+
+    &:focus-visible {
+      outline: none;
+    }
+
+    &:disabled {
+      cursor: default;
+    }
+  }
+
+  .nm-composer-go {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    transition: filter var(--dur-base) ease;
+    cursor: pointer;
+    border: none;
+    border-radius: 999px;
+    background: var(--crimson-deep);
+    width: 36px;
+    height: 36px;
+    color: var(--on-fill);
+    font-size: 1rem;
+
+    &:hover {
+      filter: brightness(1.08);
+    }
+
+    &:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+  }
+
+  /* ── Reaching the small controls ──────────────────────────────────────────
+     Audited on a 412px Android with touch emulation, and three controls came
+     back under the 44px a thumb needs: the send button at 36, the accessibility
+     link at 15, and — worst — the sound switch at 8x16, because the phone
+     layout hides its word and leaves only the 8px state glyph.
+
+     All three are the right SIZE visually. The send button at 44px would crowd
+     the composer pill it sits inside, and a 44px sound switch would be a blob
+     where a quiet dot belongs. So the hit area grows and the drawing does not:
+     a centred pseudo-element over an unchanged box.
+
+     TWO FLOORS, because there are two ways to miss. A thumb needs 44px and a
+     mouse does not — but WCAG 2.2 still asks for 24px, and the responsive gate
+     was failing these same three at 1024, 1280 and 1440 for exactly that. The
+     first cut scoped the whole thing to `pointer: coarse` and so fixed only the
+     phone. 24px always, 44px when the pointer is coarse. */
+  .nm-composer-go,
+  .nm-sound,
+  .nm-rail-a11y {
+    position: relative;
+  }
+
+  /* REAL BOX HEIGHT, not just a hit area. The pseudo-element above enlarges
+     what a pointer lands on, and it genuinely works — probed with
+     elementFromPoint, taps 21px off-centre land on the control. It is still not
+     enough on its own: the responsive gate measures the element's own
+     getBoundingClientRect, so an expander it cannot see leaves it reporting
+     8x16 forever, and a reader auditing this page by hand would reach the same
+     conclusion from the same measurement.
+
+     These two are transparent controls whose visible mark is a glyph or a line
+     of text, so growing the BOX to 26px moves nothing on screen — the glyph
+     stays 8px and centred, the link stays the same type. The size is now true
+     however you measure it. */
+  .nm-sound,
+  .nm-rail-a11y {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    min-height: 26px;
+  }
+
+  .nm-composer-go::after,
+  .nm-sound::after,
+  .nm-rail-a11y::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: max(100%, 24px);
+    height: max(100%, 24px);
+    content: '';
+  }
+
+  @media (pointer: coarse) {
+    .nm-composer-go::after,
+    .nm-sound::after,
+    .nm-rail-a11y::after {
+      width: max(100%, 44px);
+      height: max(100%, 44px);
+    }
+  }
+
+  .nm-thinking--composer {
+    margin: 0 auto;
+    width: 100%;
+    max-width: 720px;
+  }
+
+  /* ── The send fields, as the last turn in the stream ──────────────────── */
+  .nm-send {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xs);
+    border: 1px solid var(--nm-hair);
+    border-radius: 12px;
+    background: var(--nm-surface);
+    padding: var(--space-s);
+  }
+
+  .nm-send-picks {
+    margin: 0;
+    color: var(--nm-text);
+    font-size: 1rem;
+    line-height: 1.7;
+    font-family: var(--font-deva), var(--font-display);
+  }
+
+  .nm-send-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--space-2xs);
+  }
+
+  .nm-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    border: none;
+    padding: 0;
+
+    input,
+    select,
+    textarea {
+      transition: border-color var(--dur-base) ease;
+      border: 1px solid var(--nm-hair-strong);
+      border-radius: 9px;
+      background: var(--nm-surface-2);
+      padding: 0.55rem 0.75rem;
+      color: var(--nm-text);
+      font-size: 0.95rem;
+      line-height: 1.7;
+      font-family: var(--font-deva), var(--font-body);
+
+      &:focus-visible {
+        border-color: var(--crimson);
+      }
+    }
+
+    label {
+      color: var(--nm-text-soft);
+    }
+  }
+
+  .nm-send-go {
+    align-self: flex-start;
+    transition: filter var(--dur-base) ease;
+    cursor: pointer;
+    border: none;
+    border-radius: 999px;
+    background: var(--crimson-deep);
+    padding: 0.45rem 1.1rem;
+    color: var(--on-fill);
+    font-size: 0.95rem;
+    font-family: var(--font-display);
+
+    &:hover {
+      filter: brightness(1.08);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+  }
+
+  /* ── The no-JS document ───────────────────────────────────────────────── */
+  .nm-fallback {
+    padding: clamp(6rem, 14vh, 8rem) 0 var(--space-3xl);
+  }
+
+  .nm-fallback-inner {
+    margin: 0 auto;
+    padding: 0 var(--space-l);
+    max-width: 980px;
+  }
+
+  .nm-fallback-title {
+    margin: 0 0 var(--space-m);
+    font-size: clamp(2.4rem, 6vw, 4.25rem);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  .nm-fallback-h2 {
+    margin: var(--space-3xl) 0 var(--space-m);
+    font-size: clamp(2rem, 4.5vw, 3.25rem);
+    line-height: 1.1;
+    letter-spacing: -0.015em;
+  }
+
+  .nm-fallback-standfirst {
+    margin: 0 0 var(--space-s);
+    max-width: 62ch;
+    color: var(--nm-text-soft);
+    font-size: 1.05rem;
+    line-height: 1.7;
+  }
+
+  .nm-fallback-letters {
+    margin: 0 0 var(--space-s);
+    color: var(--nm-accent-text);
+    line-height: 1.7;
+  }
+
+  .nm-fallback-help,
+  .nm-fallback-provenance {
+    margin: 0 0 var(--space-s);
+    max-width: 68ch;
+    color: var(--nm-text-soft);
+    font-size: 0.9rem;
+    line-height: 1.7;
+  }
+
+  .nm-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s);
+    margin-top: var(--space-m);
+    max-width: 640px;
+  }
+
+  .nm-fallback-send {
+    align-self: flex-start;
+    cursor: pointer;
+    border: none;
+  }
+
+  /* ── Reduced motion ───────────────────────────────────────────────────
+     motion.css owns the global block and forbids per-component ones; this is
+     the page-scoped exception the rebuild plan sanctions, and it is three
+     rules rather than a second global. The global block already collapses
+     durations to 0.01ms, so what is left here is the ambient loop, which must
+     STOP rather than run 900 times faster, and the two JS-driven moves, which
+     NaamApp skips outright by reading the same media query. */
+  @media (prefers-reduced-motion: reduce) {
+    /* Follows the breathing onto the leaves it now runs on. */
+    .nm-slot .nm-slot-empty,
+    .nm-slot .nm-slot-ord,
+    .nm-slot .nm-slot-add {
+      opacity: 1;
+      animation: none;
+    }
+
+    .nm-dealt {
+      animation: none;
+    }
+
+    /* The card still ANSWERS a hover — the border and the shadow warm, which is
+       how a visitor knows the whole surface is the button — it just stops
+       moving. WCAG 2.3.3 is about motion, not about feedback, and taking the
+       feedback away would leave the one control on the card with no hover
+       state at all. */
+    .nm-card,
+    .nm-card:has(.nm-pick:not(:disabled)):hover,
+    .nm-card:has(.nm-pick:focus-visible) {
+      transform: none;
+    }
+
+    /* The ground still changes state per name kept; it stops easing into it. */
+    .nm-room {
+      transition: none;
+    }
+
+    /* The lamp used to be stilled here rather than hidden — WCAG 2.3.3 is
+       about motion, not about light. It is gone from the page entirely now, so
+       only the room it lit is left to hold still. The dust goes outright: a
+       drifting speck has no still frame worth keeping. */
+    .nm-room {
+      animation: none;
+    }
+
+    .nm-motes {
+      display: none;
+    }
+
+    /* The thread is DRAWN, not animated away. The global block already floors
+       the duration, but `backwards` would otherwise hold the connector at
+       scaleY(0) for that instant and a reduced-motion visitor would see the
+       mala with its cord missing between beads. */
+    .nm-turn-rail::before {
+      animation: none;
+    }
+
+    /* A leaf still arrives and still marks itself as yours; it stops sliding
+       in to do it. The float and the parallax go entirely — depth stays, told
+       by the shadows, which is the still frame of a floating thing. NaamWall
+       also declines to attach the pointer listener at all under this query, so
+       --px/--py are never written and `translate` never has anything to apply. */
+    .nm-leaf,
+    .nm-leaf[data-mine] {
+      translate: none;
+      animation: none;
+      transition: none;
+    }
+
+    .nm-composer-in {
+      animation: none;
+    }
+
+    /* The opening still arrives and still makes way; it stops travelling to do
+       either. Opacity is the one channel WCAG 2.3.3 leaves open, and it is
+       enough to say "this has stepped back". */
+    .nm-turn,
+    .nm-turn:has(.nm-said--you) {
+      animation: nm-fade-in 180ms ease backwards;
+    }
+
+    .nm-shell[data-first] .nm-said,
+    /* Drawn already, and still. stroke-dashoffset must be zeroed explicitly:
+       killing the animation alone would leave the dasharray at 100 and the
+       arrow would simply never appear. */
+    .nm-doodle,
+    .nm-doodle-reveal,
+    .nm-doodle-barb,
+    .nm-overlay-scrim,
+    .nm-overlay-sheet {
+      animation: none;
+      stroke-dashoffset: 0;
+    }
+
+    .nm-said,
+    .nm-turn,
+    .nm-doodle[data-gone] {
+      transform: none;
+      transition: opacity 200ms ease;
+    }
+  }
+
+  /* ── THE CARDS FOLLOW THE WORDS THAT DEALT THEM ──────────────────────────
+     Stacked, the DOM order puts the tray between the conversation and the
+     hand, so the reply and the names it is talking about were separated by the
+     lamp, the three slots and the send button. The eye has to cross all of
+     that to get from "keep the ones that sound like him" to the things it can
+     keep.
+
+     Reordered so the hand comes straight after the transcript — the bottom of
+     the text hugging the top of the cards — with the slots below them. That is
+     also what the wide layout already does: stream, then hand, then composer,
+     with the tray off in its own column. Same reading order on both.
+
+     `order` rather than moving the markup, because the DOM order is the right
+     one for a screen reader and for a page with no CSS: what you were told,
+     then what you kept, then what you were dealt. */
+  @media (max-width: 1099px) {
+    .nm-streamwrap {
+      order: 1;
+    }
+
+    .nm-hand {
+      order: 2;
+    }
+
+    .nm-tray {
+      order: 3;
+    }
+
+    .nm-composer {
+      order: 4;
+    }
+  }
+
+  /* ── A TRANSCRIPT SITS AT THE BOTTOM OF ITS BOX ──────────────────────────
+     On the stacked layout the conversation is above the tray, and while it is
+     shorter than its box it was top-aligned — measured at 1024 with two turns
+     showing, a 380px hole between the last thing said and the lamp.
+
+     A conversation grows downward toward the thing you type into, so it should
+     rest against that edge and let the empty space sit above it, where it
+     reads as room rather than as a gap. `margin-block-start: auto` on the
+     first child only absorbs FREE space, so it does nothing once the
+     transcript is long enough to scroll — which is when the scroller takes
+     over and bottom-anchoring is already the behaviour. */
+  @media (max-width: 1099px) {
+    .nm-shell:not([data-first]) .nm-stream {
+      display: flex;
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .nm-shell:not([data-first]) .nm-stream > * {
+      flex: 0 0 auto;
+      width: 100%;
+    }
+
+    .nm-shell:not([data-first]) .nm-stream > :first-child {
+      margin-block-start: auto;
+    }
+  }
+
+  /* ── Stacked ─────────────────────────────────────────────────────────────
+     Everything below the side-by-side breakpoint. This read 599 while the
+     grid begins at 1100, so tablets got a stacked DOM with none of the rules
+     that make a stacked DOM work. */
+  @media (max-width: 1099px) {
+    .nm-deal {
+      grid-template-columns: 1fr;
+    }
+
+    .nm-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .nm-index {
+      margin-left: 0;
+    }
+
+    /* Every offset on the thread is derived from these three, so the rail
+       narrows by re-declaring them and nothing else moves by hand.
+
+       Narrower than the desktop rail but no longer TINY. At 16px and a 10px
+       bead this was the worst version of the dotted-border problem, on the
+       screen most of the family will actually open the page on. 22px costs
+       about ten pixels of a 341px measure, which is a word every few lines —
+       cheap for the difference between an ornament and an object. */
+    .nm-turn {
+      --nm-rail: 22px;
+      --nm-rail-gap: 0.65rem;
+      --nm-bead: 13px;
+      --nm-bead-top: 7px;
+    }
+
+    /* NO ARROW HERE, AND THAT IS THE POINT OF IT.
+       The doodle exists to span an empty gap between the invitation and the
+       composer — on a 1280 desktop that gap is a 255px void and the gesture
+       reads. At 390 there is no void: measured, the stream is 376px tall, the
+       invitation overflows it and scrolls, and a 224px arrow bottom-anchored to
+       that stream draws itself straight down through "6,715 names, out of the
+       Vedas and the Sutras" and through the question under it. A hint that
+       crosses out the words it is pointing at is worse than no hint, and on a
+       phone the composer is already inches below the text it refers to.
+
+       Hidden rather than shortened: any height at all lands on copy, because
+       the copy reaches the bottom of the stream. */
+    .nm-doodle {
+      display: none;
+    }
+  }
+</style>

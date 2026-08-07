@@ -1,6 +1,6 @@
 ---
 /**
- * Atmosphere — the night behind everything (docs/design/DESIGN.md §2).
+ * Atmosphere — the light behind everything (docs/design/DESIGN.md §2).
  * Three fixed layers, all cheap:
  *   1. gradient field — alpenglow warmth low on the horizon, glacier cold
  *      high and opposite (pre-blurred radial gradients, no filters)
@@ -28,15 +28,19 @@
     pointer-events: none;
   }
 
-  /* Deep field — indigo depth + a faint warm horizon */
+  /* The field — same four gradients, same positions, roughly half the strength.
+     These were additive light on a dark ground; over bone they are tints, and a
+     tint at the old alpha is a stain. The indigo carried the whole night
+     composition at 0.35 and is the one that has to fall furthest — at anything
+     above ~0.08 it reads as a grey cloud sitting on the paper. */
   .atmo-field {
     position: absolute;
     inset: 0;
     background:
-      radial-gradient(ellipse 120% 60% at 50% 118%, rgba(214, 69, 83, 0.14) 0%, transparent 60%),
-      radial-gradient(ellipse 90% 50% at 85% 112%, rgba(239, 163, 59, 0.1) 0%, transparent 55%),
-      radial-gradient(ellipse 100% 70% at 15% -15%, rgba(52, 60, 110, 0.35) 0%, transparent 60%),
-      radial-gradient(ellipse 80% 55% at 92% -8%, rgba(76, 168, 162, 0.08) 0%, transparent 55%);
+      radial-gradient(ellipse 120% 60% at 50% 118%, rgba(214, 69, 83, 0.055) 0%, transparent 60%),
+      radial-gradient(ellipse 90% 50% at 85% 112%, rgba(239, 163, 59, 0.05) 0%, transparent 55%),
+      radial-gradient(ellipse 100% 70% at 15% -15%, rgba(52, 60, 110, 0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 80% 55% at 92% -8%, rgba(76, 168, 162, 0.045) 0%, transparent 55%);
   }
 
   /* Aurora glows — large, soft, slow. Transform-only animation. */
@@ -51,15 +55,15 @@
   .atmo-glow-warm {
     bottom: -42vmax;
     left: -16vmax;
-    animation: atmo-drift-warm 110s ease-in-out infinite alternate;
-    background: radial-gradient(circle, rgba(214, 69, 83, 0.1) 0%, rgba(239, 163, 59, 0.05) 42%, transparent 68%);
+    animation: atmo-drift-warm 150s ease-in-out infinite alternate;
+    background: radial-gradient(circle, rgba(214, 69, 83, 0.05) 0%, rgba(239, 163, 59, 0.03) 42%, transparent 68%);
   }
 
   .atmo-glow-cold {
     top: -38vmax;
     right: -20vmax;
-    animation: atmo-drift-cold 140s ease-in-out infinite alternate;
-    background: radial-gradient(circle, rgba(76, 168, 162, 0.08) 0%, rgba(52, 60, 110, 0.07) 45%, transparent 70%);
+    animation: atmo-drift-cold 190s ease-in-out infinite alternate;
+    background: radial-gradient(circle, rgba(76, 168, 162, 0.04) 0%, rgba(52, 60, 110, 0.035) 45%, transparent 70%);
   }
 
   @keyframes atmo-drift-warm {
@@ -67,7 +71,7 @@
       transform: translate3d(0, 0, 0) scale(1);
     }
     to {
-      transform: translate3d(9vmax, -5vmax, 0) scale(1.12);
+      transform: translate3d(6vmax, -3.5vmax, 0) scale(1.08);
     }
   }
 
@@ -76,18 +80,25 @@
       transform: translate3d(0, 0, 0) scale(1.05);
     }
     to {
-      transform: translate3d(-8vmax, 5vmax, 0) scale(1);
+      transform: translate3d(-5vmax, 3.5vmax, 0) scale(1);
     }
   }
 
-  /* Film grain — static tile, physicality without cost */
+  /* Film grain — static tile, physicality without cost.
+
+     multiply, not overlay. Overlay picks its operation from the BACKDROP: below
+     0.5 luminance it multiplies, at or above it screens. The bone ground sits at
+     L≈0.87, so overlay screens on essentially every pixel — the grain could only
+     lighten, which washed the paper out and added no texture at all. multiply on
+     a light ground is the exact analogue of what overlay was doing on a dark one:
+     it only darkens, so the tile reads as tooth. */
   .atmo-grain {
     position: absolute;
     inset: 0;
-    opacity: 0.05;
+    opacity: 0.03;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
     background-size: 160px 160px;
-    mix-blend-mode: overlay;
+    mix-blend-mode: multiply;
   }
 
   /* Phones: hold the glows still (GPU thrift); the field + grain remain */

@@ -3,7 +3,7 @@
  *
  * Balgo's system prompt used to be a hand-maintained fourth copy of the
  * product facts, and it had drifted — it carried numbers that appeared
- * nowhere else on the site, and named anchors (#vibeset-cue) that don't
+ * nowhere else on the site, and named anchors (#work-cue) that don't
  * exist in the DOM.
  *
  * Split of responsibilities: persona, tone and behaviour stay hand-written in
@@ -84,7 +84,7 @@ const publications = read('src/content/publications').sort((a, b) => Number(b.ye
 
 const lines = []
 
-lines.push("--- SECTION: Vibeset — Bishal's company (Anchor: #vibeset) ---")
+lines.push("--- SECTION: Vibeset — Bishal's company (Anchor: #work) ---")
 lines.push(
   'Vibeset is AI music tooling: three products spanning the music lifecycle — find it, fit it, prove it. Never mention the catalog track count.',
 )
@@ -111,7 +111,7 @@ for (const p of products) {
   // is how it ended up inventing mechanisms when a prospect pushed.
   const proven = (p.claims || []).filter((c) => (c.status || 'shipped') === 'shipped' && c.evidence)
   const bits = [
-    `*   ${p.name} (${p.eyebrow}, Anchor: #vibeset, page: /vibeset/${p.slug}${p.liveUrl ? `, live: ${p.liveUrl}` : ''}): ${p.tagline}.`,
+    `*   ${p.name} (${p.eyebrow}, Anchor: #work, page: /vibeset/${p.slug}${p.liveUrl ? `, live: ${p.liveUrl}` : ''}): ${p.tagline}.`,
     p.description,
     stats && `Measured: ${stats}.`,
     caps.length && `Capabilities: ${caps.join(', ')}.`,

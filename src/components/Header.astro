@@ -7,27 +7,40 @@ import { Icon } from 'astro-icon/components'
  * Header Component - Bishal Upadhyaya Portfolio
  * Transparent → frosted-glass compressed bar on scroll (dvdrod.com pattern).
  *
- * Section links are root-relative (/#vibeset) so they work from every page,
+ * Section links are root-relative (/#work) so they work from every page,
  * not just home — the script below intercepts them and smooth-scrolls when
  * the target is already on this page. About is a real route; Research lives
  * on the home page and its full list hangs off that section, not the nav.
+ *
+ * `.scrolled` is applied HERE, at build time, on every non-home route — the
+ * script below already sets it unconditionally off `!isHome`, so this only
+ * moves the decision earlier. It matters because `.scrolled` changes the
+ * header's HEIGHT (+1px border, logo 1.5rem → 1.2rem): applying it after
+ * hydration shifted every non-home page by ~4px. Invisible while the header is
+ * `position: fixed` and nothing below it moves — but /naam puts the header in
+ * flow so it can size a 100svh app, and there that shift would resize the whole
+ * page after load, against a CLS-0 gate.
  */
+const isHome = Astro.url.pathname === '/'
 ---
 
-<header id="site-header">
+<header id="site-header" class:list={{ scrolled: !isHome }}>
   <SkipLink />
   <Navigation>
     <li class="menu-item">
       <a href="/#hero" class="nav-anchor">Home</a>
     </li>
     <li class="menu-item">
-      <a href="/#vibeset" class="nav-anchor">Vibeset</a>
+      <a href="/#work" class="nav-anchor">Work</a>
     </li>
     <li class="menu-item">
       <a href="/#research" class="nav-anchor">Research</a>
     </li>
     <li class="menu-item">
       <a href="/about">About</a>
+    </li>
+    <li class="menu-item">
+      <a href="/naam">Naam</a>
     </li>
     <li class="menu-item">
       <a href="/#contact" class="nav-anchor">Contact</a>
@@ -46,8 +59,8 @@ import { Icon } from 'astro-icon/components'
     const header = document.getElementById('site-header') as HTMLElement | null
     if (!header) return
 
-    // Non-home pages sit on paper — keep the ink frost permanently so the
-    // header is always legible. Home starts transparent over the ink hero.
+    // Non-home pages keep the frost permanently so the bar always separates
+    // from the content under it. Home starts transparent over the hero.
     const isHome = window.location.pathname === '/'
 
     // Scroll compression — add .scrolled when past 60px
@@ -76,13 +89,47 @@ import { Icon } from 'astro-icon/components'
         history.pushState(null, '', hash)
       })
     })
+
+    /* ── Where am I ────────────────────────────────────────────────────────
+       The home page is one long scroll through four sections, and until now the
+       nav gave no indication which one you were in. This marks the current
+       section as you pass through it — no new nav items, no new colours, just
+       the existing label losing its dimming and gaining a rule.
+
+       aria-current="true" rather than "page": the target is a section of this
+       page, not a different page. */
+    if (!isHome) return
+    const sections = Array.from(anchors)
+      .map((a) => ({ a, el: a.hash ? document.querySelector(a.hash) : null }))
+      .filter((s): s is { a: HTMLAnchorElement; el: Element } => !!s.el)
+    if (!sections.length) return
+
+    const mark = (active: Element | null) => {
+      for (const { a, el } of sections) {
+        const on = el === active
+        a.classList.toggle('is-current', on)
+        if (on) a.setAttribute('aria-current', 'true')
+        else a.removeAttribute('aria-current')
+      }
+    }
+
+    // Threshold sits near the top of the viewport so the "current" section is
+    // the one being read, not whichever happens to be largest on screen.
+    const spy = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) mark(entry.target)
+        }
+      },
+      { rootMargin: '-20% 0px -70% 0px' },
+    )
+    sections.forEach(({ el }) => spy.observe(el))
   })
 </script>
 
 <style lang="scss" is:global>
   #site-header {
     position: fixed;
-    width: 100%;
     top: 0;
     z-index: 200;
     transition:
@@ -90,17 +137,21 @@ import { Icon } from 'astro-icon/components'
       background 0.35s cubic-bezier(0.4, 0, 0.2, 1),
       box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1),
       backdrop-filter 0.35s ease;
-    background-color: transparent;
-    border: none;
     box-shadow: none;
+    border: none;
+    background-color: transparent;
     padding: 0;
+    width: 100%;
 
-    /* ── Compressed state (after scroll): ink frost, works over both canvases ── */
+    /* ── Compressed state (after scroll): frosted paper ──────────────────────
+       This was hand-written as rgba(24, 28, 48, 0.82) — dark glass, invisible
+       to any token sweep, and the single most conspicuous artifact a ground
+       change can leave behind: a night-coloured bar pinned over a bone page. */
     &.scrolled {
-      background: rgba(24, 28, 48, 0.82);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
       border-bottom: 1px solid var(--hairline-on-ink);
+      background: var(--console-bg);
 
       /* Tighten inner padding */
       > .container {
@@ -122,18 +173,36 @@ import { Icon } from 'astro-icon/components'
 
     a,
     button {
-      color: var(--paper) !important;
       opacity: 1 !important;
+      color: var(--paper) !important;
       font-weight: 500;
       font-size: 0.72rem;
-      letter-spacing: var(--tracking-label);
       font-family: var(--font-mono);
+      letter-spacing: var(--tracking-label);
       text-transform: uppercase;
 
       &:hover,
       &:focus-visible {
-        text-decoration: none;
         opacity: 0.7 !important;
+        text-decoration: none;
+      }
+    }
+
+    /* The section you are in. Marked with a rule as well as weight — a colour
+       or opacity difference alone would be the only signal, and WCAG 1.4.1
+       rules that out. Nothing moves; the label just stops being one of five. */
+    a.is-current {
+      position: relative;
+      font-weight: 700;
+
+      &::after {
+        position: absolute;
+        bottom: -5px;
+        left: 0;
+        background: var(--crimson);
+        width: 100%;
+        height: 2px;
+        content: '';
       }
     }
 
@@ -142,10 +211,10 @@ import { Icon } from 'astro-icon/components'
       margin-inline: -7px;
 
       svg {
+        fill: currentColor;
         inline-size: 26px;
         block-size: 26px;
         color: var(--paper) !important;
-        fill: currentColor;
       }
     }
   }

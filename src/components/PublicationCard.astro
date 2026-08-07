@@ -1,7 +1,15 @@
 ---
 /**
- * PublicationCard Component
- * Display research paper/publication with clean academic styling
+ * PublicationCard — one paper on /research.
+ *
+ * Not a card, despite the name. DESIGN.md §0 rules out card grids: they are
+ * what makes a personal site read as a product dashboard, and four bordered
+ * boxes on a bordered page was the clearest example of it left on the site.
+ * A paper is an entry in a record, so it is set as one — hairline-separated,
+ * left-aligned, the year in the margin.
+ *
+ * The name stays because /research imports it and renaming a component is not
+ * what this change is about.
  */
 interface Props {
   title: string
@@ -16,147 +24,119 @@ interface Props {
 
 const { title, abstract, year, journal, doi, pdf, coauthors = [], tags = [] } = Astro.props
 
-// Format authors for display
-const authorDisplay = coauthors.length > 0 ? `with ${coauthors.join(', ')}` : ''
+/* Three of the four entries carry placeholder coauthors — "Research Group",
+   "Lab Colleagues", "Research Team". Printing those is worse than printing
+   nothing: it reads as a redaction, and it goes into the ScholarlyArticle
+   JSON-LD as a Person named "Research Group". Real names render; placeholders
+   are dropped until real ones exist. */
+const PLACEHOLDER = /^(research (group|team)|lab colleagues)$/i
+const namedAuthors = coauthors.filter((a) => !PLACEHOLDER.test(a.trim()))
 ---
 
-<article class="publication-card">
-  <header class="pub-header">
+<article class="pub">
+  <p class="pub-meta label-mono">
     <span class="pub-year">{year}</span>
-    <h2 class="pub-title">{title}</h2>
-    {journal && <p class="pub-journal">{journal}</p>}
-    {coauthors.length > 0 && <p class="pub-authors">{authorDisplay}</p>}
-  </header>
+    {journal && <span class="pub-journal">{journal}</span>}
+  </p>
+
+  <h2 class="pub-title">{title}</h2>
+
+  {namedAuthors.length > 0 && <p class="pub-authors">with {namedAuthors.join(', ')}</p>}
 
   <p class="pub-abstract">{abstract}</p>
 
   {
     tags.length > 0 && (
-      <div class="pub-tags">
-        {tags.map((tag) => (
-          <span class="tag">{tag}</span>
+      <p class="pub-tags label-mono--sm">
+        {tags.map((tag, i) => (
+          <>
+            {i > 0 && <span class="pub-sep" aria-hidden="true"> · </span>}
+            <span>{tag}</span>
+          </>
         ))}
-      </div>
+      </p>
     )
   }
 
-  <footer class="pub-links">
-    {
-      doi && (
-        <a href={`https://doi.org/${doi}`} class="pub-link" target="_blank" rel="noopener noreferrer">
-          <span>DOI</span>
-        </a>
-      )
-    }
-    {
-      pdf && (
-        <a href={pdf} class="pub-link" target="_blank" rel="noopener noreferrer">
-          <span>PDF</span>
-        </a>
-      )
-    }
-  </footer>
+  {
+    (doi || pdf) && (
+      <p class="pub-links label-mono">
+        {doi && (
+          <a href={`https://doi.org/${doi}`} target="_blank" rel="noopener noreferrer">
+            DOI ↳
+          </a>
+        )}
+        {pdf && (
+          <a href={pdf} target="_blank" rel="noopener noreferrer">
+            PDF ↳
+          </a>
+        )}
+      </p>
+    )
+  }
 </article>
 
 <style lang="scss">
-  .publication-card {
-    transition: border-color 0.2s ease;
-    border: 1px solid var(--hairline-on-paper);
-    border-radius: 1rem;
-    background: var(--paper-2);
-    padding: 1.5rem;
-
-    &:hover {
-      border-color: var(--crimson);
-    }
+  .pub {
+    border-top: 1px solid var(--hairline-on-ink);
+    padding: var(--space-l) 0 0;
   }
 
-  .pub-header {
-    margin-bottom: 1rem;
+  .pub-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.9rem;
+    margin: 0 0 var(--space-xs);
   }
 
   .pub-year {
-    display: inline-block;
-    margin-bottom: 0.5rem;
-    color: var(--marigold-text);
-    font-weight: 500;
-    font-size: 0.75rem;
-    letter-spacing: var(--tracking-label);
-    font-family: var(--font-mono);
+    color: var(--crimson-text);
   }
 
   .pub-title {
-    margin-bottom: 0.25rem;
-    color: var(--foreground-color);
+    margin: 0;
+    max-width: 40ch;
+    color: var(--paper);
     font-weight: 600;
-    font-size: 1.125rem;
-    line-height: 1.4;
-    font-family: var(--font-heading);
-  }
-
-  .pub-journal {
-    color: var(--color-warm-gray);
-    font-style: italic;
-    font-size: 0.9rem;
+    font-size: clamp(1.15rem, 2vw, 1.4rem);
+    line-height: 1.25;
+    letter-spacing: -0.01em;
   }
 
   .pub-authors {
-    margin-top: 0.25rem;
-    color: var(--color-warm-gray);
-    font-size: 0.85rem;
+    margin: var(--space-2xs) 0 0;
+    color: var(--paper-soft);
+    font-size: 0.9rem;
   }
 
   .pub-abstract {
-    // Clamp to 4 lines
-    display: -webkit-box;
-    margin-bottom: 1rem;
-    -webkit-line-clamp: 4;
-    color: var(--color-warm-gray);
-    font-size: 0.9rem;
-    line-height: 1.6;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+    margin: var(--space-s) 0 0;
+    max-width: 68ch;
+    color: var(--paper-soft);
+    font-size: 1rem;
+    line-height: 1.75;
   }
 
   .pub-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
+    margin: var(--space-s) 0 0;
+    color: var(--paper-soft);
   }
 
-  .tag {
-    border: 1px solid var(--hairline-on-paper);
-    border-radius: 999px;
-    padding: 0.125rem 0.5rem;
-    color: var(--ink-soft);
-    font-size: 0.7rem;
-    font-family: var(--font-mono);
+  .pub-sep {
+    opacity: 0.55;
   }
 
   .pub-links {
     display: flex;
-    gap: 0.75rem;
-  }
+    gap: var(--space-m);
+    margin: var(--space-s) 0 0;
 
-  .pub-link {
-    transition:
-      background 0.2s ease,
-      color 0.2s ease;
-    border: 1px solid var(--crimson-deep);
-    border-radius: 999px;
-    padding: 0.25rem 0.75rem;
-    color: var(--crimson-text);
-    font-weight: 500;
-    font-size: 0.8rem;
-    letter-spacing: var(--tracking-label);
-    font-family: var(--font-mono);
-    text-transform: uppercase;
-    text-decoration: none;
+    a {
+      color: var(--paper-soft);
 
-    &:hover {
-      background: var(--crimson-deep);
-      color: var(--paper);
+      &:hover {
+        color: var(--marigold-text);
+      }
     }
   }
 </style>

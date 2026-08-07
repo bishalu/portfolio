@@ -1,7 +1,9 @@
 ---
 /**
  * LoadingScreen — the page-load sequence (docs/design/MOTION.md §5).
- * Ink field → the signal trace draws itself → name arrives → dissolve.
+ * Bone field → the signal trace draws itself → name arrives → dissolve.
+ * The field is the page's own ground, which is what removes the flash: there is
+ * no longer a dark overlay handing off to a light document.
  * Once per session, ≤1.6s, skippable by click/key, instant under reduced motion.
  * Dispatches `bishal:hero-go` (and sets window.__introDone) so the hero
  * entrance begins exactly as the overlay dissolves — the trace hands off.
@@ -18,8 +20,8 @@
     <svg class="ls-trace" viewBox="0 0 600 60" fill="none" preserveAspectRatio="none" aria-hidden="true">
       <defs>
         <linearGradient id="ls-grad" x1="0" y1="0" x2="600" y2="0" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stop-color="#d64553"></stop>
-          <stop offset="1" stop-color="#efa33b"></stop>
+          <stop offset="0" stop-color="var(--crimson)"></stop>
+          <stop offset="1" stop-color="var(--marigold)"></stop>
         </linearGradient>
       </defs>
       <path
@@ -96,7 +98,11 @@
       fill: 'both',
     })
     // ② the name arrives
-    label.animate([{ opacity: 0 }, { opacity: 0.7 }], { duration: 300, delay: 150, fill: 'both' })
+    // Lands at 1, not 0.7. The old target was a dark-ground assumption baked
+    // into JS: --paper-soft at 0.7 is 5.03:1 over the night canvas and 3.27:1
+    // over bone. The overlay is aria-hidden, so axe will never look at it — only
+    // a screenshot catches this one.
+    label.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, delay: 150, fill: 'both' })
     word1.animate([{ transform: 'translateY(34px)', opacity: 0 }, { transform: 'translateY(0)', opacity: 1 }], {
       duration: 400,
       delay: 350,
@@ -110,14 +116,17 @@
       fill: 'both',
     })
     // ③ one pulse along the finished trace…
-    trace.animate([{ opacity: 1 }, { opacity: 0.4 }, { opacity: 1 }], { duration: 240, delay: 880 })
+    // The dip only has to read as a pulse. At 0.4 a warm stroke over bone is
+    // effectively gone, so the beat reads as a flicker rather than a pulse.
+    trace.animate([{ opacity: 1 }, { opacity: 0.65 }, { opacity: 1 }], { duration: 240, delay: 880 })
 
     // …then dissolve into the hero (entrance starts under the fade)
     timeouts.push(
       setTimeout(async () => {
         signalDone()
         try {
-          await screen.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, easing: 'ease-in', fill: 'both' })
+          // Light growing, not a curtain lifting. Still inside the 1.6s budget.
+          await screen.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 520, easing: EXPO_OUT, fill: 'both' })
             .finished
         } catch {}
         finalize()

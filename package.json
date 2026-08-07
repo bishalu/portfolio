@@ -9,11 +9,14 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
-    "prebuild": "node scripts/check-claims.mjs && node scripts/gen-balgo-context.mjs",
+    "prebuild": "node scripts/check-claims.mjs && node scripts/gen-balgo-context.mjs && node scripts/naam/build-dataset.mjs --check",
     "build": "astro build",
     "preview": "astro preview",
     "claims": "node scripts/check-claims.mjs",
-    "verify": "node scripts/verify/run.mjs"
+    "naam:build": "node scripts/naam/build-dataset.mjs",
+    "verify": "node scripts/verify/run.mjs",
+    "naam:eval": "node scripts/naam/eval/run.mjs",
+    "naam:thesaurus": "node scripts/naam/build-thesaurus.mjs"
   },
   "keywords": [
     "astro",
@@ -81,6 +84,8 @@
     "clsx": "^2.1.1",
     "lucide-react": "^0.562.0",
     "openai": "^6.16.0",
+    "pixi-filters": "^6.1.5",
+    "pixi.js": "^8.19.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "tailwind-merge": "^3.4.0",

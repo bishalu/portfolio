@@ -19,10 +19,12 @@ const isPruning = (id: string) => slugOf(id) === 'structured-pruning'
 <section class="rt" id="research">
   <div class="rt-inner">
     <header class="rt-head" data-reveal>
-      <p class="label-mono">Research</p>
+      <p class="rt-head-eyebrow">Research</p>
       <h2 class="rt-title">Neurons first, models second.</h2>
       <p class="rt-lede">
-        Before I built AI systems, I studied the original ones. Electrical synapses, in living circuits.
+        Before I built AI systems I studied the original ones — electrical signalling between neurons, in
+        living circuits. Then medical imaging. Then how to make a network small enough to run anywhere.
+        The habits are the same in all three: measure honestly, and publish the row that fails.
       </p>
     </header>
 
@@ -104,13 +106,21 @@ const isPruning = (id: string) => slugOf(id) === 'structured-pruning'
         ))
       }
     </ol>
+
+    <!-- One sentence, and deliberately no second one. The longer-term direction
+         belongs on the page because it is true and because the people worth
+         hearing from will recognise it; it does not belong in a manifesto. -->
+    <p class="rt-close" data-reveal>
+      What I want to point this at next is measurement of the harder kind: attention, behaviour,
+      well-being, the texture of someone's actual experience.
+    </p>
   </div>
 
   <svg width="0" height="0" aria-hidden="true">
     <defs>
       <linearGradient id="rt-grad" x1="0" y1="0" x2="0" y2="48" gradientUnits="userSpaceOnUse">
-        <stop offset="0" stop-color="#d64553"></stop>
-        <stop offset="1" stop-color="#efa33b"></stop>
+        <stop offset="0" stop-color="var(--crimson)"></stop>
+        <stop offset="1" stop-color="var(--marigold)"></stop>
       </linearGradient>
     </defs>
   </svg>
@@ -130,6 +140,22 @@ const isPruning = (id: string) => slugOf(id) === 'structured-pruning'
 
   .rt-head {
     margin-bottom: var(--space-xl);
+  }
+
+  .rt-head-eyebrow {
+    margin: 0 0 var(--space-xs);
+    color: var(--paper-soft);
+    font-size: 0.95rem;
+  }
+
+  .rt-close {
+    margin: var(--space-2xl) 0 0;
+    border-top: 1px solid var(--hairline-on-ink);
+    padding-top: var(--space-l);
+    max-width: 62ch;
+    color: var(--paper-soft);
+    font-size: 1.05rem;
+    line-height: 1.8;
   }
 
   .rt-title {
@@ -261,7 +287,7 @@ const isPruning = (id: string) => slugOf(id) === 'structured-pruning'
       white-space: nowrap;
 
       &:hover {
-        color: var(--marigold);
+        color: var(--marigold-text);
       }
     }
   }
@@ -318,7 +344,7 @@ const isPruning = (id: string) => slugOf(id) === 'structured-pruning'
   }
 
   .rt-crosslink-glyph {
-    color: var(--marigold);
+    color: var(--marigold-text);
     margin-right: 0.3rem;
   }
 

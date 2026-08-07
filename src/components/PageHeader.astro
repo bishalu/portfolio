@@ -1,0 +1,78 @@
+---
+/**
+ * PageHeader — how an inner page opens (docs/design/DESIGN.md §3).
+ *
+ * Replaces PageHero, which predated the design system: three morphing blurred
+ * blobs on their own animation loops, a hardcoded #9b59b6, four "accent themes"
+ * built on compat tokens that no longer point anywhere, and its own
+ * prefers-reduced-motion block that MOTION.md §3 forbids. Four real pages used
+ * it, which is why they read as a different site than the landing page.
+ *
+ * What replaces it is the grammar every section on the home page already uses:
+ * an eyebrow saying where you are, one title, one line saying what matters
+ * here, and a rule. Left-aligned, because the rest of the site is. Atmosphere
+ * shows through — this element paints nothing of its own.
+ */
+interface Props {
+  /** Where the visitor is. Sentence case; the mono voice is for data. */
+  eyebrow?: string
+  /** The page. Uses the section-title triple. */
+  title: string
+  /** One line on what matters here. Not a description of the page. */
+  subtitle?: string
+}
+
+const { eyebrow, title, subtitle } = Astro.props
+---
+
+<header class="ph">
+  <div class="ph-inner">
+    {eyebrow && <p class="ph-eyebrow" data-reveal="settle">{eyebrow}</p>}
+    <h1 class="ph-title" data-reveal="settle">{title}</h1>
+    {subtitle && <p class="ph-sub" data-reveal="settle">{subtitle}</p>}
+    <slot />
+  </div>
+</header>
+
+<style lang="scss">
+  .ph {
+    /* Top padding clears the fixed header; the bottom is the section rhythm, so
+       an inner page opens with the same amount of air as a home-page band. */
+    padding: calc(var(--space-3xl) + 3rem) 0 var(--space-xl);
+  }
+
+  .ph-inner {
+    margin: 0 auto;
+    border-bottom: 1px solid var(--hairline-on-ink);
+    padding: 0 var(--space-l) var(--space-l);
+    max-width: 1200px;
+  }
+
+  .ph-eyebrow {
+    margin: 0 0 var(--space-xs);
+    color: var(--paper-soft);
+    font-size: 0.95rem;
+  }
+
+  /* The section-title triple, verbatim (docs/design/DESIGN.md P5). */
+  .ph-title {
+    margin: 0;
+    font-size: clamp(2rem, 4.5vw, 3.25rem);
+    line-height: 1.02;
+    letter-spacing: -0.015em;
+  }
+
+  .ph-sub {
+    margin: var(--space-s) 0 0;
+    max-width: 46ch;
+    color: var(--paper-soft);
+    font-size: 1.05rem;
+    line-height: 1.7;
+  }
+
+  @media (max-width: 479px) {
+    .ph-inner {
+      padding-inline: var(--space-m);
+    }
+  }
+</style>
