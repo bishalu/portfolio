@@ -436,6 +436,26 @@ export default function NaamApp({ seed }: NaamAppProps) {
   const [reopened, setReopened] = useState<ReadonlySet<string>>(() => new Set())
 
   const mountRef = useRef<AbortController | null>(null)
+  /**
+   * ── LIVE MEANS HYDRATED, NOT LOADED ────────────────────────────────────
+   *
+   * The composer used to be disabled until the 6,715-name dataset landed,
+   * which made the only input on the page dead for 5.6s on fast 4G and past
+   * 22s on slow 4G. Ungating it entirely was worse in a way the first
+   * measurement missed: this island is server-rendered, so an input with no
+   * `disabled` is in the FIRST PAINTED HTML — live-looking, with no
+   * JavaScript attached. Typed at 218ms, the keystrokes went into a DOM node
+   * React had never seen and Enter did nothing at all. A box that swallows a
+   * sentence is worse than a box that says it is not ready.
+   *
+   * So the gate moved to the thing that actually decides whether typing works:
+   * has this component mounted in a browser. `false` on the server and on the
+   * first client render, `true` one effect later — which is when the handlers
+   * exist. The DATASET no longer gates anything; a sentence typed before it
+   * arrives waits inside runAsk.
+   */
+  const [live, setLive] = useState(false)
+  useEffect(() => setLive(true), [])
   /** The doodle's containing block, and the two things it is measured against. */
   const streamWrapRef = useRef<HTMLDivElement | null>(null)
   const composerRef = useRef<HTMLDivElement | null>(null)
@@ -854,8 +874,11 @@ export default function NaamApp({ seed }: NaamAppProps) {
    * underneath a line that is no longer true.
    */
   const runModel = useCallback(
-    async (value: string, replaceId?: string) => {
-      const dataset = rows
+    // `given` is the dataset a caller already has in hand. A sentence typed
+    // before the download finished resolves it and passes it straight through,
+    // rather than waiting a render for `rows` state to catch up.
+    async (value: string, replaceId?: string, given?: NaamRow[]) => {
+      const dataset = given ?? rows
       const mount = mountRef.current
       if (!dataset || !mount || asking || value.length === 0) return
 
@@ -922,14 +945,46 @@ export default function NaamApp({ seed }: NaamAppProps) {
     [asking, rows],
   )
 
-  /** What the visitor said, then the model's turn. */
+  /**
+   * What the visitor said, then the model's turn.
+   *
+   * ── IT NO LONGER REFUSES A SENTENCE TYPED TOO EARLY ─────────────────────
+   *
+   * The composer used to be `disabled` until the 6,715-name dataset had
+   * landed, because the client builds the pool of ids the model may choose
+   * from and cannot do that without it. Honest, and measured on a 412px phone
+   * at 4x CPU it was awful: the only input on the page was dead for 5.6s on
+   * fast 4G and had not come alive after 22 seconds on slow 4G. The page said
+   * "reading the document…" and a visitor who wanted to type simply could not.
+   *
+   * The premise was wrong. The dataset is needed to SEND, not to TYPE, and
+   * somebody typing a sentence takes seconds — which is exactly the window the
+   * download needs. So the box is live from the first frame and the sentence
+   * waits here instead: `loadCoreRows()` hands back the same cached promise the
+   * boot fetch is already waiting on, so this joins that request rather than
+   * starting another.
+   *
+   * The turn is pushed BEFORE the await, so what they typed is on screen the
+   * instant they press enter and the thinking state carries the wait — the
+   * page reacts to the person, then to the network.
+   */
   const runAsk = useCallback(
     (text: string) => {
       const value = text.trim()
-      if (!rows || asking || value.length === 0) return
+      if (asking || value.length === 0) return
 
       setTurns((prev) => [...prev, { id: nextId(), kind: 'you', text: value }])
-      void runModel(value)
+      if (rows) {
+        void runModel(value)
+        return
+      }
+      void loadCoreRows().then(
+        (loaded) => {
+          setRows(loaded)
+          void runModel(value, undefined, loaded)
+        },
+        () => setDataFailed(true),
+      )
     },
     [asking, rows, runModel],
   )
@@ -2482,10 +2537,10 @@ export default function NaamApp({ seed }: NaamAppProps) {
             className="nm-composer-input"
             type="text"
             value={ask}
-            placeholder={notReady ? C.app.reading : C.app.composerPlaceholder}
+            placeholder={live ? C.app.composerPlaceholder : C.app.reading}
             autoComplete="off"
             maxLength={400}
-            disabled={notReady}
+            disabled={!live}
             onFocus={bumpCalm}
             onBlur={bumpCalm}
             onChange={(event) => {
@@ -2501,7 +2556,11 @@ export default function NaamApp({ seed }: NaamAppProps) {
           <button
             type="button"
             className="nm-composer-go"
-            disabled={notReady || asking || ask.trim().length === 0}
+            /* Not gated on the dataset — Enter is not either, and a send
+               button that refuses a sentence the Enter key accepts is two
+               different answers to the same question. runAsk waits for the
+               rows itself. */
+            disabled={!live || asking || ask.trim().length === 0}
             onClick={submitAsk}
           >
             <span aria-hidden="true">↑</span>
