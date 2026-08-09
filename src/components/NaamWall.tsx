@@ -240,6 +240,14 @@ export default function NaamWall({ notes, onKeep }: NaamWallProps) {
 
     let raf = 0
     /**
+     * How long to wait before concluding no scene is coming. Generous on
+     * purpose: it is only ever read on the path where the renderer has
+     * failed, and being slow to reveal names in that case costs far less than
+     * revealing them early in the case where it has not.
+     */
+    const NO_SCENE_MS = 2500
+    let giveUp: number | null = null
+    /**
      * The node list is read ONCE, not per frame. querySelectorAll allocates a
      * fresh NodeList every call, and this runs sixty times a second for the
      * life of the page; the elements only change when `notes` does, which is
@@ -260,17 +268,36 @@ export default function NaamWall({ notes, onKeep }: NaamWallProps) {
     const tick = () => {
       const field = lanternField()
       /**
-       * NO FIELD, NO WAITING. If the canvas never came up — a blocked context,
-       * a refused WebGL — nothing will ever step this simulation, and a label
-       * loop that only reveals on a step leaves every name at opacity 0
-       * forever. Measured with getContext stubbed to null: three lines of
-       * conversation and an empty sky where eight names should be.
+       * NO FIELD YET IS NOT NO FIELD.
        *
-       * The names are the page. They show, and this loop stops.
+       * If the canvas never comes up — a blocked context, a refused WebGL —
+       * nothing will ever step this simulation, and a loop that only reveals
+       * on a step leaves every name at opacity 0 forever. So there has to be a
+       * way out. The first version took it IMMEDIATELY on an empty field, and
+       * that was wrong in a way only a recording showed: the valley is a
+       * dynamic import, so the field is empty for the first few hundred
+       * milliseconds of every single load.
+       *
+       * Filmed at 1440: two names printed as bare text on a pale, unresolved
+       * sky at 260ms, gone at 600ms, back inside their lanterns at 850ms. In,
+       * out, back — worse than either of the states it was mediating between,
+       * and it undid the whole point of hiding them, which is that a name
+       * should never appear without the paper it is written on.
+       *
+       * So emptiness starts a clock instead of a decision. If bodies arrive,
+       * the clock is cancelled and the normal path runs. If they have not
+       * arrived by the time a scene would plainly have built, there is no
+       * scene coming and the names show on their own — which is the honest
+       * reading of a page whose renderer never arrived.
        */
       if (field.bodies.length === 0) {
-        reveal()
+        if (giveUp === null) giveUp = window.setTimeout(reveal, NO_SCENE_MS)
+        raf = requestAnimationFrame(tick)
         return
+      }
+      if (giveUp !== null) {
+        window.clearTimeout(giveUp)
+        giveUp = null
       }
       if (field.steps === lastStep) {
         raf = requestAnimationFrame(tick)
@@ -313,7 +340,10 @@ export default function NaamWall({ notes, onKeep }: NaamWallProps) {
       raf = requestAnimationFrame(tick)
     }
     raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
+    return () => {
+      cancelAnimationFrame(raf)
+      if (giveUp !== null) window.clearTimeout(giveUp)
+    }
   }, [stacked, frame.cw, frame.ch, notes.length])
 
   /**
