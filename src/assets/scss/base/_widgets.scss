@@ -114,9 +114,16 @@
     box-shadow: var(--glow-crimson);
   }
 
+  /* A translucent fill is a fine "not yet" on night, where 45% of crimson over
+     an almost-black ground still reads as a solid darker chip. On paper the
+     same rule blends toward white and the control looks broken rather than
+     waiting. Swapping to a real muted surface says the same thing in one
+     opaque colour, and it says it identically on both grounds. */
   &:disabled {
-    opacity: 0.45;
+    box-shadow: none;
+    background: var(--ink-2);
     cursor: default;
+    color: var(--paper-soft);
   }
 }
 
@@ -439,8 +446,9 @@
   cursor: pointer;
 
   &:disabled {
-    opacity: 0.55;
+    background: var(--ink-2);
     cursor: default;
+    color: var(--paper-soft);
   }
 }
 

@@ -347,9 +347,11 @@ const choon = bySlug['choon']
     color: var(--glacier-text);
   }
 
+  /* No opacity. --paper-soft already clears 4.5 on every depth; multiplying it
+     by 0.8 dropped it to 4.3 and made a passing token fail. If something needs
+     to be quieter than --paper-soft, that is a token, not an alpha. */
   .vs-frozen-input {
     color: var(--paper-soft);
-    opacity: 0.8;
   }
 
   .vs-frozen-body {

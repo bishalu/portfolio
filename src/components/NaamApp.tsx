@@ -31,6 +31,7 @@ import {
   PICK_MAX,
   type NaamPick,
 } from '@/lib/naam/tray'
+import { lanternField } from '@/lib/naam/scene/lanterns'
 import { naamPreferredDevanagari, naamPreferredForm, type NaamRow } from '@/types/naam'
 
 /**
@@ -1060,6 +1061,32 @@ export default function NaamApp({ seed }: NaamAppProps) {
       window.removeEventListener('resize', measure)
     }
   }, [opening.done, turns.length])
+
+  /**
+   * ── THE SKY ANSWERS THE ASK ─────────────────────────────────────────────
+   *
+   * The lantern field is held until here (see `release()` in lanterns.ts). It
+   * comes up when the invitation has finished asking — not before, because
+   * lanterns rising while the page is still explaining itself are scenery
+   * competing with the words, and the same lanterns rising after the line
+   * "what kind of name are you looking for?" are the reply to it (L3).
+   *
+   * SKY_BEAT is a rest, not a delay. The third block takes 520ms to arrive and
+   * then the page is quiet for a moment before anything answers — that pause
+   * is what makes the sky read as a response rather than as the next item in a
+   * queue. Filling it would be the exact failure mode this objective warns
+   * about: more motion, less room (L1).
+   *
+   * `opening.done` is already true on the first frame for a returning visitor
+   * mid-conversation, so their sky comes up immediately, which is right — they
+   * are not being invited, they are coming back.
+   */
+  useEffect(() => {
+    if (!opening.done) return undefined
+    const SKY_BEAT = 500
+    const id = window.setTimeout(() => lanternField().release(), SKY_BEAT)
+    return () => window.clearTimeout(id)
+  }, [opening.done])
 
   const [starters, setStarters] = useState<NaamStarter[]>([])
   const usedStarters = useRef<Set<string>>(new Set())
@@ -2131,7 +2158,18 @@ export default function NaamApp({ seed }: NaamAppProps) {
 
               Only before the first question. After that the conversation is
               the content, and this would be the page talking over it. */}
-          {!asked && notes.length > 0 && (
+          {/* ── AND IT WAITS FOR THE ASK, LIKE THE SKY DOES ──────────────────
+              On the stacked layout this row IS the sky: the family's names,
+              in the thread, because there is no world to hang them in. So it
+              answers the same line the lanterns answer (L3, L5) — and it was
+              not, it was sitting there from 449ms, three seconds before the
+              page asked for anything.
+
+              Most of this family reads on a phone. That makes this the version
+              of the entry that matters most, and it had no entry at all — it
+              inherited the desktop's content without the desktop's
+              choreography, which is exactly what L5 exists to prevent. */}
+          {!asked && opening.done && notes.length > 0 && (
             <li className="nm-turn nm-wallrow">
               <span className="nm-turn-rail" aria-hidden="true">
                 {/* `note`, which already exists and already means exactly
@@ -2505,7 +2543,17 @@ export default function NaamApp({ seed }: NaamAppProps) {
         <p className="nm-cue-reading label-mono label-mono--sm" data-on={notReady && !dataFailed ? 'true' : undefined} aria-hidden="true">
           {C.app.reading}
         </p>
-        {starters.length > 0 && (
+        {/* THE EXAMPLES WAIT FOR THE QUESTION. These three chips are ways of
+            answering "what kind of name are you looking for?" — and that line
+            is the invitation's THIRD block, which does not land until ~3.7s.
+            Filmed, they were on screen at 700ms: three answers offered three
+            seconds before anything had been asked, which reads as a menu rather
+            than as help (L1, L3).
+
+            They arrive with the ask now, in the same beat — a question and its
+            examples are one thought, not two events. The row's height is still
+            reserved from the first frame, so nothing moves when they land. */}
+        {starters.length > 0 && opening.done && (
           <ul className="nm-starters" aria-label={C.app.startersLabel} data-on={notReady ? undefined : 'true'}>
             {starters.map((starter) => (
               <li key={starter.id}>
@@ -2546,6 +2594,17 @@ export default function NaamApp({ seed }: NaamAppProps) {
             onChange={(event) => {
               setAsk(event.target.value)
               bumpCalm()
+              /* THE FIRST KEYSTROKE ENDS THE PERFORMANCE, not the first submit.
+                 `rush()` was wired to submitAsk, under a comment reading
+                 "typing is consent to get on with it" — which is what it should
+                 do and was not what it did. Measured: typing at 700ms left the
+                 blocks arriving at 3773ms, exactly as if nobody had touched
+                 anything, so someone composing a sentence did it with the page
+                 still performing in their peripheral vision.
+
+                 Somebody who has started typing has told you they are ready.
+                 Idempotent, so every later keystroke is free (L4). */
+              opening.rush()
             }}
             onKeyDown={(event) => {
               if (event.key !== 'Enter') return

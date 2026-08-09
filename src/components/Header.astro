@@ -2,6 +2,7 @@
 import Navigation from '../components/Navigation.astro'
 import { Link, SkipLink } from 'accessible-astro-components'
 import { Icon } from 'astro-icon/components'
+import ThemeToggle from './ThemeToggle.astro'
 
 /**
  * Header Component - Bishal Upadhyaya Portfolio
@@ -22,6 +23,11 @@ import { Icon } from 'astro-icon/components'
  * page after load, against a CLS-0 gate.
  */
 const isHome = Astro.url.pathname === '/'
+/* /naam pins its own palette and does not read the ground tokens, so the
+   toggle would sit there looking pressable and change nothing. A control that
+   appears to do nothing is worse than no control. Hiding it here rather than
+   in naam keeps that page untouched. */
+const showThemeToggle = !Astro.url.pathname.startsWith('/naam')
 ---
 
 <header id="site-header" class:list={{ scrolled: !isHome }}>
@@ -51,6 +57,7 @@ const isHome = Astro.url.pathname === '/'
         <span class="sr-only">GitHub Profile</span>
       </Link>
     </li>
+    {showThemeToggle && <ThemeToggle />}
   </Navigation>
 </header>
 

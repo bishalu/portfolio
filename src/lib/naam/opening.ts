@@ -44,13 +44,23 @@ export const OPENING_STEPS = 3
  * above about 1500 the reader has finished and is waiting, which is the failure
  * the previous 820ms total was over-correcting for.
  */
-const STEP_MS = 1150
+const STEP_MS = 1300 /* the source line is 18 quiet words; the ask follows a beat later */
 
 /**
- * The gap before the SECOND block. The first one does not wait at all — see
- * FIRST_STAGE below.
+ * The gap before the SECOND block, measured from hydration — the greeting is
+ * already on the paper before this clock starts.
+ *
+ * It was 220ms, and the rests only ever LOOKED right because boot lag padded
+ * them: filmed, the second line landed 1582ms in, but scheduled it was 220ms
+ * after hydration — which on a fast machine is on top of a greeting the
+ * visitor has barely started. A rest produced by lag is not a rest, it is a
+ * coincidence, and it collapses on exactly the hardware that renders best.
+ *
+ * 1600 is read off the copy rather than rounded to: the greeting is 24 words,
+ * which is about a second and a half to take in without hurrying. The rests
+ * are the design (L1), so they are set from what is in them.
  */
-const FIRST_MS = 220
+const FIRST_MS = 1400
 
 /**
  * ── THE GREETING IS ALREADY ON THE CARD ─────────────────────────────────────

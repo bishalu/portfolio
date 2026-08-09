@@ -2630,7 +2630,20 @@ if (!seedRow) {
     margin-left: -45px;
     width: 90px;
     z-index: 3;
-    animation: nm-doodle-in 400ms ease 900ms backwards;
+    /* ── LAST, NOT ALONGSIDE ────────────────────────────────────────────
+       The arrow used to start 900ms after the invitation finished, which put
+       it on the left of the fold drawing itself while the lanterns rose on the
+       right. That is the same two-clocks fault the sky was just moved to avoid
+       (L2), reintroduced by the fix for it — both were waiting on the same
+       `opening.done`.
+
+       It goes last. The sky answers the ask, the sky settles, and then the page
+       makes one final small gesture toward the box. An arrow is an instruction,
+       and an instruction belongs after the explanation rather than during it.
+
+       2600ms is the sky's own length: 500ms of rest plus eight lanterns at
+       0.07s apart plus a 0.95s lift. */
+    animation: nm-doodle-in 400ms ease 2600ms backwards;
     pointer-events: none;
 
     /* ── The colour, and why the old one looked dirty ──────────────────────
@@ -2696,7 +2709,10 @@ if (!seedRow) {
      from a page load that knows nothing about it. */
   /* The mask is what moves; the ink underneath it never changes. */
   .nm-doodle-reveal {
-    animation: nm-doodle-draw 2200ms cubic-bezier(0.4, 0, 0.5, 1) 900ms backwards;
+    /* 2200ms of drawing was generous for a thin hand-drawn arrow, and it is
+       the last thing on screen now — a closing gesture that outstays its
+       welcome stops being one. */
+    animation: nm-doodle-draw 1300ms cubic-bezier(0.4, 0, 0.5, 1) 2600ms backwards;
   }
 
   /* The barbs land after the shaft arrives, 40ms apart, because that is the
@@ -2705,7 +2721,7 @@ if (!seedRow) {
      that is the order and the rhythm a hand draws them in. Still quick: a barb
      is a flick, not a stroke. */
   .nm-doodle-barb {
-    animation: nm-doodle-draw 170ms cubic-bezier(0.65, 0, 0.35, 1) 3100ms backwards;
+    animation: nm-doodle-draw 170ms cubic-bezier(0.65, 0, 0.35, 1) 3900ms backwards;
   }
 
   .nm-doodle-barb--b {
@@ -2786,6 +2802,27 @@ if (!seedRow) {
     color: var(--nm-text-soft);
   }
 
+  @keyframes nm-wall-arrive {
+    from {
+      transform: scale(0.94);
+      opacity: 0;
+    }
+
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
+
+  /* One after another, 70ms apart — the sky's stagger, so the two layouts feel
+     like the same page keeping time. Six is the family's list; a seventh and
+     beyond simply arrive with the sixth rather than trailing forever. */
+  .nm-wallrow-list > li:nth-child(2) .nm-wallrow-item { animation-delay: 70ms; }
+  .nm-wallrow-list > li:nth-child(3) .nm-wallrow-item { animation-delay: 140ms; }
+  .nm-wallrow-list > li:nth-child(4) .nm-wallrow-item { animation-delay: 210ms; }
+  .nm-wallrow-list > li:nth-child(5) .nm-wallrow-item { animation-delay: 280ms; }
+  .nm-wallrow-list > li:nth-child(n + 6) .nm-wallrow-item { animation-delay: 350ms; }
+
   .nm-wallrow-list {
     display: flex;
     gap: 0.45rem;
@@ -2809,7 +2846,18 @@ if (!seedRow) {
     scroll-snap-align: start;
   }
 
+  /* ── THE PHONE'S OWN ANSWER, ARRIVING ────────────────────────────────────
+     On the stacked layout this row is what the sky is on the desktop, and it
+     gets the same shape of arrival: it lands after the ask, one name after
+     another, left to right along the row a thumb is about to swipe.
+
+     Deliberately NOT the sky's rise. A lantern goes UP because it is a lantern;
+     these are pills in a scrolling row and lifting them would be the desktop's
+     gesture borrowed rather than the phone's own (L5). They come forward
+     instead — a small scale and a fade, the movement of something being set
+     down in front of you. */
   .nm-wallrow-item {
+    animation: nm-wall-arrive 420ms cubic-bezier(0.05, 0.7, 0.1, 1) both;
     display: flex;
     position: relative;
     cursor: pointer;
@@ -3040,17 +3088,28 @@ if (!seedRow) {
 
   /* Into a space that was already theirs, so nothing moves — only the ink
      arrives. Staggered by a breath so it reads as three things offered rather
-     than one row switched on. */
+     than one row switched on.
+
+     THEY ARE THE CLOSING BEAT, WITH THE ARROW. Two earlier placements were
+     both wrong and in opposite directions: at 700ms they answered a question
+     that had not been asked for another three seconds; moved to land with the
+     ask, they arrived in the same frame the sky started rising, which is the
+     left-and-right competition this whole pass exists to remove (L2).
+
+     So they go last, on the arrow's own 2600ms, and the two of them together
+     are one final beat that means "your turn" — the examples of what to say
+     and the mark pointing at where to say it. The row's height is reserved
+     from the first frame either way, so nothing moves when they land. */
   .nm-starter {
-    animation: nm-fade-in 300ms ease both;
+    animation: nm-fade-in 300ms ease 2600ms both;
   }
 
   .nm-starters > li:nth-child(2) .nm-starter {
-    animation-delay: 70ms;
+    animation-delay: 2670ms;
   }
 
   .nm-starters > li:nth-child(3) .nm-starter {
-    animation-delay: 140ms;
+    animation-delay: 2740ms;
   }
 
   .nm-starter {

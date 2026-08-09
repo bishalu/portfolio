@@ -1,118 +1,119 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   ALPENGLOW v3 — "First light" · design tokens, single source of truth
+   ALPENGLOW v4 — two grounds · design tokens, single source of truth
    Bishal Upadhyaya · bishal.ai
    Spec: docs/design/DESIGN.md (theme) · docs/design/MOTION.md (motion)
 
-   Same mountain, sun up. Alpenglow is the light *before* sunrise, so the world
-   was always going to arrive here. Bone is now the ground rather than the mark,
-   and the night's indigo is the ink: the site stopped being an oscilloscope in
-   a dark room and became a chart recorder writing on paper.
+   The site is an instrument reading a signal, and an instrument has two output
+   media. Dark is the oscilloscope screen. Light is the chart recorder's paper.
+   Same trace, same hues, different medium — which is why `--crimson` and
+   `--crimson-deep` are byte-identical in both blocks below and always will be.
+   They are the identity; everything else is what the medium demands.
 
-   The hues did not change. --crimson and --crimson-deep are byte-for-byte what
-   they were on the night canvas. What changed is which of them is allowed to
-   carry text, and that inverted — which is the whole reason the text/mark split
-   in the accent block below exists.
+   ARCHITECTURE
+   `:root` carries DARK. Light is an override block. That order is deliberate:
+   a client with no JavaScript, or one that runs the inline theme script late,
+   gets the default rather than a flash of the wrong ground. Dark is the
+   default the site was designed in and the one it returns to.
+
+   WHY THE LIGHT GROUND IS COOL
+   v3 put bone #f4f1ea under indigo ink #12152b — opposite temperatures. Every
+   accent then had to be re-picked warm to survive on the bone, and a warm
+   accent dark enough for 4.5:1 is brown. That is where the mustard came from;
+   it was not a taste failure, it was a temperature failure. The ground is now
+   the same hue family as the ink, so the two grounds read as one identity at
+   two lightnesses and the accents stay accents.
+
+   MUSTARD VERSUS BURNT ORANGE
+   No amber is both 4.5:1 on a light ground and still amber — that is physics,
+   not preference. So on paper, marigold does not carry text as amber. It shifts
+   hue toward red: #8a570b was hue ~57°, yellow-brown, which reads as 1970s
+   stationery. #9a4a17 is hue ~28°, burnt orange, which reads as a decision. It
+   also measures slightly better — 5.32 against 5.20 on the ground.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 
-  /* ── Canvas (one world, three depths) ─────────────────────────────────────
-     The names are inherited and now read backwards: --void is the bone ground,
-     --paper is the ink. Renaming them is a mechanical, zero-risk change and it
-     is deliberately NOT bundled here — the honest light name for --ink is
-     --paper and vice versa, so a partial rename produces white-on-white in
-     whichever files have not landed yet. One commit changes appearance; a
-     different commit changes names. */
-  --void: #f4f1ea; /* bone — the page ground */
-  --ink: #fdfbf7; /* raised panels, cards */
-  --ink-2: #eae7de; /* inputs, wells — a SINK on light, where it was a raise on night */
-  --paper: #12152b; /* the night, now the writing — primary text · 15.94 on ground */
-  --paper-soft: #4e5470; /* secondary text · 6.59 */
+  /* ── Canvas — the night (one world, three depths) ──────────────────────── */
+  --void: #0e1124; /* the night — page canvas */
+  --ink: #181c30; /* raised panels, cards */
+  --ink-2: #222741; /* inputs, wells, second raise */
+  --paper: #faf7f1; /* bone — primary text, the light itself */
+  --paper-soft: #b0b5ca; /* secondary text */
 
   /* ── Accents ──────────────────────────────────────────────────────────────
-     Each accent is two colours doing two jobs. On the night canvas the two
-     happened to coincide; on bone they cannot. Text carries 4.5:1, marks 3:1.
-     Ratios below are against --void; all three depths are tabulated in
-     docs/design/DESIGN.md P3. */
-  --crimson: #d64553; /* UNCHANGED — focus rings, borders, pulse start · 3.85 */
-  --crimson-deep: #b4353f; /* UNCHANGED — the one filled surface · 5.29 */
-  --crimson-text: #a92f3b; /* AA-safe crimson for text on bone · 5.90 */
-  --marigold: #b87413; /* marks and strokes only · 3.36 — never text */
-  --marigold-text: #8a570b; /* a real value now, not an alias · 5.40 */
-  --glacier: #35847f; /* live/success dots, non-text accents · 3.91 */
-  --glacier-text: #226762; /* AA-safe glacier for LIVE badge text · 5.85 */
+     On night the mark and text values of each accent coincide. On paper they
+     cannot, which is why the split exists at all. */
+  --crimson: #d64553; /* IDENTITY — accents, focus rings, pulse start */
+  --crimson-deep: #b4353f; /* IDENTITY — the one filled surface */
+  --crimson-text: #f07a84; /* AA-safe crimson for text on night */
+  --marigold: #efa33b; /* pulse end, highlights — AA on night as-is */
+  --marigold-text: #efa33b; /* on night, marigold is text-safe unchanged */
+  --glacier: #4ca8a2; /* live/success dots and non-text accents */
+  --glacier-text: #6fc7c1; /* AA-safe glacier for LIVE badge text on night */
 
-  /* Label colour for text sitting ON a filled --crimson-deep surface. Distinct
-     from --paper because the two only coincided on the night canvas: the page's
-     primary text and a button's label are different jobs. Using --paper here
-     after the flip is 3.02:1 — a failure on the site's one call to action. */
-  --on-fill: #fdfbf7; /* 5.77 on --crimson-deep */
+  /* Label colour for text sitting ON a filled --crimson-deep surface. A page's
+     primary text and a button's label are different jobs; they only coincided
+     on night. */
+  --on-fill: var(--paper);
 
   /* Legacy alias — secondary text */
   --ink-soft: var(--paper-soft);
 
   /* ── The signal ───────────────────────────────────────────────────────────
-     Still a line, never a fill (DESIGN.md P4). Only the stops moved. */
+     Still a line, never a fill (DESIGN.md P5). */
   --grad-signal: linear-gradient(90deg, var(--crimson), var(--marigold));
-  /* Gradient-clipped TEXT is far less forgiving on bone than on night, so
-     .text-gradient-organic gets its own ramp built from the text-safe pair. */
+  /* Gradient-clipped TEXT needs the text-safe pair of whichever ground is up.
+     Both stops are themed tokens, so this one line is correct in both. */
   --grad-signal-text: linear-gradient(90deg, var(--crimson-text), var(--marigold-text));
 
-  /* ── Hairlines, wash, lift ────────────────────────────────────────────────
-     Three grounds separated by 1.09:1 cannot carry depth on their own the way
-     three dark surfaces could. Hairlines do more work here, and a bounded pair
-     of elevations exists where the night canvas needed none. */
-  --hairline-on-ink: rgb(18 21 43 / 0.2); /* perceptual match to the old bone-at-14% */
+  /* ── Hairlines, wash, lift ────────────────────────────────────────────── */
+  --hairline-on-ink: rgb(250 247 241 / 0.14);
   --hairline-on-paper: var(--hairline-on-ink); /* legacy alias — one world */
-  --hairline-strong: rgb(18 21 43 / 0.34); /* control boundaries: inputs, chips */
-  /* The faintest possible fill — hover states, wells, chart reference lines. */
-  --wash: rgb(18 21 43 / 0.06);
-  /* The subordinate series in a chart — the "before" bar, the reference line.
-     Re-chosen rather than inverted: the arithmetic inverse of the old #3a3f5c
-     is a near-black bar that out-shouts the series carrying the argument. */
-  --chart-muted: rgb(18 21 43 / 0.16);
-  --lift-1: 0 1px 2px rgb(18 21 43 / 0.05), 0 8px 20px -14px rgb(18 21 43 / 0.28);
-  --lift-2: 0 2px 4px rgb(18 21 43 / 0.06), 0 24px 48px -24px rgb(18 21 43 / 0.35);
+  --hairline-strong: rgb(250 247 241 / 0.28); /* control boundaries: inputs, chips */
+  --wash: rgb(250 247 241 / 0.1);
+  --chart-muted: #3a3f5c;
+  /* Night separates its surfaces by value, so elevation is a quiet ambient
+     shadow rather than the load-bearing device it is on paper. */
+  --lift-1: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 20px -14px rgb(0 0 0 / 0.6);
+  --lift-2: 0 2px 4px rgb(0 0 0 / 0.35), 0 24px 48px -24px rgb(0 0 0 / 0.7);
 
-  /* ── Bloom (was glow) ─────────────────────────────────────────────────────
-     A 28px colour blur at 35% is emphasis on a dark ground and a smudge on a
-     light one. Same four names, same fourteen consumers, same one-line rules —
-     the mechanism becomes a tinted ring plus a short directional drop, which is
-     how light says "this is lit" when the paper is already bright. */
-  --glow-crimson: 0 0 0 1px rgb(180 53 63 / 0.3), 0 10px 24px -10px rgb(180 53 63 / 0.55);
-  --glow-marigold: 0 0 0 1px rgb(184 116 19 / 0.35), 0 10px 24px -10px rgb(184 116 19 / 0.5);
-  --glow-glacier: 0 0 0 1px rgb(53 132 127 / 0.35), 0 10px 22px -10px rgb(53 132 127 / 0.5);
-  --ring-crimson: 0 0 0 4px rgb(214 69 83 / 0.18);
+  /* ── Glow — night's emphasis is light spilling ─────────────────────────── */
+  --glow-crimson: 0 0 28px rgb(214 69 83 / 0.35);
+  --glow-marigold: 0 0 28px rgb(239 163 59 / 0.3);
+  --glow-glacier: 0 0 24px rgb(76 168 162 / 0.35);
+  --ring-crimson: 0 0 0 4px rgb(214 69 83 / 0.2);
 
-  /* ── Stage — the surfaces that stay dark, deliberately ────────────────────
-     Not a theme branch and not a second world: a surface role, the way a
-     photograph is a surface role. Three consumers only — the Choon spectrum,
-     the Cue timeline, and the product media zone.
+  /* ── Surfaces ─────────────────────────────────────────────────────────── */
+  --console-bg: rgb(34 39 65 / 0.55);
+  --console-blur: 14px;
+  --paper-2: var(--ink); /* legacy alias — "card/well surface" */
+  --border-color-subtle: rgb(250 247 241 / 0.08);
+  --card-background: rgb(24 28 48 / 0.65);
 
-     It earns its place three times over: 48 saturated spectrum bars stay
-     readable instead of smearing on bone; screenshots of dark product UIs stop
-     floating on white; and it is what saves the three product quote hues, one
-     of which (Cue's lime) is 1.09:1 on bone and 14.06:1 here. Without it,
-     DESIGN.md §5 has to be renegotiated and that lime retired. */
+  /* ═══ Ground-independent ═══════════════════════════════════════════════ */
+
+  /* ── Stage — the surfaces that stay dark in BOTH grounds ────────────────
+     A surface role, the way a photograph is a surface role, and deliberately
+     not a theme branch: it is identical above and below. Three consumers — the
+     Choon spectrum, the Cue timeline, the product media zone. It keeps 48
+     saturated spectrum bars legible, stops dark product screenshots floating
+     on paper, and saves the three product quote hues, one of which (Cue's
+     lime) is 1.09:1 on bone and 14.06:1 here. */
   --stage: #141830;
   --stage-hair: rgb(250 247 241 / 0.14);
   --on-stage: #faf7f1; /* 16.32 on --stage */
   --on-stage-soft: #b0b5ca; /* 8.57 */
-  /* The warm accent for text on a stage. This is the night canvas's own
-     marigold, unchanged — the old accent survives exactly where the old ground
-     does, which is the neatest possible proof that --stage is a real surface
-     role and not a leftover. --marigold-text is 2.87:1 here and unusable. */
   --marigold-on-stage: #efa33b; /* 8.29 on --stage */
 
   /* ── Type roles ───────────────────────────────────────────────────────────
-     Mono is the voice of data — labels, numbers, status. It is NOT the voice of
-     section headings; uppercase mono chrome is what makes a page read as an
-     instrument panel rather than a still surface. */
+     Mono is the voice of data — labels, numbers, status. Not the voice of
+     section headings. */
   --font-display: 'Bricolage Grotesque Variable', 'Atkinson Hyperlegible', system-ui, sans-serif;
   --font-body: 'Atkinson Hyperlegible', system-ui, sans-serif;
   --font-mono: 'DM Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   --tracking-label: 0.08em;
+  --font-heading: var(--font-display);
 
   /* ── Motion (spec: docs/design/MOTION.md) ─────────────────────────────── */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1); /* default — expo-out */
@@ -122,25 +123,16 @@
   --dur-base: 200ms;
   --dur-slow: 400ms;
 
-  /* ── Surfaces ─────────────────────────────────────────────────────────── */
-  --console-bg: rgb(253 251 247 / 0.72);
-  --console-blur: 14px;
-  --paper-2: var(--ink); /* legacy alias — "card/well surface" */
-
-  /* ═══════════════════════════════════════════════════════════════════════
-     COMPAT LAYER — legacy names remapped onto Alpenglow.
-     Consumers are rewritten section by section; delete entries as they die.
-     Most of these follow their targets through the flip and needed no edit.
-     ═══════════════════════════════════════════════════════════════════════ */
+  /* ═══ COMPAT LAYER — legacy names remapped onto Alpenglow ══════════════
+     Every entry resolves through a themed token, so the whole layer follows
+     the ground with no per-theme duplication. */
   --foreground-color: var(--paper);
   --background-color: var(--void);
   --link-color: var(--crimson-text);
   --link-hover-color: var(--marigold-text);
   --border-color: var(--hairline-on-ink);
-  --border-color-subtle: rgb(18 21 43 / 0.1);
   --text-decoration-color: var(--hairline-on-ink);
   --text-decoration-color-hover: var(--crimson);
-  --card-background: rgb(253 251 247 / 0.75);
 
   --color-living-teal: var(--glacier);
   --color-moss-green: var(--glacier);
@@ -148,6 +140,65 @@
   --color-warm-gray: var(--paper-soft);
   --color-charcoal-text: var(--paper);
   --color-deep-moss: var(--ink);
+}
 
-  --font-heading: var(--font-display);
+/* ═══════════════════════════════════════════════════════════════════════════
+   PAPER — the chart recorder's ground.
+
+   Cool, not cream. Same hue family as the ink, which is what lets the accents
+   stay accents. Measured against all three depths (ground / raised / sink):
+
+     --paper        #12152b   15.34 / 17.05 / 14.10
+     --paper-soft   #474e66    7.03 /  7.81 /  6.46
+     --crimson-text #a82a38    5.87 /  6.52 /  5.39
+     --marigold-tx  #9a4a17    5.32 /  5.92 /  4.89
+     --glacier-text #1e605c    6.22 /  6.91 /  5.71
+     --marigold     #b5730a    3.31 /  3.67 /  3.04   marks only
+     --crimson      #d64553    3.71 /  4.12 /  3.41   marks only
+     --glacier      #2f7d78    4.14 /  4.60 /  3.81   marks only
+     --on-fill      #f7f9fc    5.65 on --crimson-deep
+
+   Text clears 4.5 on every depth; marks clear 3.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  /* The names are inherited and read backwards here: --void is the ground,
+     --paper is the ink. Renaming is mechanical and deliberately separate — a
+     partial rename paints white-on-white in whatever has not landed. */
+  --void: #eaedf4; /* cool paper — the page ground */
+  --ink: #f7f9fc; /* raised panels, cards */
+  --ink-2: #dfe4ee; /* inputs, wells — a SINK here, where night raises */
+  --paper: #12152b; /* the night, now the writing */
+  --paper-soft: #474e66; /* secondary text */
+
+  --crimson-text: #a82a38;
+  --marigold: #b5730a; /* marks and strokes only — never text */
+  --marigold-text: #9a4a17; /* burnt orange, not mustard. See the header note. */
+  --glacier: #2f7d78;
+  --glacier-text: #1e605c;
+
+  --on-fill: #f7f9fc;
+
+  /* Three grounds this close together cannot carry depth on value alone, so
+     hairlines and a bounded pair of elevations do the work night did with
+     value. */
+  --hairline-on-ink: rgb(18 21 43 / 0.16);
+  --hairline-strong: rgb(18 21 43 / 0.3);
+  --wash: rgb(18 21 43 / 0.05);
+  --chart-muted: rgb(18 21 43 / 0.16);
+  --lift-1: 0 1px 2px rgb(18 21 43 / 0.05), 0 8px 20px -14px rgb(18 21 43 / 0.28);
+  --lift-2: 0 2px 4px rgb(18 21 43 / 0.06), 0 24px 48px -24px rgb(18 21 43 / 0.35);
+
+  /* Bloom, not glow. A 28px colour blur is emphasis on night and a smudge on
+     paper; the mechanism becomes a tinted ring plus a short directional drop. */
+  --glow-crimson: 0 0 0 1px rgb(180 53 63 / 0.3), 0 10px 24px -10px rgb(180 53 63 / 0.55);
+  --glow-marigold: 0 0 0 1px rgb(181 115 10 / 0.35), 0 10px 24px -10px rgb(181 115 10 / 0.5);
+  --glow-glacier: 0 0 0 1px rgb(47 125 120 / 0.35), 0 10px 22px -10px rgb(47 125 120 / 0.5);
+  --ring-crimson: 0 0 0 4px rgb(214 69 83 / 0.18);
+
+  --console-bg: rgb(247 249 252 / 0.72);
+  --border-color-subtle: rgb(18 21 43 / 0.1);
+  --card-background: rgb(247 249 252 / 0.75);
 }

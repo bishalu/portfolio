@@ -1,0 +1,148 @@
+---
+/**
+ * Screen ⇄ paper.
+ *
+ * Not a sun and a moon. This site is an instrument reading a signal, and an
+ * instrument has two output media: an oscilloscope shows its trace on a screen,
+ * a chart recorder writes the same trace onto paper. The tokens commit that
+ * came before this one used exactly those words. So the icon is a chip with the
+ * site's own trace across it — the same glyph as the favicon, which is a trace
+ * that resolves into a b.
+ *
+ * The chip shows the DESTINATION, not the current state. On night it is a pale
+ * chip with a dark trace, meaning "go to paper"; on paper it inverts. Showing
+ * the current state instead is the classic bug — half the people read it one
+ * way and half the other, and neither is wrong.
+ *
+ * It sits last in the nav, after the GitHub mark. Two icons at the end of six
+ * words is the seam where chrome already lives, so nothing new is crowded in
+ * beside the links themselves.
+ *
+ * No aria-pressed. This is an action, not a state: the label says what pressing
+ * it will do, and it is rewritten whenever the ground changes.
+ *
+ * Targeted by class, never by id. <Navigation> renders its slot twice — once
+ * for the desktop bar and once inside the mobile sheet — so an id here ships
+ * two elements sharing one, and only the first would ever be wired. axe does
+ * not flag duplicate ids any more, so nothing would have caught it.
+ */
+---
+
+<li class="menu-item type-icon theme-item">
+  <button
+    type="button"
+    class="theme-toggle js-theme-toggle"
+    data-theme-toggle
+    aria-label="Switch to paper"
+    title="Switch to paper"
+  >
+    <svg class="tt-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <rect class="tt-chip" x="2.75" y="5.25" width="18.5" height="13.5" rx="3.25"></rect>
+      <path class="tt-trace" d="M5.75 12 H9.25 L11.1 8.6 L13 15.4 L14.9 12 H18.25"></path>
+    </svg>
+  </button>
+</li>
+
+<style lang="scss">
+  .theme-toggle {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    transition:
+      transform 0.22s var(--ease-out),
+      background 0.22s var(--ease-out);
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    cursor: pointer;
+    /* WCAG 2.2 AA 2.5.8 wants 24px; the icon is 22 and the pad carries it past. */
+    padding: 0.35rem;
+    width: 34px;
+    height: 34px;
+    color: inherit;
+
+    &:hover {
+      transform: translateY(-1px);
+      background: var(--wash);
+    }
+
+    &:active {
+      transform: scale(0.96);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--crimson);
+      outline-offset: 2px;
+    }
+  }
+
+  .tt-icon {
+    display: block;
+    width: 22px;
+    height: 22px;
+  }
+
+  /* Night: a pale chip — press it and you get paper. */
+  .tt-chip {
+    fill: var(--paper);
+    opacity: 0.9;
+  }
+
+  .tt-trace {
+    fill: none;
+    stroke: var(--void);
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* Paper: the chip becomes the night, and the trace lights up. Both sides use
+     the same two tokens, which swap with the ground — so this is one rule, not
+     a second set of colours to keep in sync. */
+  :global(:root[data-theme='light']) .tt-chip {
+    fill: var(--paper);
+    opacity: 0.92;
+  }
+
+  :global(:root[data-theme='light']) .tt-trace {
+    stroke: var(--marigold-on-stage);
+  }
+</style>
+
+<script>
+  document.addEventListener('astro:page-load', () => {
+    const buttons = [...document.querySelectorAll<HTMLButtonElement>('[data-theme-toggle]')]
+    if (!buttons.length) return
+    const root = document.documentElement
+
+    /* "paper" and "screen" rather than "light" and "dark": the words name the
+       medium the reader is about to get, and they are the site's own. */
+    const label = (next: string) => (next === 'light' ? 'Switch to paper' : 'Switch to screen')
+
+    /* Every instance is relabelled, not just the one that was pressed — the
+       desktop bar and the mobile sheet are both in the DOM at once. */
+    const sync = () => {
+      const next = root.dataset.theme === 'light' ? 'dark' : 'light'
+      buttons.forEach((b) => {
+        b.setAttribute('aria-label', label(next))
+        b.setAttribute('title', label(next))
+      })
+    }
+
+    buttons.forEach((b) =>
+      b.addEventListener('click', () => {
+        const next = root.dataset.theme === 'light' ? 'dark' : 'light'
+        if (next === 'light') root.dataset.theme = 'light'
+        else delete root.dataset.theme
+        try {
+          localStorage.setItem('theme', next)
+        } catch {
+          /* private mode — the choice lasts this page only, which is honest */
+        }
+        sync()
+      }),
+    )
+
+    sync()
+  })
+</script>

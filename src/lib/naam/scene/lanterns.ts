@@ -355,16 +355,25 @@ const DRIFT_Z = 0.04
  * and the next; the lift is how long one takes to reach its resting spot from
  * ENTER_FROM below it.
  *
- * 1.05s is chosen against the brief "quickly, but not so quick they stop
+ * 0.95s is chosen against the brief "quickly, but not so quick they stop
  * reading as balloons". Under about 700ms a paper lantern reads as an element
- * fading in; over about 1.5s the sky is still assembling itself while the
- * visitor is trying to read the invitation. Eight lanterns at 0.11s apart put
- * the last one settled at ~2.1s, which is inside the time the first sentence
- * takes to read.
+ * fading in; over about 1.5s the sky is still assembling itself long after the
+ * words have stopped.
+ *
+ * THE LEAD IS NOW ZERO. It existed to give the valley a beat to itself before
+ * anything rose into it, and that beat has moved somewhere better: the field is
+ * held until the invitation has finished asking, and the rest before it is
+ * SKY_BEAT in NaamApp. Keeping a second lead here would have been a rest inside
+ * a rest.
+ *
+ * The stagger came down with it — 0.11 to 0.07. The sky now starts after the
+ * words rather than under them, so its tail is the last thing on screen, and a
+ * tail nobody is still watching is not a rest, it is an overrun (E8). Eight
+ * lanterns at 0.07 apart settle 1.4s after the first one lifts.
  */
-const ENTER_LEAD = 0.28
-const ENTER_STAGGER = 0.11
-const ENTER_LIFT = 1.05
+const ENTER_LEAD = 0.0
+const ENTER_STAGGER = 0.07
+const ENTER_LIFT = 0.95
 /** How far below its spot a lantern starts, as a fraction of frame height. */
 const ENTER_FROM = 0.16
 
@@ -559,6 +568,32 @@ export class LanternField {
   }
 
   /**
+   * ── THE SKY WAITS FOR THE INVITATION TO FINISH ASKING ──────────────────
+   *
+   * Held by default. The lanterns are other people's names, and they mean
+   * something quite different depending on when they arrive: rising WHILE the
+   * page is still explaining itself, they are ambient scenery competing with
+   * the words; rising AFTER the line that asks for your help, they are the
+   * answer to it (L3).
+   *
+   * Filmed before this: the second line of the invitation landed while the
+   * lanterns were mid-rise and the third landed during their tail, so the eye
+   * was pulled left-right-left across the fold and neither performance was
+   * watched. Two well-made choreographies running concurrently read as
+   * neither (L2).
+   *
+   * `age` is what the arrival clocks on, so holding simply stops that clock.
+   * Everything else — drift, collision, the wander — runs from the first frame,
+   * because the sky being alive is not the same as the sky arriving.
+   */
+  private held = true
+
+  /** The invitation has finished asking. Let them up. */
+  release(): void {
+    this.held = false
+  }
+
+  /**
    * Skip the arrival — every lantern already up, nothing lifted.
    *
    * Under prefers-reduced-motion the scene draws ONE frame and then stops, so
@@ -570,6 +605,7 @@ export class LanternField {
    * whether the scene is allowed to be complete.
    */
   settle(): void {
+    this.held = false
     for (const b of this.bodies) {
       b.y -= b.lift
       b.lift = 0
@@ -598,7 +634,7 @@ export class LanternField {
      * entrance has to take the same time on every machine, so it takes `dt` —
      * bounded only against a tab that was backgrounded for a minute.
      */
-    this.age += Math.min(dt, 0.25)
+    if (!this.held) this.age += Math.min(dt, 0.25)
 
     // Undo last frame's lift so the simulation below runs on the resting
     // position, not on the position the arrival put it in.

@@ -47,6 +47,28 @@ const {
     />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
 
+    <!--
+      Theme, resolved before first paint.
+
+      Inline and synchronous on purpose: anything deferred paints the default
+      ground first and then repaints, which is the flash this exists to
+      prevent. It is three lines because it only ever writes one value —
+      `:root` is dark, so "dark" is the absence of the attribute rather than a
+      second state to store. A reader who has never touched the toggle, or who
+      has JavaScript off entirely, gets dark.
+
+      The OS preference is deliberately not consulted. Dark is this site's
+      design, not its fallback, and a light-mode OS should not silently
+      reinterpret it — the toggle is how a reader says otherwise.
+    -->
+    <script is:inline>
+      try {
+        if (localStorage.getItem('theme') === 'light') document.documentElement.dataset.theme = 'light'
+      } catch (e) {
+        /* private mode — dark, which is the default anyway */
+      }
+    </script>
+
     <!-- favicon — raster set rather than an SVG. The mark is flat vector art
          but its counter is not a circle any primitive reproduces, so hand-
          tracing it would have drifted from the artwork. Browsers pick the
