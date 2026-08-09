@@ -329,11 +329,20 @@ import Logo from './Logo.astro'
       }
     }
 
+    /* The open panel had a border, a radius and padding, and no fill. It was
+       written as an in-flow block that pushes the page down — but the header is
+       position: fixed, so it floats, and eight transparent menu items landed on
+       top of the hero. Unreadable on every page, in both grounds, on any phone.
+       Found by opening it and looking; no automated check covers "you can read
+       the navigation". --void rather than a translucent surface, because this
+       one sits directly over body copy. */
     .mobile-menu {
       flex-basis: 100%;
       margin-block-start: var(--space-m);
+      box-shadow: var(--lift-2);
       border: 1px solid var(--border-color-subtle);
       border-radius: var(--radius-l);
+      background: var(--void);
       padding: var(--space-m);
 
       > ul {
