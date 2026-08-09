@@ -1049,11 +1049,26 @@ if (!seedRow) {
       width: 100%;
     }
 
-    .nm-shell[data-first] .nm-stream > :first-child {
+    /* ── `li`, NOT `:first-child` — THE CANVAS STEALS IT ────────────────
+       The mala mounts by prepending its canvas to .nm-stream, so from the
+       moment it loads the canvas IS the first child. The auto margin moved
+       onto it, and an auto margin on an absolutely positioned element does
+       nothing at all — so the turns lost their top spacer and the whole
+       column snapped upward.
+
+       Filmed at 1440: the first line sat at 232px for the first 900ms and
+       jumped to 113px in a single frame, the moment the canvas arrived. 118px,
+       and it takes the rope with it. The most visible pop left on the page,
+       and it was invisible to every probe because nothing was measuring the
+       position of text that was not supposed to move.
+
+       `li` matches the turns and never the canvas, so the spacers stay where
+       they were put whatever else is prepended to this scroller. */
+    .nm-shell[data-first] .nm-stream > li:first-of-type {
       margin-block-start: auto;
     }
 
-    .nm-shell[data-first] .nm-stream > :last-child {
+    .nm-shell[data-first] .nm-stream > li:last-of-type {
       margin-block-end: auto;
     }
   }
@@ -2856,8 +2871,23 @@ if (!seedRow) {
      gesture borrowed rather than the phone's own (L5). They come forward
      instead — a small scale and a fade, the movement of something being set
      down in front of you. */
-  .nm-wallrow-item {
+  /* Held until the row is told the ask has landed. `visibility` rides the
+     opacity so a name that has not arrived cannot be tabbed to or tapped. */
+  .nm-wallrow:not([data-on]) .nm-wallrow-lead,
+  .nm-wallrow:not([data-on]) .nm-wallrow-item {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .nm-wallrow[data-on] .nm-wallrow-item {
     animation: nm-wall-arrive 420ms cubic-bezier(0.05, 0.7, 0.1, 1) both;
+  }
+
+  .nm-wallrow[data-on] .nm-wallrow-lead {
+    animation: nm-fade-in 300ms ease both;
+  }
+
+  .nm-wallrow-item {
     display: flex;
     position: relative;
     cursor: pointer;

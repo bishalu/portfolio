@@ -355,10 +355,17 @@ const DRIFT_Z = 0.04
  * and the next; the lift is how long one takes to reach its resting spot from
  * ENTER_FROM below it.
  *
- * 0.95s is chosen against the brief "quickly, but not so quick they stop
- * reading as balloons". Under about 700ms a paper lantern reads as an element
- * fading in; over about 1.5s the sky is still assembling itself long after the
- * words have stopped.
+ * 2.1s, and the number went UP on the second look. 0.95s was chosen against
+ * "quickly, but not so quick they stop reading as balloons" and it overshot:
+ * a paper lantern crossing a third of the screen in under a second is not
+ * drifting, it is being placed. Something that large and that light moves
+ * slowly, and the slowness IS the immersion — this is the one place on the
+ * page where taking longer makes the thing more like itself.
+ *
+ * It lengthens the tail, which an earlier axis argued against. That axis was
+ * written when the sky ran UNDER the words and its tail was an overrun; the
+ * sky is the last movement in the sequence now, so a long settle is the page
+ * coming to rest rather than something still outstanding.
  *
  * THE LEAD IS NOW ZERO. It existed to give the valley a beat to itself before
  * anything rose into it, and that beat has moved somewhere better: the field is
@@ -372,10 +379,29 @@ const DRIFT_Z = 0.04
  * lanterns at 0.07 apart settle 1.4s after the first one lifts.
  */
 const ENTER_LEAD = 0.0
-const ENTER_STAGGER = 0.07
-const ENTER_LIFT = 0.95
-/** How far below its spot a lantern starts, as a fraction of frame height. */
-const ENTER_FROM = 0.16
+const ENTER_STAGGER = 0.15
+const ENTER_LIFT = 2.1
+/**
+ * How far outside the frame a lantern starts, as a fraction of the frame.
+ *
+ * ── THEY DRIFT IN FROM THE EDGES, THEY DO NOT RISE FROM BELOW ────────────
+ *
+ * The first version lifted every lantern 0.16 of the frame height from
+ * underneath its resting spot, which is what a sky lantern does at the moment
+ * it is released. But nothing on this page is being released here — these are
+ * other people's names, sent from somewhere else, and the honest picture is of
+ * lanterns that have been aloft a while and are drifting over.
+ *
+ * So each one comes in from whichever frame edge it is nearest: the high ones
+ * down from the top, the ones near a side in from that side. The entry
+ * direction is a property of where a lantern lives, so the sky fills from its
+ * own edges inward rather than every object obeying one rule.
+ *
+ * 0.34 rather than 0.16 because a drift from off-screen has to start
+ * off-screen — a lantern that appears a third of the way in has not drifted,
+ * it has faded.
+ */
+const ENTER_FROM = 0.34
 
 export interface LanternBody {
   /** Live position, in fractions of the frame. */
@@ -423,6 +449,9 @@ interface Body extends LanternBody {
   enter: number
   /** Seconds to wait before this one starts lifting. */
   enterDelay: number
+  /** Unit vector from off-frame toward home — which edge this one drifts in from. */
+  enterX: number
+  enterY: number
   /**
    * How much of `y` is the arrival rather than the simulation.
    *
@@ -430,9 +459,10 @@ interface Body extends LanternBody {
    * first version added it every frame and the lanterns left the frame
    * downward at 0.16 of the screen per step. Carrying the applied amount and
    * subtracting it at the top of the step keeps one source of truth — both
-   * readers still take `y` — while the physics never sees the lift.
+   * readers still take `x` and `y` — while the physics never sees the lift.
    */
   lift: number
+  liftX: number
 }
 
 /** Deterministic 0..1 from a seed — a lantern must not change character. */
@@ -523,7 +553,10 @@ export class LanternField {
         wanderGain: 0.6 + rand(s + 23) * 0.8,
         enter: 0,
         enterDelay: 0,
+        enterX: 0,
+        enterY: 0,
         lift: 0,
+        liftX: 0,
         wanderTilt: ((i * 0.7548776662) % 1) * 6.283185 + rand(s + 29) * 0.4,
       }
       this.bodies.push(
@@ -541,7 +574,10 @@ export class LanternField {
               vz: kept.vz,
               enter: kept.enter,
               enterDelay: kept.enterDelay,
+              enterX: kept.enterX,
+              enterY: kept.enterY,
               lift: kept.lift,
+              liftX: kept.liftX,
             }
           : seeded,
       )
@@ -565,6 +601,41 @@ export class LanternField {
       .forEach((body, rank) => {
         body.enterDelay = ENTER_LEAD + rank * ENTER_STAGGER
       })
+
+    /**
+     * WHICH EDGE EACH ONE CAME FROM — top, left or right, split by where a
+     * lantern sits AMONG THE OTHERS rather than by which frame edge is
+     * physically nearest.
+     *
+     * Nearest-edge was the first version and it collapsed: the sky occupies
+     * the right-hand column, so every lantern's closest edge is the right one
+     * and all eight drifted in from the same side. Measured — 1 of 3 edges in
+     * use. A rule that is geometrically correct and produces one behaviour is
+     * not a rule, it is a constant.
+     *
+     * Ranked across the band instead: the leftmost third enter from the left,
+     * the rightmost third from the right, and the middle come down from the
+     * top. That guarantees all three are used at any width and at any number
+     * of names, and it reads as what it is — a sky filling from its edges.
+     *
+     * The bottom is deliberately never a candidate. Below the sky is the
+     * valley, and a lantern coming up out of the town reads as launched from
+     * it, which is a different picture from one drifting over.
+     */
+    const byX = arriving.slice().sort((a, z) => a.homeX - z.homeX)
+    const third = Math.max(1, Math.round(byX.length / 3))
+    byX.forEach((b, i) => {
+      if (i < third) {
+        b.enterX = -1
+        b.enterY = -0.3
+      } else if (i >= byX.length - third) {
+        b.enterX = 1
+        b.enterY = -0.3
+      } else {
+        b.enterX = 0
+        b.enterY = -1
+      }
+    })
   }
 
   /**
@@ -607,8 +678,10 @@ export class LanternField {
   settle(): void {
     this.held = false
     for (const b of this.bodies) {
+      b.x -= b.liftX
       b.y -= b.lift
       b.lift = 0
+      b.liftX = 0
       b.enter = 1
     }
   }
@@ -639,8 +712,10 @@ export class LanternField {
     // Undo last frame's lift so the simulation below runs on the resting
     // position, not on the position the arrival put it in.
     for (const b of this.bodies) {
+      b.x -= b.liftX
       b.y -= b.lift
       b.lift = 0
+      b.liftX = 0
     }
 
     for (const b of this.bodies) {
@@ -725,7 +800,11 @@ export class LanternField {
       const t = Math.max(0, Math.min(1, (this.age - b.enterDelay) / ENTER_LIFT))
       b.enter = 1 - Math.pow(1 - t, 3)
       const left = 1 - b.enter
-      b.lift = left * ENTER_FROM
+      // x in frame-fractions is narrower than y, so the horizontal reach is
+      // divided by the aspect to travel the same visible distance.
+      b.liftX = (left * ENTER_FROM * b.enterX) / this.aspect
+      b.lift = left * ENTER_FROM * b.enterY
+      b.x += b.liftX
       b.y += b.lift
       // Fades over the first half of the lift, so it is fully there for the
       // part of the climb the eye is actually following.

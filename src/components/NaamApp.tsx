@@ -2169,8 +2169,15 @@ export default function NaamApp({ seed }: NaamAppProps) {
               of the entry that matters most, and it had no entry at all — it
               inherited the desktop's content without the desktop's
               choreography, which is exactly what L5 exists to prevent. */}
-          {!asked && opening.done && notes.length > 0 && (
-            <li className="nm-turn nm-wallrow">
+          {/* MOUNTED FROM THE FIRST FRAME, REVEALED ON THE ASK. Gating the
+              whole row on `opening.done` gave it the right timing and the
+              wrong mechanism: the stream is vertically centred while nothing
+              has been asked, so a row appearing at 3.6s grew the group and
+              pushed the first line down 131px in one frame. The arrival has to
+              be in the ink, never in the layout — same as the starters row,
+              and for the same reason. */}
+          {!asked && notes.length > 0 && (
+            <li className="nm-turn nm-wallrow" data-on={opening.done ? 'true' : undefined}>
               <span className="nm-turn-rail" aria-hidden="true">
                 {/* `note`, which already exists and already means exactly
                     this — a bead for the family's notes. Inventing a `wall`
