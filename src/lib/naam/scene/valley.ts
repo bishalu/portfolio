@@ -1268,11 +1268,55 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
     }
   }
 
+  /**
+   * ── EVENING FALLS WHILE YOU ARE THERE ──────────────────────────────────
+   *
+   * The town used to be fully lit in the first frame and stay that way, every
+   * window breathing on its own sine. Beautiful, and a loop — which is the one
+   * thing a place is not. Nothing in that town could ever be different from how
+   * you found it.
+   *
+   * The windows come on one at a time now, over about a hundred seconds,
+   * unevenly, and they never go off again. It is not an animation anybody is
+   * meant to watch: it is slow enough that no single light is caught arriving,
+   * and the only way to notice is to look up after a while and find there are
+   * more of them than there were. That is the difference between scenery and a
+   * place — a place is going on whether or not you are looking at it, and it
+   * does not rewind.
+   *
+   * A third are lit from the start, because dusk is not darkness and a wholly
+   * black town at the top of the sequence reads as broken rather than as early.
+   *
+   * `Math.sin` on the index rather than a random: deterministic, so a lamp does
+   * not change character between renders, and irregular enough that no two
+   * neighbours come on together.
+   */
+  const LIGHTING_WINDOW = 100
+  let lampsFrom = 0
+
+  function litBy(i: number, count: number): number {
+    // Deterministic 0..1 per lamp, then squared so most of them arrive late —
+    // a village fills in slowly and then all at once, never at a steady rate.
+    const r = Math.abs(Math.sin(i * 12.9898 + 78.233) * 43758.5453) % 1
+    if (i % 3 === 0) return 0
+    return r * r * LIGHTING_WINDOW * (0.4 + (i / Math.max(1, count)) * 0.6)
+  }
+
   function animateLamps(time: number) {
+    if (lampsFrom === 0) lampsFrom = time
+    const since = still ? LIGHTING_WINDOW * 2 : time - lampsFrom
     lampShapes.forEach((g, i) => {
+      const at = litBy(i, lampShapes.length)
+      // 1.6s to come up — a window being lit, not a light switch.
+      const up = Math.max(0, Math.min(1, (since - at) / 1.6))
+      if (up <= 0) {
+        g.alpha = 0
+        return
+      }
       // Each on its own slow beat, never in step: a row of lights pulsing
       // together is a progress indicator, not a village at dusk.
-      g.alpha = 0.84 + Math.sin(time * (1.1 + i * 0.17) + i * 2.3) * 0.16
+      const breath = 0.84 + Math.sin(time * (1.1 + i * 0.17) + i * 2.3) * 0.16
+      g.alpha = breath * (up * up * (3 - 2 * up))
     })
   }
 
