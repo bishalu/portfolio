@@ -580,6 +580,34 @@ if (!seedRow) {
       background: var(--nm-talk);
     }
 
+    /* ── THE PAPER ENDS; IT IS NOT CUT ──────────────────────────────────
+       The note above says a hairline here would claim "two panels" where the
+       light already says "one room". That was right about the rule and wrong
+       about the result: no rule was drawn, but two flat fills meeting at one
+       pixel IS a rule — measured at x=704, opaque paper against open sky with
+       nothing in between.
+
+       So the paper runs out instead. It holds its full opacity to the column
+       edge and then thins over 5.5rem INTO the valley, which is the direction
+       the fade has to go: the conversation's own last 22px carry the end of
+       every line of text, and fading those would cost legibility to buy
+       atmosphere (M2).
+
+       It sits above the valley and below nothing it could wash: it begins
+       where the composer ends, so it never crosses type, and the tray's own
+       controls live far to the right of where it has finished. */
+    .nm-shell::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: calc(100% - clamp(31rem, 56vw, 46rem));
+      z-index: 1;
+      width: 5.5rem;
+      pointer-events: none;
+      background: linear-gradient(to right, var(--nm-talk), transparent);
+    }
+
     /* ── AND IT HAS TO BE POSITIONED TO WIN ──────────────────────────────
        Declaring the background was not enough, and the checker that read
        `getComputedStyle(hand).backgroundColor` said PASS while the screenshot
