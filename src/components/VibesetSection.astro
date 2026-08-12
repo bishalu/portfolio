@@ -120,14 +120,14 @@ const choon = bySlug['choon']
 
           <table class="vs-bench-table">
             <caption class="sr-only">
-              Recall@1 and parameter count for Choon's neural channel against three published models.
+              Recall@1 and parameter count for Choon's neural channel against three published models. The full
+              table, including performance on re-encoded audio, is on the Choon page.
             </caption>
             <thead>
               <tr>
                 <th scope="col">Model</th>
                 <th scope="col">Size</th>
                 <th scope="col">Recall@1</th>
-                <th scope="col">Re-encoded</th>
               </tr>
             </thead>
             <tbody>
@@ -137,16 +137,17 @@ const choon = bySlug['choon']
                     <th scope="row">{r.ours ? 'Choon' : r.model.replace(', unfrozen', '')}</th>
                     <td>{r.paramsLabel}</td>
                     <td>{r.recall.toFixed(1)}</td>
-                    <td>{r.encoded.toFixed(1)}</td>
                   </tr>
                 ))
               }
             </tbody>
           </table>
 
+          <!-- The re-encoded claim went with the column. A note citing a number
+               the reader cannot see is worse than no note, and the full table
+               one link away still carries it. -->
           <p class="vs-bench-note">
-            The learned channel alone, at a tenth of the size of the model ahead of it. First on re-encoded
-            audio, which is what every file meets passing through a platform.
+            The learned channel alone, at a tenth of the size of the model ahead of it.
           </p>
         </figure>
         <p class="vs-frozen-cta">

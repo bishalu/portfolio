@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="9 1 92 92" role="img" aria-label="bishal.ai">
+  <title>bishal.ai</title>
+  <!-- A lowercase b whose ascender tapers like a rising edge. No tile, so the
+       counter is real transparency and the mark adapts: night ramp on dark
+       chrome, paper ramp on light. Full rationale in the commit that added it. -->
+  <defs>
+    <linearGradient id="r" x1="20" y1="0" x2="86" y2="0" gradientUnits="userSpaceOnUse">
+      <stop class="a" offset="0" stop-color="#b4353f"/>
+      <stop class="b" offset="1" stop-color="#b5730a"/>
+    </linearGradient>
+  </defs>
+  <style>@media(prefers-color-scheme:dark){.a{stop-color:#d64553}.b{stop-color:#efa33b}}</style>
+  <g fill="url(#r)">
+    <path d="M26 88V28l4.5-22h5L38 28v60z"/>
+    <path fill-rule="evenodd" d="M32 56a26 26 0 1 1 52 0 26 26 0 1 1-52 0zm12 0a14 14 0 1 0 28 0 14 14 0 1 0-28 0z"/>
+  </g>
+</svg>

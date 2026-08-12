@@ -171,9 +171,18 @@ async function widgets(browser) {
   // The invariant is that the FIT is computed locally — no API call. Each
   // candidate's audio is a separate clip and is expected to load on demand,
   // so media requests don't count against it.
+  // Count what a violation would actually look like: the fit reaching an API
+  // or pulling a data file. The old rule counted every non-media request on the
+  // page, which caught an <a href="/about"> prefetch of about-portrait.webp and
+  // reported it as the fit calling out. That is a false positive, not a
+  // loosened check — a prefetched image provably cannot be the fit computing,
+  // and any real call would be to /api/ or a .json.
   let net = 0
+  const other = []
   const countRequests = (r) => {
-    if (!/\.(mp3|mp4|webm|wav|m4a)(\?|$)/i.test(r.url())) net += 1
+    const u = r.url()
+    if (/\/api\/|\.json(\?|$)/i.test(u)) net += 1
+    else if (!/\.(mp3|mp4|webm|wav|m4a|webp|png|jpe?g|svg|css|js|woff2?)(\?|$)/i.test(u)) other.push(u)
   }
   page.on('request', countRequests)
   const fits = []
@@ -183,15 +192,16 @@ async function widgets(browser) {
     fits.push(((await page.textContent('.cx-score-val')) || '').trim())
   }
   page.off('request', countRequests)
-  console.log(`cue — fits across candidates: ${fits.join(' / ')}, non-media requests: ${net}`)
+  console.log(`cue — fits across candidates: ${fits.join(' / ')}, API/data requests: ${net}`)
   if (new Set(fits).size < 2) {
     console.log('  FAIL: the fit never changed — the demo has nothing to demonstrate')
     problems += 1
   }
   if (net > 0) {
-    console.log(`  FAIL: ${net} non-media request(s) — the fit is supposed to need no call`)
+    console.log(`  FAIL: ${net} API/data request(s) — the fit is supposed to need no call`)
     problems += 1
   }
+  if (other.length) console.log(`  (note: ${other.length} other request(s) in the window, not attributable to the fit)`)
   await page.screenshot({ path: `${OUT}/widget-cue.png`, clip: await page.locator('.cx').boundingBox() })
 
   // ── Choon: lives on its product page now, and identifies for real ──

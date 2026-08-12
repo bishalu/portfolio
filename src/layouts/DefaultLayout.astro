@@ -69,16 +69,22 @@ const {
       }
     </script>
 
-    <!-- favicon — raster set rather than an SVG. The mark is flat vector art
-         but its counter is not a circle any primitive reproduces, so hand-
-         tracing it would have drifted from the artwork. Browsers pick the
-         nearest size; 512 covers PWA installs and 180 covers iOS, which masks
-         its own corners. -->
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
-    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
-    <link rel="icon" type="image/png" sizes="512x512" href="/favicon-512.png" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- favicon — SVG first, because it is the only format that can answer the
+         tab strip. It carries prefers-color-scheme inside it, so the mark uses
+         the night ramp on dark chrome and the paper ramp on light, the same two
+         pairs the tokens use for the site's two grounds.
+
+         Three declarations, not six. Offering 16/32/48/512 as well let the
+         browser pick, and a browser that prefers a raster never sees the SVG at
+         all — which is why a correctly-served new mark still showed the old one.
+         One SVG, one raster fallback, one iOS icon.
+
+         ?v= because favicons are the most aggressively cached asset a site
+         serves; they routinely survive a hard refresh and a cleared cache. The
+         query is the only reliable way to make a new mark appear. -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=4" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=4" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4" />
 
     <SiteMeta title={title} description={description.substring(0, 160)} url={url} image={image} author={author} />
 

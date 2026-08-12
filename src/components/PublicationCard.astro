@@ -34,6 +34,30 @@ const namedAuthors = coauthors.filter((a) => !PLACEHOLDER.test(a.trim()))
 ---
 
 <article class="pub">
+  <!-- The spike train, which /research was the one page not to carry.
+       Publications about action potentials, drawn as one — it is the site's
+       oldest and most specific device, and the page built for the papers was
+       the page reading as a plain document without it. Same glyph and same
+       gradient as ResearchTimeline on the home page; the id is namespaced so
+       two instances on one document cannot collide. -->
+  <span class="pub-spike" aria-hidden="true">
+    <svg viewBox="0 0 24 48" width="24" height="48" fill="none">
+      <defs>
+        <linearGradient id="pub-grad" x1="0" y1="0" x2="0" y2="48" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="var(--crimson)"></stop>
+          <stop offset="1" stop-color="var(--marigold)"></stop>
+        </linearGradient>
+      </defs>
+      <path
+        d="M12 0 V16 L8 20 L16 26 L12 30 V48"
+        stroke="url(#pub-grad)"
+        stroke-width="2.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+  </span>
+
   <p class="pub-meta label-mono">
     <span class="pub-year">{year}</span>
     {journal && <span class="pub-journal">{journal}</span>}
@@ -77,9 +101,41 @@ const namedAuthors = coauthors.filter((a) => !PLACEHOLDER.test(a.trim()))
 </article>
 
 <style lang="scss">
+  /* The rail sits in its own 24px column in the margin, so the record's text
+     keeps the left edge it already had and the spike hangs beside it. */
   .pub {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr);
+    column-gap: var(--space-m);
     border-top: 1px solid var(--hairline-on-ink);
     padding: var(--space-l) 0 0;
+
+    > *:not(.pub-spike) {
+      grid-column: 2;
+    }
+  }
+
+  .pub-spike {
+    display: flex;
+    grid-row: 1 / -1;
+    grid-column: 1;
+    justify-content: center;
+    padding-top: 0.2rem;
+
+    svg {
+      flex-shrink: 0;
+    }
+  }
+
+  /* Below the text column the margin is worth more than the ornament. */
+  @media (max-width: 560px) {
+    .pub {
+      display: block;
+    }
+
+    .pub-spike {
+      display: none;
+    }
   }
 
   .pub-meta {
