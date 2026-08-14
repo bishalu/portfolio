@@ -231,27 +231,6 @@ export const NAAM_COPY = {
      * someone else. "People" is all three of them, and it is still warm.
      */
     familyLead: 'Names people keep coming back to',
-    /**
-     * Four chips, four shapes a real person types: a wish, a wish about how it
-     * will travel, a letter, a question about one name. Every one of them
-     * resolves in parseFreeText — "calm"/"love" are theme words, "short" and
-     * "easy to say"/"abroad" set the shape filters, "V names" sets the letter,
-     * and Snehaja is a row, so the lookup path is demonstrated rather than
-     * described. A chip that parses to nothing is a chip that teaches nothing.
-     *
-     * The ब in the third one is deliberate twice over: it is the family joke
-     * (व is said ब at home, which is why the V names are on the list at all),
-     * and it is the string that proves Mukta is first in the chip's font
-     * stack. If that chip ever renders ▯, the stack is wrong somewhere and
-     * this is where it shows first.
-     */
-    starters: [
-      'something calm, about love not war',
-      'short, and easy to say abroad',
-      'show me the V names',
-      'what does Snehaja mean',
-    ],
-    dismissStarters: 'Hide these',
     /** Over a fresh deal of cards. */
     dealt: 'Keep the ones that sound like him.',
     /**
@@ -406,8 +385,6 @@ export const NAAM_COPY = {
    */
   results: {
     emptyAsk: 'Nothing came up for that. Try a meaning — light, water, calm — rather than a spelling.',
-    /** Shown when the hard filters intersected to nothing and were given back. */
-    relaxed: 'Nothing answered all of that, so we let one part of it go. These are the closest the document has.',
   },
 
   /** DESIGN.md §4. Two of the three words; there is no REPLAY on this page. */
@@ -415,7 +392,6 @@ export const NAAM_COPY = {
     live: 'LIVE',
     local: 'LOCAL',
     liveCaption: 'A real call, just now.',
-    localCaption: 'Matched in your browser, from the document.',
   },
 
   /**
@@ -435,14 +411,6 @@ export const NAAM_COPY = {
     modelOff: 'There is no model on this build.',
     /** The same sentence, asked again. The visitor retypes nothing. */
     retry: 'Try again',
-    /**
-     * The escape hatch, and it is a button rather than a fallback: the matcher
-     * runs when this is pressed and not before, and what it deals is badged
-     * LOCAL so it is never mistaken for the model's answer.
-     */
-    escape: 'or show me what the document has anyway',
-    /** Decorative and aria-hidden; the line beside it is what gets announced. */
-    escapeGlyph: '→',
     dataDown: 'The full list did not load. Reload the page and it will try again.',
   },
 
@@ -468,8 +436,6 @@ export const NAAM_COPY = {
        distinction is still the page's own premise and the words for it should
        not have to be rewritten when a control for it lands somewhere with the
        room. See the rail comment in NaamCard.tsx. */
-    swapGlyph: 'व / ब',
-    swapAria: 'Switch between the V and the B spelling',
     /**
      * Keep, not Pick. The tray is three slots a name is *kept* in, and the
      * word on the button is the word the motion illustrates — the card arcs
@@ -481,6 +447,16 @@ export const NAAM_COPY = {
      */
     pick: 'Keep',
     picked: 'Kept',
+    /**
+     * Two controls take a name back — the slot and the kept card — and only
+     * the slot ever said so ("Slot 1 of three, Samaya. Take it back."). The
+     * card announced "Kept Samaya", a state and not an action, so nothing told
+     * anyone the press would remove it. Deleting the card's toggle is worse: a
+     * pressed KEPT button that does nothing is a dead control, and undoing
+     * where you did the thing is the most natural undo there is. Both stay and
+     * borrow ONE phrase, so they read as one learned sentence.
+     */
+    takeBack: 'Take it back.',
     /** The seeded family names that are not rows in the document. */
     notInDocument: 'Not in the document — a family name',
   },

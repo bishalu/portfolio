@@ -2114,7 +2114,16 @@ if (!seedRow) {
        third — 72vw showed one and a sliver, which reads as "there is one" far
        more than as "swipe". The card is the same object at every width now. */
     .nm-hand .nm-dealt {
-      flex: 0 0 min(46vw, 11rem);
+      /* 10.25rem, because 11 never delivered the "edge of a third" the comment
+         above promised: measured at 412 the third card began exactly ON the
+         rail's right edge (0px visible), at 390 it was 22px past and at 375
+         30px past — two whole cards and up to 1285px of names behind an
+         invisible affordance. The arithmetic it missed is the 44px text
+         indent, so the usable width is the viewport minus that, not the
+         viewport. A mask was the other candidate and is wrong here: the card's
+         right edge carries the KEEP pill, so fading it would dim the primary
+         action to signal a scroll. */
+      flex: 0 0 min(41vw, 10.25rem);
       scroll-snap-align: start;
     }
 

@@ -219,7 +219,7 @@ export default function NaamCard({
               same footprint, now carrying its own word. */}
           <span className="nm-pick-mark" aria-hidden="true">{picked ? C.picked : C.pick}</span>
           <span className="sr-only">
-            {picked ? C.picked : C.pick} {primary}
+            {picked ? `${C.picked} ${primary}. ${C.takeBack}` : `${C.pick} ${primary}`}
           </span>
         </button>
       )}

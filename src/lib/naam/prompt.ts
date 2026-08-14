@@ -125,7 +125,18 @@ export const NAAM_SEARCH_SCHEMA = {
  * (NAAM_COPY.limits.picks): you are shown a shortlist and you keep three.
  */
 export const NAAM_DEAL_SMALL = 6
-export const NAAM_DEAL_LARGE = 9
+/**
+ * EIGHT, AND THE REASON IS READABILITY, NOT CHOICE OVERLOAD. OpenAI's card
+ * guidance tops out at 8; nine sat one over it. It is NOT a choice-overload
+ * cut — the definitive meta-analysis (Scheibehenne et al., 50 experiments,
+ * N=5,036) found that effect near zero, and trimming on those grounds would be
+ * a defensible number for a reason that does not survive the evidence.
+ *
+ * The cost is accepted: at three columns nine was three clean rows and eight is
+ * two rows and a pair. Tidiness does not outrank how many names a person can
+ * read at once.
+ */
+export const NAAM_DEAL_LARGE = 8
 export const NAAM_MAX_PICKS = NAAM_DEAL_LARGE
 
 /**
