@@ -231,6 +231,14 @@ export const NAAM_COPY = {
      * someone else. "People" is all three of them, and it is still warm.
      */
     familyLead: 'Names people keep coming back to',
+    /**
+     * Tapping a name in the sky used to KEEP it, making the scene a second way
+     * to do the one thing the cards do. It asks instead, and borrows the chips'
+     * own word — they already teach "like X" ("Short, like Bisa"), so the sky
+     * needs no new vocabulary. Lowercase: it enters the thread as the visitor's
+     * own turn, beside a composer that says "even one word is enough…".
+     */
+    askLike: (name: string) => `more like ${name}`,
     /** Over a fresh deal of cards. */
     dealt: 'Keep the ones that sound like him.',
     /**
@@ -550,6 +558,13 @@ export const NAAM_COPY = {
      * exists for a screen reader — and it must never be the bare number, which
      * would be read as "Bhaskara 3" with nothing to say what three is.
      */
+    /**
+     * Neither the lantern nor the family pill ever announced an action — both
+     * read out `support` alone, which is a fact about the name and not a thing
+     * the button does. Now that they ask rather than keep, the action has to be
+     * said; `support` stays as the description.
+     */
+    askAria: (name: string) => `Ask for more names like ${name}`,
     support: (count: number) => (count === 1 ? 'chosen by one person' : `chosen by ${count} people`),
   },
 

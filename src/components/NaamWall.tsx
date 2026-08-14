@@ -86,10 +86,10 @@ export interface WallNote {
 export interface NaamWallProps {
   notes: readonly WallNote[]
   /** Tapping a lantern keeps that name and adds a voice to it. */
-  onKeep?: (key: string) => void
+  onAsk?: (key: string, latin?: string) => void
 }
 
-export default function NaamWall({ notes, onKeep }: NaamWallProps) {
+export default function NaamWall({ notes, onAsk }: NaamWallProps) {
   const shelfRef = useRef<HTMLUListElement>(null)
 
   /**
@@ -555,7 +555,7 @@ export default function NaamWall({ notes, onKeep }: NaamWallProps) {
                 } as CSSProperties
               }
             >
-              <button type="button" className="nm-lamp-hit" onClick={() => onKeep?.(note.key)}>
+              <button type="button" className="nm-lamp-hit" onClick={() => onAsk?.(note.key, note.latin)}>
                 <span className="nm-lamp-name">
                   {note.deva && (
                     <span className="nm-lamp-deva" lang="sa-Deva">

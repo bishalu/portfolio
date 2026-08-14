@@ -1821,12 +1821,25 @@ export default function NaamApp({ seed }: NaamAppProps) {
    * keeping it are the same act here, so they must not be counted twice — and
    * taking it back correctly removes the voice again.
    */
-  const keepFromSky = useCallback(
-    (key: string) => {
+  /**
+   * THE SKY ASKS, IT DOES NOT VOTE. This called keep(), which made the scene
+   * the third way to do the one thing a card does — measured at four entry
+   * points into keep(), against a rule whose whole test is that the count goes
+   * DOWN. A lantern now puts its name to the agent, so the gesture feeds the
+   * one path instead of forking it, and the deal it produces is something you
+   * can keep from in the ordinary way.
+   *
+   * The older note here said "keeping is the vote" — that a press must not be
+   * counted twice because `notes` already walks `picks`. That problem stops
+   * existing: asking credits nothing, so there is no second tally to collide.
+   */
+  const askAboutName = useCallback(
+    (key: string, fallbackLatin?: string) => {
       const row = family.find((candidate) => candidate.id === key) ?? rows?.find((r) => r.id === key)
-      if (row) keep(row)
+      const name = row ? naamPreferredForm(row, preferB) : fallbackLatin
+      if (name) runAsk(C.app.askLike(name))
     },
-    [family, keep, rows],
+    [family, rows, runAsk, preferB],
   )
 
 
@@ -2232,7 +2245,7 @@ export default function NaamApp({ seed }: NaamAppProps) {
                       <button
                         type="button"
                         className="nm-wallrow-item"
-                        onClick={() => keepFromSky(note.key)}
+                        onClick={() => askAboutName(note.key, note.latin)}
                       >
                         {note.deva && (
                           <span className="nm-wallrow-deva" lang="sa-Deva">
@@ -2240,7 +2253,9 @@ export default function NaamApp({ seed }: NaamAppProps) {
                           </span>
                         )}
                         <span className="nm-wallrow-latin">{note.latin}</span>
-                        <span className="sr-only">{C.wall.support(note.count)}</span>
+                        <span className="sr-only">
+                          {C.wall.askAria(note.latin)}. {C.wall.support(note.count)}
+                        </span>
                       </button>
                     </li>
                   ))}
@@ -2325,7 +2340,7 @@ export default function NaamApp({ seed }: NaamAppProps) {
             and the order re-sorts under them as they choose. The right column
             stops being an output and starts being the thing that changes. */}
         <div className="nm-shelfwrap">
-          <NaamWall notes={notes} onKeep={keepFromSky} />
+          <NaamWall notes={notes} onAsk={askAboutName} />
         </div>
 
         {/* The lamp sits WITH the slots, not in the rail corner where it
