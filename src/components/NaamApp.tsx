@@ -2406,6 +2406,13 @@ export default function NaamApp({ seed }: NaamAppProps) {
               {C.app.send.open(picks.length)}
             </button>
           )}
+          {/* A line about what sending does has to sit WITH the thing that
+              sends. In a flex row it rendered 250px to the button's right,
+              over the sunset, at 3.45:1 — correct copy in the correct
+              component and nowhere near the decision. */}
+          {picks.length > 0 && !formShown && (
+            <p className="nm-tray-promise label-mono label-mono--sm">{C.app.send.promise}</p>
+          )}
         </div>
       </section>
 

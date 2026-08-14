@@ -3603,10 +3603,21 @@ if (!seedRow) {
       background var(--dur-base) ease,
       border-color var(--dur-base) ease,
       box-shadow var(--dur-base) ease;
-    border: 1.5px solid color-mix(in srgb, var(--nm-keep) 55%, transparent);
-    border-radius: 50%;
-    width: 14px;
-    height: 14px;
+    /* A PILL THAT HOLDS ITS WORD, not a 14px ring. The ring said nothing to
+       anyone who could see it. 0.7rem measures 11.2px — 0.62 measured 9.92,
+       and under 10px is not a label an older reader can rely on for the
+       page's primary action. */
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid color-mix(in srgb, var(--nm-keep) 55%, transparent);
+    border-radius: 999px;
+    padding: 0.1rem 0.42rem 0.14rem;
+    color: var(--nm-accent-text);
+    font-size: 0.7rem;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1;
   }
 
   .nm-card:hover .nm-pick-mark,
@@ -4034,10 +4045,28 @@ if (!seedRow) {
   /* The height of the button plus its top margin, held whether or not the
      button is in it — see the comment in NaamApp.tsx. Measured at 37px of
      button and 0.55rem of margin. */
+  /* A COLUMN, and the height reserved from the start. As a row it put the
+     promise beside the button instead of under it. Growing the tray on the
+     first keep would shift the layout at exactly the moment a card is flying
+     into slot 1, so the space is reserved and then filled. */
   .nm-tray-send-slot {
     display: flex;
-    justify-content: center;
-    min-height: 2.85rem;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 5.4rem;
+  }
+
+  /* Quiet, but not faint: over the sunset --nm-text-soft measured 3.45:1
+     against AA's 4.5 for small text. Full ink takes it to 7.79:1, and at 11px
+     mono under a filled button it is still the quieter of the two. */
+  .nm-tray-promise {
+    margin: 0.4rem auto 0;
+    max-width: 22rem;
+    color: var(--nm-text);
+    text-align: center;
+    text-transform: none;
+    line-height: 1.5;
   }
 
   .nm-tray-send {

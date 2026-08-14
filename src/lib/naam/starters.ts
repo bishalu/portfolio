@@ -51,73 +51,57 @@ export interface NaamStarter {
 }
 
 export const NAAM_STARTERS: readonly NaamStarter[] = [
+  /**
+   * EVERY CHIP CARRIES A REAL NAME, and that is the whole change. These read
+   * as a survey before — "Short or lyrical?", "Soft or bold?" — which asks a
+   * visitor to name a taste they have not formed yet. NN/g's fix for the
+   * articulation barrier is to show the CONSEQUENCE instead: a chip carrying a
+   * name shows what that direction produces before anyone has to choose it.
+   *
+   * Every specimen below was checked against public/naam/names-core.json. Two
+   * drafts failed that check and were replaced: Soham is a family seed and is
+   * NOT in the document, and Stambha's gloss is a citation fragment rather
+   * than a meaning. A chip promising a name the page cannot deal is worse than
+   * a vague chip.
+   */
   {
-    id: 'discover-style',
-    label: 'Show me the range',
+    id: 'short',
+    label: 'Short, like Bisa',
     dimension: 'shape',
-    prompt: 'Show me a few names that are nothing like each other, so I can see the range.',
+    prompt: 'Short names — two syllables, easy to call across a room. Something like Bisa.',
   },
   {
-    id: 'short-or-lyrical',
-    label: 'Short or lyrical?',
-    dimension: 'shape',
-    prompt: 'Put a few short, plain names next to some longer, more lyrical ones.',
-  },
-  {
-    id: 'simple-or-elaborate',
-    label: 'Simple or elaborate?',
-    dimension: 'shape',
-    prompt: 'I want to see simple, understated names beside more elaborate ones.',
-  },
-  {
-    id: 'familiar-or-unexpected',
-    label: 'Familiar or unexpected?',
-    dimension: 'shape',
-    prompt: 'Something familiar, and something unexpected that would still work every day.',
-  },
-  {
-    id: 'soft-or-bold',
-    label: 'Soft or bold?',
+    id: 'soft',
+    label: 'Soft, like Samaya',
     dimension: 'sound',
-    prompt: 'Soft, flowing sounds on one side and crisp, strong ones on the other.',
+    prompt: 'Soft names, gentle to say. Something like Samaya.',
   },
   {
-    id: 'favorite-sounds',
-    label: 'Find my sounds',
+    id: 'strong',
+    label: 'Strong, like Virya',
     dimension: 'sound',
-    prompt: 'Give me a spread of very different sounds and endings, and I will tell you which ones I like.',
+    prompt: 'Names with some strength in them. Something like Virya.',
   },
   {
-    id: 'name-rhythm',
-    label: 'Names worth saying',
-    dimension: 'sound',
-    prompt: 'Names with different rhythms — I want to hear which ones are satisfying to say out loud.',
-  },
-  {
-    id: 'meaning-themes',
-    label: 'Wisdom, courage, light',
+    id: 'water',
+    label: 'Water, like Samudda',
     dimension: 'meaning',
-    prompt: 'Names about wisdom, courage, compassion or light — show me what the range looks like.',
+    prompt: 'Names that mean water, or the sea. Something like Samudda.',
   },
   {
-    id: 'nature-themes',
-    label: 'Something from nature',
-    dimension: 'meaning',
-    prompt: 'Something out of nature — river, mountain, dawn, rain, the sea, a tree.',
-  },
-  {
-    id: 'cultural-roots',
-    label: 'Deep in the source',
-    dimension: 'meaning',
-    prompt: 'The old names — the ones that sit deepest in the Vedas and the Sutras.',
-  },
-  {
-    id: 'say-and-spell',
-    label: 'Easy anywhere',
+    id: 'easy-anywhere',
+    label: 'Easy anywhere, like Bodha',
     dimension: 'use',
-    prompt: 'Names that keep their sound and stay easy to spell wherever he ends up.',
+    prompt: 'Names that are easy to say abroad as well as at home. Something like Bodha.',
+  },
+  {
+    id: 'from-the-sutras',
+    label: 'From the Sutras, like Shamatha',
+    dimension: 'meaning',
+    prompt: 'Names out of the Sutras. Something like Shamatha.',
   },
 ]
+
 
 /**
  * Three starters, each a different kind of question.

@@ -212,7 +212,12 @@ export default function NaamCard({
           data-nm-pick={onPick ? undefined : row.id}
           onClick={onPick}
         >
-          <span className="nm-pick-mark" aria-hidden="true"></span>
+          {/* THE VERB IS ON THE PAGE. This was an empty ring and the word lived
+              only in the .sr-only span below it, so no sighted visitor ever saw
+              the name of the page's primary action — a card-shrinking pass took
+              the label off the one control that needed it most. Same corner,
+              same footprint, now carrying its own word. */}
+          <span className="nm-pick-mark" aria-hidden="true">{picked ? C.picked : C.pick}</span>
           <span className="sr-only">
             {picked ? C.picked : C.pick} {primary}
           </span>

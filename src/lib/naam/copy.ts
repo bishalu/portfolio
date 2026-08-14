@@ -308,7 +308,11 @@ export const NAAM_COPY = {
        * chosen. What changed is that three is a ceiling, not a toll: one is
        * enough to send, and `send.lead` says so the moment a name lands.
        */
-      label: 'Keep up to three',
+      /* "Keep up to three" said the LIMIT and not the purpose — it never
+         answered "keep them for what?", which is the only question a
+         first-time visitor has about three empty sockets. This says what they
+         are. The cap is still on screen: there are three of them, numbered. */
+      label: 'The three you send us',
       /** Devanagari numerals. Free, and unmistakably Nepali. */
       ordinals: ['१', '२', '३'],
       empty: (slot: number) => `Slot ${slot} of three, empty`,
@@ -323,7 +327,7 @@ export const NAAM_COPY = {
        * there.
        */
       ownGlyph: '+',
-      ownLabel: (slot: number) => `Slot ${slot} of three. Add a name of your own.`,
+      ownLabel: (slot: number) => `Add a name of your own — slot ${slot} of three`,
       ownPlaceholder: 'a name…',
     },
     /**
@@ -335,6 +339,12 @@ export const NAAM_COPY = {
      * dead, is how the next reader picks the wrong one.
      */
     send: {
+      /**
+       * WHAT SENDING DOES, SAID BEFORE SENDING. The form states this already,
+       * but only once the visitor has committed — the wrong order for the one
+       * irreversible thing on the page.
+       */
+      promise: 'Straight to us. Nothing goes on the wall until we have read it.',
       /**
        * It used to read "That is your three." — true only while the form waited
        * for three, and it no longer does. One name is enough to send, so this
