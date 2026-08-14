@@ -1131,10 +1131,15 @@ if (!seedRow) {
        bottom keeps a 1rem fade, which lands inside the stream's own padding
        when pinned and only softens an edge once the visitor has scrolled up
        and there IS something down there to cut. */
+    /* 4rem, because 2.25 was exactly one lead-size line: the line sitting at
+       the boundary went transparent-to-solid across its own height, which is a
+       cut wearing a gradient. A line needs more room than itself to run out of
+       ink. Free at the top — the stream is pinned to its end, so everything up
+       there has already been read. */
     mask-image: linear-gradient(
       to bottom,
       transparent 0,
-      #000 2.25rem,
+      #000 4rem,
       #000 calc(100% - 1rem),
       transparent 100%
     );
