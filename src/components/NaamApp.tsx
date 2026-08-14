@@ -490,6 +490,7 @@ export default function NaamApp({ seed }: NaamAppProps) {
     setLamps(n: number): void
     setLanterns(counts: readonly number[]): void
     setLanternKeys(keys: readonly string[]): void
+    setStill(on: boolean): void
   } | null>(null)
   /** React renders this empty and never diffs its children, so it is the one
       safe place to park an imperatively created flying name. */
@@ -520,6 +521,45 @@ export default function NaamApp({ seed }: NaamAppProps) {
   /* — the valley ——————————————————————————————————————————————————— */
 
   /**
+   * ── THE SKY HAS A STOP ON IT ──────────────────────────────────────────────
+   *
+   * WCAG 2.2.2 (Pause, Stop, Hide) is Level A and it is about MOVING content
+   * that starts on its own and does not end: the flags, the lanterns, the dust,
+   * the lamps coming on across the valley. prefers-reduced-motion is honoured
+   * everywhere on this page and it does not discharge 2.2.2 — it is a setting
+   * on somebody's operating system, and this page is read by grandparents on
+   * borrowed laptops who have never opened that panel and never will.
+   *
+   * SEEDED IN A LAYOUT EFFECT, NOT IN useState's INITIALISER.
+   *
+   * `useState(() => reducedMotion())` is the obvious way to have the control
+   * agree with the scene from the first frame, and it was measured doing real
+   * damage: this island is client:load, so it is server-rendered, and the
+   * server has no media query. Under Playwright with reducedMotion:'reduce'
+   * the server sent "sky moving" and the client wanted "sky still" — React 19
+   * reported `Hydration failed because the server rendered text didn't match
+   * the client. As a result this tree will be regenerated on the client`, which
+   * throws away the whole hydrated app and rebuilds it, for precisely the
+   * visitor this control exists for.
+   *
+   * useLayoutEffect runs after hydration commits and BEFORE the browser paints,
+   * so nobody ever sees the wrong word — the control still agrees with the
+   * scene from the first frame anyone looks at, and the markup matches.
+   */
+  const [stilled, setStilled] = useState(false)
+  useLayoutEffect(() => {
+    if (reducedMotion()) setStilled(true)
+  }, [])
+  /** The scene mounts ~260ms in and cannot be rebuilt to change a boolean, so
+   *  the current value has to be readable from inside that async path. */
+  const stilledRef = useRef(stilled)
+  stilledRef.current = stilled
+
+  useEffect(() => {
+    valleyHandleRef.current?.setStill(stilled)
+  }, [stilled])
+
+  /**
    * PixiJS is ~117 kB gzipped — larger than every other line of JavaScript on
    * this site put together — so it is imported dynamically, after the page is
    * usable, and never on the critical path. If it never arrives, the CSS
@@ -537,22 +577,31 @@ export default function NaamApp({ seed }: NaamAppProps) {
       setLamps(n: number): void
       setLanterns(counts: readonly number[]): void
       setLanternKeys(keys: readonly string[]): void
+      setStill(on: boolean): void
       resize(): void
       destroy(): void
     } | null = null
     let cancelled = false
-    const still = reducedMotion()
 
     const start = window.setTimeout(async () => {
       try {
         const { createValley } = await import('@/lib/naam/scene/valley')
         if (cancelled) return
-        handle = await createValley({ canvas, still })
+        /**
+         * READ FROM THE REF, NOT FROM THE MEDIA QUERY. The scene arrives ~260ms
+         * after mount and this effect never re-runs — rebuilding the valley to
+         * change one boolean would tear down every lantern. So the state the
+         * control holds is what the scene is born with, and the control's own
+         * effect below cannot help a handle that did not exist when it ran.
+         */
+        handle = await createValley({ canvas, still: stilledRef.current })
         if (cancelled) {
           handle.destroy()
           return
         }
         valleyHandleRef.current = handle
+        // And once more, in case it was pressed while the chunk was in flight.
+        handle.setStill(stilledRef.current)
         handle.setLamps(lampCountRef.current)
         handle.setLanternKeys(lanternKeysRef.current)
         handle.setLanterns(lanternCountsRef.current)
@@ -2148,6 +2197,10 @@ export default function NaamApp({ seed }: NaamAppProps) {
       data-thinking={asking ? 'true' : undefined}
       data-kept={picks.length}
       data-first={!asked ? 'true' : undefined}
+      /* data-still  the sky is stopped — WCAG 2.2.2. JS gates the canvas and
+         the label loop; this is how the CSS keyframes hear about it, because
+         no amount of cancelAnimationFrame touches a @keyframes. */
+      data-still={stilled ? 'true' : undefined}
       /* Typing before the first ask: the opening lifts and thins out, because
          the invitation has done its job the moment somebody answers it. */
     >
@@ -2388,7 +2441,7 @@ export default function NaamApp({ seed }: NaamAppProps) {
             and the order re-sorts under them as they choose. The right column
             stops being an output and starts being the thing that changes. */}
         <div className="nm-shelfwrap">
-          <NaamWall notes={notes} onAsk={askAboutName} />
+          <NaamWall notes={notes} onAsk={askAboutName} still={stilled} />
         </div>
 
         {/* The lamp sits WITH the slots, not in the rail corner where it
@@ -2768,6 +2821,28 @@ export default function NaamApp({ seed }: NaamAppProps) {
           >
             <span className="nm-sound-glyph" aria-hidden="true" data-on={audible ? 'true' : undefined} />
             <span className="nm-sound-word">{audible ? C.app.sound.on : C.app.sound.off}</span>
+          </button>
+
+          {/* WCAG 2.2.2, and it sits next to the sound switch because it is the
+              same kind of thing: an ambient channel this page turns on by
+              itself, with the visitor's word on whether it stays on. Same
+              grammar too — the label names the state, aria-pressed carries what
+              pressing will do. */}
+          <button
+            type="button"
+            className="nm-sound label-mono label-mono--sm"
+            aria-pressed={!stilled}
+            onClick={() => setStilled((was) => !was)}
+          >
+            {/* Same chip, rotated — the word is clipped below 600px and two
+                identical dots in a row are two controls nobody can tell
+                apart. See .nm-sky-glyph in naam.astro. */}
+            <span
+              className="nm-sound-glyph nm-sky-glyph"
+              aria-hidden="true"
+              data-on={!stilled ? 'true' : undefined}
+            />
+            <span className="nm-sound-word">{stilled ? C.app.motion.still : C.app.motion.moving}</span>
           </button>
 
           <a className="nm-rail-a11y label-mono label-mono--sm" href="/accessibility-statement">

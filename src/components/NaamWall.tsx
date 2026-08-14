@@ -87,9 +87,18 @@ export interface NaamWallProps {
   notes: readonly WallNote[]
   /** Tapping a lantern keeps that name and adds a voice to it. */
   onAsk?: (key: string, latin?: string) => void
+  /**
+   * The sky is stopped — WCAG 2.2.2, driven by the control in the rail.
+   *
+   * THIS COMPONENT RUNS ITS OWN rAF LOOP, separate from the scene's. Stopping
+   * the canvas alone leaves this one reading a field nobody is stepping and
+   * writing the same transform sixty times a second forever, which is not
+   * visible but is exactly the thing the control claims to have turned off.
+   */
+  still?: boolean
 }
 
-export default function NaamWall({ notes, onAsk }: NaamWallProps) {
+export default function NaamWall({ notes, onAsk, still = false }: NaamWallProps) {
   const shelfRef = useRef<HTMLUListElement>(null)
 
   /**
@@ -232,8 +241,18 @@ export default function NaamWall({ notes, onAsk }: NaamWallProps) {
       return () => clearTimeout(bail)
     }
 
-    // Reduced motion gets the resting composition, drawn once and left still.
-    if (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    /**
+     * Reduced motion gets the resting composition, drawn once and left still —
+     * and the labels are already AT their resting spots in CSS, so there is
+     * nothing to place and nothing worth waiting for a field to say.
+     *
+     * `still &&`, not the query alone: the query is only how this page STARTS
+     * now (see the sky control in NaamApp). A reduced-motion visitor who asks
+     * for the sky back gets a canvas that moves, and this bail would have left
+     * their names pinned to the resting spots while the paper drifted out from
+     * under them.
+     */
+    if (still && typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches) {
       reveal()
       return undefined
     }
@@ -265,6 +284,18 @@ export default function NaamWall({ notes, onAsk }: NaamWallProps) {
      */
     let lastStep = -1
 
+    /**
+     * ── ONE PASS WHEN THE SKY IS STOPPED, THEN NOTHING ──────────────────────
+     *
+     * Every re-arm in this loop goes through here. The body still runs once —
+     * it has to, or the names never get placed on the paper and never get
+     * revealed — and then the loop simply does not come back. A `return` at the
+     * top instead would have been the same bug in a different file.
+     */
+    const again = () => {
+      if (!still) raf = requestAnimationFrame(tick)
+    }
+
     const tick = () => {
       const field = lanternField()
       /**
@@ -292,7 +323,7 @@ export default function NaamWall({ notes, onAsk }: NaamWallProps) {
        */
       if (field.bodies.length === 0) {
         if (giveUp === null) giveUp = window.setTimeout(reveal, NO_SCENE_MS)
-        raf = requestAnimationFrame(tick)
+        again()
         return
       }
       if (giveUp !== null) {
@@ -300,7 +331,7 @@ export default function NaamWall({ notes, onAsk }: NaamWallProps) {
         giveUp = null
       }
       if (field.steps === lastStep) {
-        raf = requestAnimationFrame(tick)
+        again()
         return
       }
       lastStep = field.steps
@@ -337,14 +368,14 @@ export default function NaamWall({ notes, onAsk }: NaamWallProps) {
           lastZ[i] = z
         }
       }
-      raf = requestAnimationFrame(tick)
+      again()
     }
     raf = requestAnimationFrame(tick)
     return () => {
       cancelAnimationFrame(raf)
       if (giveUp !== null) window.clearTimeout(giveUp)
     }
-  }, [stacked, frame.cw, frame.ch, notes.length])
+  }, [stacked, frame.cw, frame.ch, notes.length, still])
 
   /**
    * Canvas fractions to px offsets inside this panel.

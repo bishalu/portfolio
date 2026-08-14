@@ -325,6 +325,22 @@ export const NAAM_COPY = {
       on: 'Sound on',
       aria: 'Sound',
     },
+    /**
+     * The stop control for the valley, and the same grammar as the switch above
+     * it: the word says what is true now, aria-pressed says what pressing will
+     * do. "Sky" rather than "motion" because that is the thing that moves — the
+     * flags, the lanterns, the lamps coming on, the dust — and nobody has ever
+     * had to be told where the sky is.
+     *
+     * It exists because prefers-reduced-motion is a setting on the operating
+     * system and this is a page. WCAG 2.2.2 asks for a control here, and the
+     * people this page was built for are the least likely to know their laptop
+     * has a motion preference at all.
+     */
+    motion: {
+      moving: 'sky moving',
+      still: 'sky still',
+    },
     tray: {
       /**
        * Still three, and still stated up front — the slots are drawn empty from

@@ -181,12 +181,37 @@ export interface ValleyHandle {
   setLanterns(counts: readonly number[]): void
   /** The note key per lantern, so simulation state survives a rebuild. */
   setLanternKeys(keys: readonly string[]): void
+  /**
+   * STOP THE SKY, OR START IT AGAIN — WCAG 2.2.2 (Pause, Stop, Hide), Level A.
+   *
+   * The scene animates for as long as the page is open, and `still` above is
+   * set from prefers-reduced-motion — which is a SYSTEM setting, not a control
+   * on the page. Someone who finds this sky distracting on this page, on this
+   * visit, had no way to stop it without leaving to change an OS preference.
+   * This is that way.
+   *
+   * Turning it on renders one more frame and then draws nothing: the picture
+   * you get is the picture that was there, not a blank canvas — a stopped scene
+   * is still a scene.
+   */
+  setStill(on: boolean): void
   resize(): void
   destroy(): void
 }
 
 export async function createValley(options: ValleyOptions): Promise<ValleyHandle> {
   const { canvas, roomWidth = 0.44, still = false } = options
+
+  /**
+   * `still` IS WHERE THIS STARTED; `stilled` IS WHERE IT IS NOW.
+   *
+   * They were one variable, which was fine while the only input was a media
+   * query read once at construction. With a control on the page they are two
+   * different questions — "was this built for a reduced-motion visitor" and
+   * "is the sky stopped at this moment" — and every read AFTER construction
+   * wants the second one.
+   */
+  let stilled = still
 
   /**
    * Boot timing, DEV ONLY.
@@ -1401,6 +1426,22 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
   function frame() {
     if (!alive) return
     /**
+     * ── THE GUARD HAS TO BE HERE, NOT AT THE CALL SITE ──────────────────────
+     *
+     * cancelAnimationFrame alone loses a race and it is not a subtle one: the
+     * re-arm below happens BEFORE any work, so a callback the browser has
+     * already dispatched re-schedules the loop microseconds after you cancel
+     * it. Measured on the first attempt at this control — rAF held at ~40 a
+     * second with the button reading "still".
+     *
+     * Same shape as `alive` above, for the same reason: the only place a loop
+     * can be reliably stopped is inside the loop.
+     */
+    if (stilled) {
+      raf = 0
+      return
+    }
+    /**
      * WALL CLOCK, NOT A FRAME COUNT. This was `clock += 1/60`, which runs slow
      * whenever frames drop and — the reason it had to change — is unshareable:
      * the DOM lantern labels compute the same drift from the same time and
@@ -1435,7 +1476,7 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
     if (document.hidden) {
       cancelAnimationFrame(raf)
       raf = 0
-    } else if (!still && alive && raf === 0) {
+    } else if (!stilled && alive && raf === 0) {
       raf = requestAnimationFrame(frame)
     }
   }
@@ -1446,7 +1487,7 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
       if (count === lampCount) return
       lampCount = count
       buildLamps()
-      if (still) {
+      if (stilled) {
         animateLamps(0)
         renderer.render(stage)
       }
@@ -1465,9 +1506,33 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
       }
       lanternCounts = [...counts]
       buildLanterns()
-      if (still) {
+      if (stilled) {
         animateLanterns(0)
         renderer.render(stage)
+      }
+    },
+    setStill(on) {
+      if (on === stilled) return
+      stilled = on
+      if (on) {
+        // Belt and braces: the guard inside frame() is what actually stops the
+        // loop, but a pending callback would otherwise draw one more frame
+        // after the button says it has stopped.
+        cancelAnimationFrame(raf)
+        raf = 0
+        /**
+         * SETTLE, NOT FREEZE. A lantern caught halfway through its rise is a
+         * lantern with its name hanging in the sky beneath it — see settle()
+         * in lanterns.ts, which exists for exactly this. Stopping the sky
+         * should give you the composition, not the frame you happened to
+         * press on.
+         */
+        lanternField().settle()
+        // One last frame, so the settle is on screen. After this nothing draws.
+        living.animate(clock)
+        renderer.render(stage)
+      } else if (alive && raf === 0 && !document.hidden) {
+        raf = requestAnimationFrame(frame)
       }
     },
     resize: layout,

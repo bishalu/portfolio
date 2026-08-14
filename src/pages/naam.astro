@@ -3787,6 +3787,22 @@ if (!seedRow) {
     }
   }
 
+  /* THE SKY SWITCH IS THE SAME CHIP, TURNED FORTY-FIVE DEGREES.
+     Below 600 both words are clipped (see the rule under this one) and the
+     rail was two identical hollow dots side by side, on the width most of this
+     family will open the page at. Measured at 320 with the honesty badge
+     showing, the word cannot come back — the row needs 302px of a 296px rail —
+     so the SHAPES have to carry the difference. A diamond and a circle are
+     separable at 8px; two circles are not, at any size.
+
+     `rotate` rather than `transform`, so the glyph's own transition on
+     background and box-shadow is untouched and nothing here can collide with a
+     transform written elsewhere. */
+  .nm-sky-glyph {
+    rotate: 45deg;
+    border-radius: 1px;
+  }
+
   /* On a phone the rail has the wordmark, two toggles and a link in 44px. The
      switch keeps its glyph — which is the state — and drops the word. */
   @media (max-width: 599px) {
@@ -4626,6 +4642,42 @@ if (!seedRow) {
       transform: none;
       transition: opacity 200ms ease;
     }
+  }
+
+  /* ── THE SKY, STOPPED ─────────────────────────────────────────────────────
+     WCAG 2.2.2 (Pause, Stop, Hide), Level A. NaamApp writes data-still when
+     the visitor presses the control in the rail; the canvas and the label loop
+     are stopped in JavaScript, and this is the other half — the dust, the
+     breathing room and the leaves are @keyframes, and no amount of
+     cancelAnimationFrame reaches a keyframe.
+
+     PAUSED, NOT `animation: none`. Removing the animation snaps every element
+     back to its unanimated state, which is a jump at the exact moment somebody
+     asked for less movement. Paused holds the frame that was on screen.
+
+     The `*` is deliberate and it is why this is one rule rather than the list
+     of six it started as: any keyframe added to this page in future is covered
+     the day it is written, rather than the day somebody notices it still
+     running. !important because `animation-play-state` is the shorthand's
+     last component — a later `animation:` declaration anywhere resets it to
+     running, and several of the rules above are exactly that. */
+  .nm-shell[data-still],
+  .nm-shell[data-still] * {
+    animation-play-state: paused !important;
+  }
+
+  /* AND THE SITE'S OWN ATMOSPHERE, WHICH IS NOT IN THE SHELL.
+     .atmo-glow (components/Atmosphere.astro) is two 150s/190s drifts in the
+     layout, OUTSIDE #naam-app entirely — measured, they are two of the
+     seventeen animations running on this page. A control that says the sky is
+     still while the page behind it keeps drifting has not stopped anything.
+
+     WRITTEN WITHOUT :global(). This style block is already `is:global`, and
+     :global() inside one is invalid — it does not error, it silently matches
+     nothing, which is the version of this rule that shipped and did nothing. */
+  body:has(.nm-shell[data-still]) .atmo-glow,
+  body:has(.nm-shell[data-still]) .atmo-glow * {
+    animation-play-state: paused !important;
   }
 
   /* ── THE CARDS FOLLOW THE WORDS THAT DEALT THEM ──────────────────────────
