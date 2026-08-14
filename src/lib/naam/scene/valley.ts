@@ -987,7 +987,14 @@ export async function createValley(options: ValleyOptions): Promise<ValleyHandle
     lanternField().reset(spots, w / Math.max(1, h), lanternKeys)
     // One frame and stop means an entrance that has not run is one that never
     // will — see settle() in lanterns.ts.
-    if (still) lanternField().settle()
+    //
+    // `stilled`, not `still`: this is reachable AFTER construction. Send a name
+    // while the sky is stopped and setLanterns rebuilds the field, and on the
+    // start-value this branch was skipped — so the new lantern was built at the
+    // bottom of its rise, drawn once, and left there, with its name hanging in
+    // the sky beneath the paper it is written on. A stopped scene still has to
+    // be a finished one.
+    if (stilled) lanternField().settle()
 
     /**
      * FAR FIRST. The lanterns are large enough now to overlap each other, and a
