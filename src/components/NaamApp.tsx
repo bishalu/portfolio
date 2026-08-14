@@ -372,6 +372,9 @@ export default function NaamApp({ seed }: NaamAppProps) {
     // letters — stated once, quietly, before anything is asked. Without it a
     // visitor cannot tell whether this page is reading a real document or
     // inventing names, which is the one thing it must never be ambiguous about.
+    // Second, because it is the question the primary audience arrives with and
+    // everything after it depends on the answer.
+    { id: 'why', kind: 'agent', text: C.app.why },
     { id: 'source', kind: 'agent', text: C.app.source, quiet: true },
     { id: 'invitation', kind: 'agent', text: C.app.invitation },
   ])
@@ -803,14 +806,43 @@ export default function NaamApp({ seed }: NaamAppProps) {
     const el = streamRef.current
     if (!el || typeof ResizeObserver === 'undefined') return
     const settle = () => {
-      if (!pinned) return
+      /**
+       * AND NOT DURING THE OPENING. The scroll effect above this one is gated
+       * on `asked`; this one was not, so every block of the opening resized the
+       * box and re-pinned it to the bottom. With a fourth block that puts the
+       * greeting at a CONSTANT top:-110px on a phone — never scrolling away and
+       * never on screen, so नमस्ते and the reason the page exists are unread at
+       * every moment of the entry.
+       *
+       * There is nothing newer to follow before the first ask: the opening is a
+       * sequence that reads top-down. Pinning is right after it, wrong during.
+       */
+      if (!pinned || !asked) return
       el.scrollTop = el.scrollHeight
     }
     const ro = new ResizeObserver(settle)
     ro.observe(el)
     for (const child of el.children) ro.observe(child)
     return () => ro.disconnect()
-  }, [pinned, turns])
+  }, [pinned, turns, asked])
+
+  /**
+   * ONE SETTLE, WHEN THE OPENING FINISHES — the other half of the fix above.
+   * Not pinning during the opening puts नमस्ते on screen and costs the
+   * invitation: four blocks do not fit a phone viewport, so "What kind of name
+   * are you looking for?" ends up a fifth visible at rest.
+   *
+   * Both are satisfiable because they are not simultaneous. Each block is fully
+   * on screen as it lands, the greeting alone for the first beat and readable
+   * for about four seconds; when the last block arrives the page settles onto
+   * the ask, which is what it should be resting on. Smooth, unlike the
+   * ResizeObserver's correction: this one IS the page moving, deliberately.
+   */
+  useEffect(() => {
+    if (!opening.done || asked) return
+    const el = streamRef.current
+    el?.scrollTo({ top: el.scrollHeight, behavior: reducedMotion() ? 'auto' : 'smooth' })
+  }, [opening.done, asked])
 
   const onStreamScroll = useCallback(() => {
     const el = streamRef.current

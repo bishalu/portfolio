@@ -187,7 +187,21 @@ export const NAAM_COPY = {
      * letters are the family's own joke arriving as information — B for Bishal,
      * S for Sneha, V because at home व is said ब.
      */
-    source: `${n(NAAM_COUNTS.total)} names, out of the Vedas and the Sutras — the ones that begin with B, S or V.`,
+    /**
+     * WHY THERE IS A PAGE AT ALL. A Nepali reader arrives knowing a priest
+     * gives the child a name, and until that is answered the whole page is a
+     * puzzle — they cannot tell what is being asked of them. It lived only in
+     * the no-JS fallback, so the audience it was written for had never read it.
+     *
+     * Two sentences, not three. The fallback's third — "That is the one we are
+     * asking about" — is dropped here because the invitation two blocks later
+     * asks it directly, with the question mark, and two sentences doing one job
+     * cost the greeting its place on the phone's first screen.
+     */
+    why: 'On the eleventh day, at the nwaran, a priest reads the stars and gives him one name. The name we call him at home is ours to choose.',
+    /** The letters line joins this rather than taking a beat of its own: the
+        count, the two corpora and the three letters are one fact. */
+    source: `${n(NAAM_COUNTS.total)} names, out of the Vedas and the Sutras — the ones that begin with B, S or V. B is Bishal, S is Sneha; the V names are here for a reason of their own.`,
     /**
      * THE ASK, AND THE PROMISE THAT SOMEONE IS LISTENING. It ended "or start
      * with one of these" and pointed at four pre-written chips; the chips are

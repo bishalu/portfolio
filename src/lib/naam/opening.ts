@@ -32,7 +32,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 /** How many blocks the opening has. Three: greet, establish, ask. */
-export const OPENING_STEPS = 3
+export const OPENING_STEPS = 4
 
 /**
  * The gap between blocks, in ms.
