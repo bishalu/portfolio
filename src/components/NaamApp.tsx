@@ -171,6 +171,19 @@ const RELEASE_MS = 260
 /** Long enough to read the third card as landed before the form arrives. */
 /** Ambient motion stays suspended this long after the last keystroke. */
 const CALM_MS = 800
+/**
+ * How long each named step of the wait holds. Long enough to read a short
+ * lowercase line without chasing it; much under this and the steps read as
+ * flicker and stop being discrete, which is the whole mechanism.
+ *
+ * MEASURED, so nobody has to guess later: on this dev server the ask comes
+ * back in 2.7–3.8s, so a visitor sees step 1 and step 2 and the turn is
+ * replaced by the hand before step 3. That is the intended shape — the walk
+ * covers the wait it is given and stops — but it does mean the last two lines
+ * only appear on a slow round-trip. If they should always be seen, the fix is
+ * this number, not the list: four steps need 4×this to all show.
+ */
+const ASKING_STEP_MS = 1400
 const DEAL_EASE = 'cubic-bezier(0.05, 0.7, 0.1, 1)'
 const SLOT_EASE = 'cubic-bezier(0.34, 1.56, 0.64, 1)'
 
@@ -894,6 +907,38 @@ export default function NaamApp({ seed }: NaamAppProps) {
     }, CALM_MS)
   }, [])
 
+  /* — the wait, walked ———————————————————————————————————————————————— */
+
+  /**
+   * The thinking caption steps through `C.app.askingSteps` while an ask is
+   * out. Ziat et al., Scientific Reports 2022: hold elapsed time constant and
+   * split the wait into more discrete steps, and people rate progress as
+   * faster and UNDERESTIMATE how long they waited. The request is unchanged;
+   * only what the visitor is told about it is.
+   *
+   * IT STOPS ON THE LAST STEP. A caption that cycles back to step one says the
+   * request restarted, and it did not — so the interval clears itself the
+   * moment it has nothing further that is true to say, and the last line holds
+   * for however long the model takes. That is the honest shape of this wait:
+   * four things are known to happen, and then it is out of our hands.
+   *
+   * Keyed on `asking`, so the walk starts with the ask and is torn down by the
+   * same state change that removes the thinking turn.
+   */
+  useEffect(() => {
+    if (!asking) return
+    let step = 0
+    const timer = window.setInterval(() => {
+      step += 1
+      if (step >= C.app.askingSteps.length - 1) window.clearInterval(timer)
+      const caption = C.app.askingSteps[Math.min(step, C.app.askingSteps.length - 1)]
+      setTurns((prev) =>
+        prev.map((turn) => (turn.kind === 'thinking' ? { ...turn, caption } : turn)),
+      )
+    }, ASKING_STEP_MS)
+    return () => window.clearInterval(timer)
+  }, [asking])
+
   /* — one ask ————————————————————————————————————————————————————————— */
 
   /**
@@ -920,8 +965,11 @@ export default function NaamApp({ seed }: NaamAppProps) {
       setAsking(true)
       setTurns((prev) => [
         ...(replaceId ? prev.filter((turn) => turn.id !== replaceId) : prev),
-        { id: thinkingId, kind: 'thinking', caption: C.app.asking },
+        { id: thinkingId, kind: 'thinking', caption: C.app.askingSteps[0] },
       ])
+      // The live region gets ONE line, not four. A screen reader reading a
+      // caption that rewrites itself every 1.4s would be told the same wait
+      // four times; the steps are a visual reassurance and this is the fact.
       setAnnounce(C.app.asking)
 
       const result = await askNaam({

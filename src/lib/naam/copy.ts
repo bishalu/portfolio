@@ -275,6 +275,29 @@ export const NAAM_COPY = {
      */
     reading: 'reading the document…',
     asking: 'asking the model…',
+    /**
+     * The same wait, told as the four steps it actually is. Ziat et al.,
+     * Scientific Reports 2022: with elapsed time held constant, MORE DISCRETE
+     * STEPS made progress feel faster and made people underestimate how long
+     * they had waited. One string for the whole request spends that for free.
+     *
+     * EVERY LINE IS TRUE, and that is the constraint the list is written
+     * under, not a nicety. The client reads the whole document, readAsk()
+     * narrows it to the pool of ids the model may choose from, the model
+     * chooses out of that pool and nothing else, and every id it names is
+     * resolved back against our own rows before a card is drawn. Naming a
+     * step the code does not take would be a progress bar that lies — the
+     * exact failure the LIVE badge on this page exists to rule out.
+     *
+     * The caption walks and STOPS on the last one. Coming back around to
+     * step one would say the request had restarted, and it has not.
+     */
+    askingSteps: [
+      `reading ${n(NAAM_COUNTS.total)} names…`,
+      'narrowing to the ones that fit…',
+      'asking the model to choose…',
+      'checking each name against the document…',
+    ],
     jump: 'Jump to the latest',
     composerLabel: 'Tell us what you have in mind',
     /* Names the group for a screen reader. "Ways to start" rather than
