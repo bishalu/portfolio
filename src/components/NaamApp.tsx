@@ -372,9 +372,16 @@ export interface NaamAppProps {
    * instead of appearing 1.2 MB later.
    */
   seed: NaamRow
+  /**
+   * Real, cited, gold rows the page can vouch for — four per letter, chosen at
+   * prerender by naam.astro from the same `isNaamGold` filter the no-JS
+   * fallback already used. They were being built and then hidden from every
+   * visitor who had JavaScript.
+   */
+  arrival?: readonly NaamRow[]
 }
 
-export default function NaamApp({ seed }: NaamAppProps) {
+export default function NaamApp({ seed, arrival }: NaamAppProps) {
   const [rows, setRows] = useState<NaamRow[] | null>(null)
   /** Approved suggestions from /api/naam-wall. Empty until one is approved. */
   const [wall, setWall] = useState<readonly WallEntry[]>([])
@@ -825,6 +832,14 @@ export default function NaamApp({ seed }: NaamAppProps) {
    * the stream stays at the top until they have actually asked something.
    */
   const asked = useMemo(() => turns.some((turn) => turn.kind === 'you'), [turns])
+
+  /** The arrival shelf as matches, so it renders through the same dealCards
+      path as a real hand. score/reasons are empty because nothing scored it —
+      it is the document's own selection, not an answer to a question. */
+  const arrivalHand = useMemo<readonly NaamMatch[]>(
+    () => (arrival ?? []).map((row) => ({ row, score: 0, reasons: [] })),
+    [arrival],
+  )
 
   /**
    * THE OPENING ARRIVES ONE BLOCK AT A TIME. Owned by a hook rather than by
@@ -2674,7 +2689,31 @@ export default function NaamApp({ seed }: NaamAppProps) {
 
           The room comes from the tray: with the cards gone it holds only the
           lamp and the three slots, so it gives back the height this needs. */}
-      {hand && <div className="nm-hand">{dealCards(hand.matches)}</div>}
+      {hand ? (
+        <div className="nm-hand">{dealCards(hand.matches)}</div>
+      ) : (
+        /* THE DOCUMENT, OPENED. Same band, same cards, same Keep — no new
+           component and no new geometry, so the measured phone layout (two
+           whole cards plus the edge of a third, naam.astro's 10.25rem) holds
+           by construction.
+
+           Gated on opening.done for the reason L3 gives about the sky: this
+           ANSWERS the invitation, it does not accompany it. Arriving while
+           "What kind of name are you looking for?" is still being said would
+           answer a question the page has not finished asking.
+
+           It is a shelf, not a hand. Twelve in a rail that shows two at a time
+           reads as "swipe through the document"; three would read as "here are
+           your three", which is a complete task — and forty guests sending the
+           same three names is the one way this page fails at its actual job. */
+        opening.done &&
+        arrivalHand.length > 0 && (
+          <div className="nm-hand" data-arrival="true">
+            <p className="nm-hand-lead label-mono label-mono--sm">{C.app.openShelf}</p>
+            {dealCards(arrivalHand)}
+          </div>
+        )
+      )}
 
       {/* LAST IN-FLOW ITEM OF THE COLUMN, never position: fixed — a fixed
           composer sits against the layout viewport and ends up underneath the

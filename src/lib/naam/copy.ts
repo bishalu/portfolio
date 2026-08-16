@@ -232,6 +232,19 @@ export const NAAM_COPY = {
      */
     familyLead: 'Names people keep coming back to',
     /**
+     * THE DOCUMENT, OPENED, BEFORE ANYONE HAS TYPED. Measured on arrival: the
+     * eight loudest names on the phone's first screen are the family's wall,
+     * and SIX OF THEM ARE NOT IN names-core.json. The page's whole proposition
+     * is that a name only appears if the document contains it — and the only
+     * names a visitor could act on were the ones it cannot vouch for. That is
+     * worse than showing none.
+     *
+     * Parallel to familyLead so the two bands read as a pair: one is what
+     * others chose, one is what the document holds. A label labels; the Keep
+     * pill on each card says what to do.
+     */
+    openShelf: 'A few from the document',
+    /**
      * Tapping a name in the sky used to KEEP it, making the scene a second way
      * to do the one thing the cards do. It asks instead, and borrows the chips'
      * own word — they already teach "like X" ("Short, like Bisa"), so the sky

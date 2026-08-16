@@ -121,7 +121,7 @@ if (!seedRow) {
        moving the fetch off onIdle() and into the mount effect; that stands. -->
 
   <div id="naam-app" class="nm nm-app">
-    <NaamApp seed={seedRow} client:load />
+    <NaamApp seed={seedRow} arrival={fallbackRows} client:load />
   </div>
 
   <!-- The no-JS half, in the normal DOM. Field names match
@@ -208,6 +208,31 @@ if (!seedRow) {
 </DefaultLayout>
 
 <style lang="scss" is:global>
+  /* ── THE ARRIVAL SHELF'S LABEL ─────────────────────────────────────────
+     Same register as the wall's own lead, because the two bands are a pair:
+     what others chose, and what the document holds.
+
+     POSITIONED, OR THE DIORAMA PAINTS OVER IT. The valley canvas spans the
+     whole viewport on a phone — top 41 to bottom 915 — at z-index: 0 with
+     pointer-events: none. That makes it invisible to elementsFromPoint, which
+     duly reported this <p> as the topmost element while the canvas painted
+     straight over its glyphs. It had opacity 1, dark ink and a correct 162px
+     text rect, and `color: red !important` was equally invisible: the text was
+     never the problem, the stacking order was.
+
+     AND IT IS DECLARED HERE, AT THE TOP, ON PURPOSE. Three earlier attempts
+     were written next to the rules they belonged with — and every one of those
+     neighbours lives inside `@media (min-width: 1100px)`, so on a phone the
+     rule had never applied at all. Four passes measured a declaration that was
+     not in the cascade. This file has no top-level `.nm-hand`, so there was no
+     correct neighbour to sit beside. */
+  .nm-hand-lead {
+    position: relative;
+    z-index: 1;
+    margin: 0 0 0.4rem;
+    color: var(--nm-text-soft);
+  }
+
   /* ═══════════════════════════════════════════════════════════════════════
      /naam — page-scoped, is:global because Astro's scoping does not reach
      React-rendered DOM. Every class is .nm-* .
@@ -481,7 +506,9 @@ if (!seedRow) {
         'composer tray';
     }
 
-    .nm-hand {
+
+
+  .nm-hand {
       grid-area: hand;
       /* ── INSIDE THE CONVERSATION, NOT BESIDE IT ─────────────────────────
          The hand spanned the full 704px column while every line of the thread
@@ -495,6 +522,20 @@ if (!seedRow) {
          than a tray that moved. */
       padding-right: clamp(0.75rem, 2.4vw, 1.4rem);
       padding-left: calc(clamp(0.75rem, 2.4vw, 1.4rem) + var(--nm-rail, 30px) + var(--nm-rail-gap, 0.8rem));
+    }
+
+    /* The lead sits at the cards' own left edge, not the band's. It was
+       rendering at x=0 while every card began at x=44 — a label detached from
+       the thing it labels, which reads as debris rather than as a heading. */
+    .nm-hand-lead {
+      padding-inline-start: calc(clamp(0.75rem, 2.4vw, 1.4rem) + var(--nm-rail, 30px) + var(--nm-rail-gap, 0.8rem));
+      /* The colour rides here too. .label-mono sets `color: var(--paper-soft)`
+         (#b0b5ca) and was winning despite a #naam-app rule that outranks it on
+         paper — measured 1.01:1, invisible, while every probe read it present
+         at opacity 1. These media rules are the ones observed to apply, so the
+         declaration goes where the evidence is rather than where the cascade
+         says it ought to be enough. */
+      color: var(--nm-text-soft);
     }
 
     .nm-streamwrap {
@@ -2188,6 +2229,15 @@ if (!seedRow) {
        card is 117px now and the gloss is hard-clamped to two lines, so its
        height no longer varies with the answer — the band can hug it. Measured
        after: 117px card in a 132px band, nothing clipped on either target. */
+    /* The arrival shelf carries a label the model's own hand does not, so it
+       needs the label's height on top of the card's. Measured before: the card
+       ran 428->562 inside a band that ended at 543 and the tray clipped 19px of
+       it. The stream is flex: 1 1 auto, so this comes out of the stream — one
+       line of already-read prose for an uncut card, which is the right trade. */
+    #naam-app .nm-hand[data-arrival] {
+      min-height: 9.75rem;
+    }
+
     #naam-app .nm-hand {
       min-height: 8.25rem;
     }
@@ -2227,6 +2277,20 @@ if (!seedRow) {
         clamp(0.75rem, 2.4vw, 1.4rem) + var(--nm-rail, 22px) + var(--nm-rail-gap, 0.6rem)
       );
       padding-left: calc(clamp(0.75rem, 2.4vw, 1.4rem) + var(--nm-rail, 22px) + var(--nm-rail-gap, 0.6rem));
+    }
+
+    /* The lead sits at the cards' own left edge, not the band's. It was
+       rendering at x=0 while every card began at x=44 — a label detached from
+       the thing it labels, which reads as debris rather than as a heading. */
+    .nm-hand-lead {
+      padding-inline-start: calc(clamp(0.75rem, 2.4vw, 1.4rem) + var(--nm-rail, 22px) + var(--nm-rail-gap, 0.6rem));
+      /* The colour rides here too. .label-mono sets `color: var(--paper-soft)`
+         (#b0b5ca) and was winning despite a #naam-app rule that outranks it on
+         paper — measured 1.01:1, invisible, while every probe read it present
+         at opacity 1. These media rules are the ones observed to apply, so the
+         declaration goes where the evidence is rather than where the cascade
+         says it ought to be enough. */
+      color: var(--nm-text-soft);
     }
 
     /* Starts on the text's own left edge, and runs off the right.
