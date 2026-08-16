@@ -184,3 +184,93 @@ collapses when the mis-heard word carries the meaning (2/40 for "vise" vs
 - **THE HUMAN TEST HAS NEVER BEEN RUN.** A first-time visitor on a phone, no
   explanation, can they send three names? Every probe row has been green while
   this sat untested. It is stated, not graded.
+
+---
+
+## Sidequest — why some names always came back, and what would reach the rest
+
+Reported: *"some names were always provided while others weren't."* True, and the
+cause is not the part of the system anyone would look at first.
+
+### What it is not
+
+**Not hubs in the classic sense.** Measured on `retrieve()` across 79 queries,
+the top 10 names took 5.7% of appearances and no name exceeded 5/79. There is
+no dominating item.
+
+**Not the tie-break.** `rank()` breaks ties alphabetically, which resolves
+identically for every query — an obvious suspect. A query-seeded tie-break
+moved Vastu from 64/82 to **64/82**. Rejected by measurement.
+
+**Not a lack of diversity in selection.** Greedy gloss-diversity in `pool()`
+made it **worse**, 64 → 74, because diversity inside a candidate set cannot help
+when the set itself barely changes between questions.
+
+### What it is
+
+**The query language has nineteen words.** `NAAM_THEMES` in `src/types/naam.ts`
+holds 19 themes; the 946-entry thesaurus is a synonym layer that funnels into
+them. Across 82 deliberately varied questions the parser extracted 15 distinct
+themes — it is already using almost the whole vocabulary.
+
+**So 2,098 names are compressed into 19 buckets**, roughly 110 names each, and
+the pool takes 40. Every question resolves to one bucket, and within a bucket
+the same forty win every time. That single fact produces the repetition AND the
+coverage ceiling:
+
+| | measured |
+|---|---|
+| distinct themes available | **19** |
+| rows reachable by any theme | 1,281 of 2,098 (61%) |
+| rows ever seen across 82 queries | 653 (31%) |
+| rows with a usable gloss | **2,096 (99.9%)** |
+
+The last row is the point. Almost every name has a meaning written down; the
+system just has no way to express most of them.
+
+### What was shipped
+
+A query-independent baseline was found — scored against an EMPTY wish,
+Vastu/Vedesha/Vidyesha/Vishvesha/Vivarta sit at 34.00 against a corpus median
+of 7.00 — and `pool()` now selects on score minus that baseline. Vastu 64 → 58,
+reachable 627 → 653, top-10 share 16.5% → 14.6%, relevance improved rather than
+paid for. A precomputed hubness prior was also tested offline: max 67 → 55,
+distinct 375 → 434, with no gain past λ=2. Worth having, not a cure.
+
+### What would actually reach every name
+
+In order of value against cost. **All of these keep the grounding contract** —
+the model still selects ids from a pool built locally, so nothing here makes an
+invented name possible.
+
+1. **Widen the vocabulary.** 19 themes → several hundred, derived from the
+   gloss corpus itself rather than hand-listed. Build-time only, no runtime
+   cost, no new dependency, and it multiplies the number of distinguishable
+   questions directly. Cheapest real fix and it should come first.
+
+2. **Embed the glosses.** 2,096 embeddable rows at 384 dimensions is ~3.2 MB
+   float32, ~0.8 MB int8 — precomputable offline on the RTX 5060 Ti this
+   project already has. This removes bucketing entirely: every name gets a
+   continuous handle, so every name is reachable by some question. It is the
+   only option that raises the 61% ceiling to 100%.
+
+3. **Hybrid retrieval with RRF.** Fuse the theme/BM25 pool (precision, and it
+   carries provenance) with the dense pool (coverage). Standard practice and
+   the right shape here, because the two fail in different directions.
+
+4. **Keep a hubness prior as a small term**, not as the main lever. Measured
+   above; it is a trim, not a fix.
+
+**What NOT to reach for.** ColPali-style visual late interaction is for page
+images and this corpus is structured rows — the mechanism does not transfer.
+Multi-vector late interaction is overkill for 2,098 documents averaging a dozen
+words. The expensive machinery is aimed at a problem this page does not have.
+
+### One more thing the sidequest found
+
+**`scripts/naam/eval` scores `match.retrieve()`, which is not what builds the
+pool.** Production goes `readAsk` → `pool()` → `rank()`. Success@3 = 0.988 is a
+real number about a function the page does not use for pool assembly, and
+`retrieve()` alone reaches 21.9% of the corpus and returns nothing for bare form
+words like "short" or "lyrical" — which the production path handles fine. Before
+any of the work above, the harness should measure the path that ships.
