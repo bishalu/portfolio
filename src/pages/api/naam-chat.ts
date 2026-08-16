@@ -95,6 +95,31 @@ const CEILING_PER_MIN = 60
 const MAX_TOKENS = 3400
 /** The prompt caps replies at 700; this is the outer wall in case that changes. */
 const MAX_REPLY_CHARS = 1200
+
+/**
+ * The outer wall used to be `reply.slice(0, MAX_REPLY_CHARS)`, and a character
+ * count does not know where a word ends. Seen on a phone: a reply that ran long
+ * ended "...Vibhat is a neat two-syllable option that feels bright without
+ * being heavy. Shochis ad" — a name cut in half, on a page whose entire subject
+ * is names, which reads as the page breaking rather than as the model running
+ * long.
+ *
+ * So it ends where a sentence ends. Falling back through word boundary to a
+ * hard cut, because an over-long reply must still be capped — but the honest
+ * ellipsis only appears when the trim actually lost something.
+ */
+function trimReply(text: string): string {
+  const reply = text.trim()
+  if (reply.length <= MAX_REPLY_CHARS) return reply
+
+  const window = reply.slice(0, MAX_REPLY_CHARS)
+  // Last sentence end that is not an abbreviation's full stop mid-word.
+  const sentence = Math.max(window.lastIndexOf('. '), window.lastIndexOf('.\n'))
+  if (sentence > MAX_REPLY_CHARS * 0.6) return window.slice(0, sentence + 1)
+
+  const word = window.lastIndexOf(' ')
+  return `${(word > 0 ? window.slice(0, word) : window).replace(/[,;:—-]+$/, '')}…`
+}
 const POOL_MAX = 60
 const ASK_MAX = 400
 
@@ -326,7 +351,7 @@ export const POST: APIRoute = async (context) => {
 
     return json({
       degraded: false,
-      reply: reply.slice(0, MAX_REPLY_CHARS),
+      reply: trimReply(reply),
       pickIds: pickIds.slice(0, NAAM_MAX_PICKS),
     })
   } catch (error) {
