@@ -103,3 +103,84 @@ the sky started rising. Both were the fault L2 exists to prevent, reintroduced
 by the fix for it — because everything that waits on the end of the invitation
 waits on the same signal. Anything else gated on `opening.done` in future needs
 its own beat, not the same one.
+
+---
+
+## The rebuild passes — what was measured, and what is still open
+
+Branch `naam/restore-phase-1`. Every number below came from an opened
+screenshot or a probe, on phone 412 and desktop 1440.
+
+### The journey, end to end
+
+| | stage | phone | desktop |
+|---|---|---|---|
+| J1 | arrive → cited names you can act on | **508ms**, 12/12 in the document | **547ms**, 12/12 |
+| J2 | narrow → a deal arrives, verb visible | 8 cards, `Keep` | 6 cards, `Keep` |
+| J3 | keep three → slots fill, send names them | 3/3, `Send these 3 →` | 3/3 |
+| J4 | send → the form opens and states what happens | opens | opens |
+| — | Success@3 · axe · page errors | 98.8% n=85 · 0 · 0 | same |
+
+### The four findings that changed the work
+
+**1. Six of the eight loudest names on arrival were not in the document.**
+Bishnu, Brihat, Sanskar, Satwik, Soham, Brihan — the family wall, the most
+saturated objects on the first screen, on a page whose whole proposition is
+that a name only appears if the document contains it. Worse than showing none.
+
+**2. The fix was already built and hidden.** `naam.astro` computed twelve
+cited gold rows at prerender and rendered them into `.nm-fallback`, which is
+`display:none` for every visitor with JavaScript.
+
+**3. A shelf, not a hand.** Twelve in a rail that shows two at a time reads as
+"swipe through the document". Three would read as "here are your three" — a
+complete task, and forty guests sending the same three names is the one way
+this page fails at its job.
+
+**4. Hubness was real and only partly fixed.** Measured across 82 queries on
+the production path: Vastu in 64 of them, thirty names in 40% or more, 627 of
+2,098 rows ever reachable. Cause: a query-independent lift — scored against an
+EMPTY wish, Vastu/Vedesha/Vidyesha/Vishvesha/Vivarta all sit at 34.00 against a
+corpus median of 7.00. `pool()` now selects on score minus that baseline:
+Vastu 64 → 58, reachable 627 → 653, top-10 share 16.5% → 14.6%.
+
+### New durable lighthouses
+
+**L17 — a rule you cannot see is not in the cascade.** The shelf's label
+reported opacity 1, dark ink, a correct 162px text rect and topmost by
+`elementsFromPoint`, and painted nothing — including under `color: red
+!important`. Two causes stacked: the valley canvas spans the whole phone
+viewport at `z-index: 0` with `pointer-events: none`, so it is invisible to hit
+testing while painting over anything unpositioned; and every rule written to
+fix it sat inside `@media (min-width: 1100px)`, because this file has no
+top-level `.nm-hand` to sit beside. Four measurements of a declaration that had
+never applied. **Before debugging a value, confirm the rule is in play.**
+(weight 3)
+
+**L18 — a correct fix in a stale closure does nothing.** The kept-name filter
+was right and inert: `runModel` is a `useCallback` with deps `[asking, rows]`
+and `pickedIds` was not among them, so it closed over the empty Set from the
+first render. Reading the diff would have shown a correct filter; only
+re-measuring found it. (weight 5)
+
+**L19 — test the claim that decides the design, before building.** Voice was
+scoped as "fills the composer". Measuring ASR noise first changed *why*:
+retrieval survives noise on ordinary words (38–40/40 pool overlap) and
+collapses when the mis-heard word carries the meaning (2/40 for "vise" vs
+"wise") — and never returns empty, so a mis-hear is silent. That is what makes
+"never auto-submit" a requirement rather than a preference. (weight 5)
+
+### Open, and honestly stated
+
+- **Hubness is 71% solved, not solved.** 58 of 82 remains. Closing it means
+  work on `scoreName`'s own baseline, which needs its own instrument first.
+- **The eval measures `retrieve()`, which is not what ships.** The production
+  pool comes from `readAsk` → `pool()`. `retrieve()` alone reaches 21.9% of the
+  corpus and returns nothing for bare form words like "short" or "lyrical";
+  the production path handles those. Success@3 is a real number about a
+  function the page does not use for pool assembly.
+- **Nepali-first is a stated constraint and the copy is entirely English.**
+  Named by the research critic, unaddressed by any phase so far.
+- **THE HUMAN TEST HAS NEVER BEEN RUN.** A first-time visitor on a phone, no
+  explanation, can they send three names? Every probe row has been green while
+  this sat untested. It is stated, not graded.
