@@ -3,6 +3,7 @@ import type { CSSProperties, FormEvent } from 'react'
 import NaamCard from './NaamCard'
 import NaamWall, { type WallNote } from './NaamWall'
 import { askNaam, failureNote, readAsk, withReasons } from '@/lib/naam/ask'
+import { NAAM_DEAL_SMALL } from '@/lib/naam/prompt'
 import { OPENING_STEPS, useOpening } from '@/lib/naam/opening'
 import { NAAM_COPY, NAAM_RELATIONS } from '@/lib/naam/copy'
 import type { NaamMatch } from '@/lib/naam/match'
@@ -1024,7 +1025,30 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
       const mount = mountRef.current
       if (!dataset || !mount || asking || value.length === 0) return
 
-      const { prefs, poolIds, near } = readAsk(value, dataset)
+      const { prefs, poolIds: allIds, near } = readAsk(value, dataset)
+      /**
+       * THE TRAY TELLS THE POOL WHAT IT ALREADY HOLDS. Measured: keep Bhagin,
+       * then ask "names that mean fortunate or blessed", and Bhagin comes back
+       * in the deal — a card you already own, spending one of eight slots and
+       * quietly saying the page was not listening.
+       *
+       * Filtered HERE, at the call site, and deliberately not inside readAsk or
+       * retrieve. The pool builder's job is "what does the document have for
+       * this sentence", which is a question about the document; "and what does
+       * this visitor already have" is a question about this session. Keeping
+       * them apart is also what keeps the eval honest — scripts/naam/eval
+       * scores match.retrieve directly, so nothing it measures moves.
+       *
+       * The floor matters. With three kept and a thin pool, subtracting could
+       * empty it, and an empty pool renders as a failure rather than as a short
+       * answer — so the unfiltered list is restored if filtering would leave
+       * too little to deal from.
+       */
+      const poolIds = (() => {
+        if (pickedIds.size === 0) return allIds
+        const fresh = allIds.filter((id) => !pickedIds.has(id))
+        return fresh.length >= Math.min(NAAM_DEAL_SMALL, allIds.length) ? fresh : allIds
+      })()
       const thinkingId = nextId()
       setAsking(true)
       setTurns((prev) => [
@@ -1087,7 +1111,12 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
       })
       setAnnounce(result.reply)
     },
-    [asking, rows],
+    /* pickedIds belongs here, and its absence was the whole bug. It is a
+       useMemo over `picks`, so it is stable between keeps and changes exactly
+       when the tray does — without it runModel closed over the empty Set from
+       the first render and the filter above could never fire. Measured before:
+       keep Bhagin, ask, Bhagin comes back. */
+    [asking, rows, pickedIds],
   )
 
   /**
