@@ -313,6 +313,21 @@ export const NAAM_COPY = {
     ],
     jump: 'Jump to the latest',
     composerLabel: 'Tell us what you have in mind',
+    /**
+     * SAY IT INSTEAD OF TYPING IT. Much of this family is over sixty and on a
+     * phone, and "names that sound soft when you say them out loud" is a hard
+     * sentence to thumb into a keyboard in a second language.
+     *
+     * It fills the box; it never sends. Measured: retrieval survives ASR noise
+     * on ordinary words (38-40 of 40 pool overlap on "agressive", "sutrus",
+     * "abrod") and collapses when the mis-heard word is the one carrying the
+     * meaning — 2/40 for "vise" instead of "wise", 4/40 for "vater" instead of
+     * "water" — which is exactly the v/w/b confusion a Nepali speaker's accent
+     * produces. It never returned nothing, so a mis-hear is silent rather than
+     * loud. The transcript therefore has to be visible and editable before it
+     * is acted on, which is what "fills the box" buys.
+     */
+    speak: { idle: 'Say it', listening: 'Listening…' },
     /* Names the group for a screen reader. "Ways to start" rather than
        "suggestions": each one is a whole question, and tapping it asks it. */
     startersLabel: 'Ways to start',

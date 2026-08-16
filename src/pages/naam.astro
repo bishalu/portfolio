@@ -208,6 +208,71 @@ if (!seedRow) {
 </DefaultLayout>
 
 <style lang="scss" is:global>
+  /* ── SAY IT ─────────────────────────────────────────────────────────────
+     The page's own ink, not an app button. It sits inside the composer's
+     rounded field at the left, mirroring the send arrow on the right, so the
+     field reads as one object with a way in at each end. Absent entirely where
+     the browser has no speech API — there is nothing to explain. */
+  .nm-speak {
+    display: inline-flex;
+    position: relative;
+    z-index: 1;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    margin-inline-start: 0.35rem;
+    border: 0;
+    border-radius: 999px;
+    background: none;
+    cursor: pointer;
+    gap: 0.32rem;
+    padding: 0.3rem 0.5rem 0.3rem 0.42rem;
+    height: 2.15rem;
+    white-space: nowrap;
+  }
+
+  #naam-app .nm-speak-word {
+    color: color-mix(in srgb, var(--nm-text) 62%, transparent);
+  }
+
+  /* Below 360 the field has to choose between the word and the sentence being
+     typed into it, and the sentence wins — the glyph and the accessible name
+     both stay. */
+  @media (max-width: 359px) {
+    .nm-speak-word { display: none; }
+  }
+
+  .nm-speak:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  /* A mouth, not a microphone: two strokes that open when it is listening.
+     A mic glyph on a page with no other iconography would be the one piece of
+     app furniture on it. */
+  .nm-speak-glyph {
+    display: block;
+    transition: height var(--dur-base) ease, border-color var(--dur-base) ease;
+    border: 1.5px solid color-mix(in srgb, var(--nm-text) 55%, transparent);
+    border-radius: 999px;
+    width: 0.95rem;
+    height: 0.5rem;
+  }
+
+  .nm-speak:hover .nm-speak-glyph {
+    border-color: var(--nm-text);
+  }
+
+  .nm-speak-glyph[data-on] {
+    animation: nm-speak-open 1100ms ease-in-out infinite;
+    border-color: var(--nm-accent, var(--nm-keep));
+  }
+
+  @keyframes nm-speak-open {
+    0%, 100% { height: 0.5rem; }
+    50% { height: 0.9rem; }
+  }
+
   /* ── THE ARRIVAL SHELF'S LABEL ─────────────────────────────────────────
      Same register as the wall's own lead, because the two bands are a pair:
      what others chose, and what the document holds.

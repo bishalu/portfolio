@@ -3,6 +3,7 @@ import type { CSSProperties, FormEvent } from 'react'
 import NaamCard from './NaamCard'
 import NaamWall, { type WallNote } from './NaamWall'
 import { askNaam, failureNote, readAsk, withReasons } from '@/lib/naam/ask'
+import { useSpeech } from '@/lib/naam/speech'
 import { NAAM_DEAL_SMALL } from '@/lib/naam/prompt'
 import { OPENING_STEPS, useOpening } from '@/lib/naam/opening'
 import { NAAM_COPY, NAAM_RELATIONS } from '@/lib/naam/copy'
@@ -833,6 +834,22 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
    * the stream stays at the top until they have actually asked something.
    */
   const asked = useMemo(() => turns.some((turn) => turn.kind === 'you'), [turns])
+
+  /**
+   * SPEECH, AND IT ONLY EVER FILLS THE BOX. It calls setAsk and stops there —
+   * submitting on a final transcript would act on a sentence nobody has read,
+   * and the measurement above says a mis-heard THEME word silently returns a
+   * different set rather than failing. Visible and editable is the whole
+   * mitigation.
+   *
+   * Capability-detected at mount, not at module scope: this component
+   * server-renders, and `window` is not there when it does.
+   */
+  const speech = useSpeech((text) => {
+    setAsk(text)
+    opening.rush()
+    inputRef.current?.focus()
+  })
 
   /** The arrival shelf as matches, so it renders through the same dealCards
       path as a real hand. score/reasons are empty because nothing scored it —
@@ -2822,6 +2839,28 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
         )}
         </div>
         <div className="nm-composer-in">
+          {/* Only where the browser actually has it. No shim, no upsell, and
+              nothing at all to see where it is unsupported. */}
+          {speech.available && (
+            <button
+              type="button"
+              className="nm-speak"
+              aria-pressed={speech.listening}
+              disabled={!live || asking}
+              onClick={() => speech.toggle()}
+            >
+              <span className="nm-speak-glyph" aria-hidden="true" data-on={speech.listening ? 'true' : undefined} />
+              {/* THE WORD IS ON THE PAGE. An unlabelled glyph for an action is
+                  the exact fault L10 was earned on — the Keep control spent a
+                  session as a 14px ring with its verb in an .sr-only span, and
+                  no sighted visitor ever saw it. Same corner, same footprint,
+                  carrying its own word. */}
+              <span className="nm-speak-word label-mono label-mono--sm" aria-hidden="true">
+                {speech.listening ? C.app.speak.listening : C.app.speak.idle}
+              </span>
+              <span className="sr-only">{speech.listening ? C.app.speak.listening : C.app.speak.idle}</span>
+            </button>
+          )}
           <label className="sr-only" htmlFor="nma-ask">
             {C.app.composerLabel}
           </label>
