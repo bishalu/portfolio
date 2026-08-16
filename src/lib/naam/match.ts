@@ -432,6 +432,13 @@ export function pool(rows: readonly NaamRow[], prefs: Prefs, size = 40): NaamRow
    * responsible for. A name the document loves still ranks high when the
    * question is about it, and stops riding along when it is not.
    *
+   * The subtraction is at strength 1 and that is a measured optimum, not a
+   * default. Swept against the evocative-reach gate in coverage.mjs: at 0 the
+   * hub sits at 69/88; at 1 it is 61/88 with evocative reach unchanged at
+   * 75.1%; at 1.25 and above the ranking INVERTS — rows with a high baseline
+   * fall below genuinely less relevant ones, evocative reach collapses to 55.4%
+   * and the hub climbs to 84. Do not raise it.
+   *
    * Two other fixes were tried first and REJECTED BY MEASUREMENT, which is the
    * only reason this one is here: a query-seeded tie-break moved Vastu 64 -> 64,
    * and greedy gloss-diversity made it WORSE, 64 -> 74, because diversity inside

@@ -96,6 +96,32 @@ const sum = all.reduce((s, v) => s + v, 0)
 const gini = sum === 0 ? 0 : all.reduce((s, v, i) => s + (2 * (i + 1) - all.length - 1) * v, 0) / (all.length * sum)
 
 const byId = new Map(rows.map((r) => [r.id, r]))
+
+/**
+ * THE DENOMINATOR IS NOT THE CORPUS, and getting that wrong sends the whole
+ * investigation somewhere expensive and wrong.
+ *
+ * Reach against all 2,098 shipped rows reads 31%, which looks like a crisis and
+ * invites a rebuild. But the rows that never come back are not being unfairly
+ * excluded — the DOCUMENT declines them. Measured: rows the pool returns are
+ * 75.1% evocative-badged; rows it never returns are 15.5% evocative and 84.5%
+ * bare-attested, and 24.3% of them have a gloss of the form "name of a man".
+ * There are 85 rows whose entire gloss is "name of a man". Driving reach to
+ * 100% means dealing those to somebody choosing a name for their son.
+ *
+ * So the honest measure is reach across the names a family could plausibly
+ * want. Against 590 evocative rows the same pool reaches 74.1%, and the real
+ * gap is 154 names — of which 139 ALREADY CARRY A THEME. Those are a ranking
+ * failure, not a vocabulary failure, and they are the thing to fix.
+ *
+ * `missedEvocativeThemed` is the gate that cannot be gamed by returning more
+ * names: padding the pool with bare-attested rows moves reach, gini and hub all
+ * in the flattering direction and leaves this number exactly where it was.
+ */
+const evocative = rows.filter((r) => r.badges?.evocative)
+const reachedEv = evocative.filter((r) => appear.has(r.id))
+const missedEvThemed = evocative.filter((r) => !appear.has(r.id) && (r.themes ?? []).length > 0)
+const missedEvUnthemed = evocative.filter((r) => !appear.has(r.id) && (r.themes ?? []).length === 0)
 const hubs = [...appear.entries()].sort((a, b) => b[1] - a[1])
 
 const report = {
@@ -108,6 +134,11 @@ const report = {
   top10Share: +share(10).toFixed(1),
   gini: +gini.toFixed(3),
   worst: hubs.slice(0, 5).map(([id, n]) => ({ name: byId.get(id)?.latin ?? id, in: n })),
+  evocative: evocative.length,
+  evocativeReached: reachedEv.length,
+  evocativeReachedPct: +((reachedEv.length / evocative.length) * 100).toFixed(1),
+  missedEvocativeThemed: missedEvThemed.length,
+  missedEvocativeUnthemed: missedEvUnthemed.length,
 }
 
 if (has('--json')) {
@@ -123,6 +154,11 @@ if (has('--json')) {
   console.log(`  worst name in    ${report.maxAppearances}/${report.queries} pools`)
   console.log(`  top 10 take      ${report.top10Share}% of all appearances`)
   console.log(`  gini             ${report.gini}   (0 even, 1 one name takes everything)`)
+  console.log(`\n  REACH THAT MATTERS   (the corpus declines the rest, and is right to)`)
+  console.log(`  evocative rows   ${report.evocative}`)
+  console.log(`  reached          ${report.evocativeReached}  (${report.evocativeReachedPct}%)`)
+  console.log(`  MISSED, themed   ${report.missedEvocativeThemed}   <- a ranking failure. THE GATE.`)
+  console.log(`  missed, unthemed ${report.missedEvocativeUnthemed}   <- a vocabulary failure`)
   console.log(`\n  MOST REPEATED`)
   for (const [id, n] of hubs.slice(0, valueOf('--hubs', 10))) {
     const r = byId.get(id)
