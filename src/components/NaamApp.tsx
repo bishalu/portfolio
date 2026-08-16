@@ -2706,7 +2706,23 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
            reads as "swipe through the document"; three would read as "here are
            your three", which is a complete task — and forty guests sending the
            same three names is the one way this page fails at its actual job. */
-        opening.done &&
+        /* NO GATE. It was gated on opening.done — first keepable name at
+           4,818ms, measured — then on the source line, 3,612ms. Both were the
+           wrong shape of answer.
+
+           These cards are SERVER-RENDERED. Gating them behind a JS clock hides
+           markup that is already in the document on first paint, which is the
+           exact fault this shelf was built to fix: naam.astro was computing
+           twelve cited cards and then setting display:none on them. Delaying
+           them is the same mistake wearing a timer.
+
+           And it is consistent with everything else in this band: the three
+           empty slots and the composer are both on screen from the first frame.
+           A band of names is not more of an interruption than an empty tray.
+
+           The opening still stages the WORDS, which is where the sequence
+           lives (L1, L2). The shelf is furniture, like the tray — it does not
+           speak, so it does not need a turn. */
         arrivalHand.length > 0 && (
           <div className="nm-hand" data-arrival="true">
             <p className="nm-hand-lead label-mono label-mono--sm">{C.app.openShelf}</p>
