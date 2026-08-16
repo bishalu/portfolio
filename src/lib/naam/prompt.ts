@@ -167,6 +167,36 @@ export function snapDeal(n: number): number {
  */
 export const NAAM_MAX_REPLY_CHARS = 420
 
+/**
+ * Cut a reply where a sentence ends, never where a character count lands.
+ *
+ * `.slice(0, 420)` does not know where a word finishes, and this page's replies
+ * are made almost entirely of names. Seen live, three times before it was
+ * traced: "...and vitamas (Bitamas) means f", "...and Vani (Bani) f",
+ * "...Shochis ad". A name cut in half on a page whose whole subject is names
+ * reads as the page breaking, not as the model running long.
+ *
+ * It was first fixed at the OUTER wall in naam-chat.ts, at 1,200 characters —
+ * which never fires, because this cut at 420 has already happened. The fix
+ * belongs where the cut is.
+ *
+ * Falls back through a word boundary to a hard slice, and only shows an
+ * ellipsis when the trim actually lost something.
+ */
+export function trimToSentence(text: string, max: number): string {
+  const body = text.trim()
+  if (body.length <= max) return body
+
+  const window = body.slice(0, max)
+  const sentence = Math.max(window.lastIndexOf('. '), window.lastIndexOf('.\n'))
+  // Only if it leaves a reply worth reading; a 40-character answer is worse
+  // than a slightly long one.
+  if (sentence > max * 0.5) return window.slice(0, sentence + 1)
+
+  const word = window.lastIndexOf(' ')
+  return `${(word > 0 ? window.slice(0, word) : window).replace(/[,;:—-]+$/, '')}…`
+}
+
 export const NAAM_TOOL_SCHEMA = {
   type: 'object',
   properties: {
@@ -224,7 +254,7 @@ export function coerceModelReply(raw: unknown, allowedRows: readonly NaamRow[]):
   if (!source || typeof source !== 'object') return { reply: '', pickIds: [] }
 
   const record = source as Record<string, unknown>
-  const reply = typeof record.reply === 'string' ? clean(record.reply).slice(0, NAAM_MAX_REPLY_CHARS) : ''
+  const reply = typeof record.reply === 'string' ? trimToSentence(clean(record.reply), NAAM_MAX_REPLY_CHARS) : ''
 
   // Every way the model might refer to a row it was shown → that row's real id.
   const lookup = new Map<string, string>()

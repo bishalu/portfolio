@@ -208,6 +208,65 @@ if (!seedRow) {
 </DefaultLayout>
 
 <style lang="scss" is:global>
+  /* ══ THE WORKSPACE INVERSION ═══════════════════════════════════════════
+     A thread is a LOG: it grows downward, every turn weighs the same, and the
+     thing you are doing now sits at the bottom of a scroller competing with
+     everything you already did. A workspace is STATE: there is one current
+     result, it is the largest thing on screen, and history is available
+     without being in the way.
+
+     The page was the first and is now the second, and the switch is a state it
+     already tracked. `data-first` is present until the visitor asks something.
+     Before that the invitation should lead — it is the only thing to read.
+     After it, the RESULT leads and the words that produced it stand down to a
+     band you can still read and scroll.
+
+     Phone measured before: the deal was a horizontal rail showing 2 of 8
+     names. A result that leads should be a result you can see, so once there
+     is one it becomes a grid. */
+
+  /* 26vh, not 32: at 32 the words measured 263px against the result's 238 and
+     the thread was still the biggest thing on screen, which is the arrangement
+     this whole change exists to end. The reply stays readable and scrollable;
+     it just stops outweighing the answer it produced. */
+  .nm-shell:not([data-first]) .nm-streamwrap {
+    flex: 0 1 auto;
+    max-height: 26vh;
+  }
+
+  .nm-shell:not([data-first]) .nm-hand {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  /* The rail becomes a grid, and scrolls vertically with the rest of the
+     result rather than sideways against it. Two up at 412 shows four names in
+     the same band that used to show two. */
+  /* Same rule the stream and the chip rail already follow: content meeting an
+     edge runs out of ink, it is not guillotined. Measured before: the fourth
+     card's gloss was cut mid-phrase and read as breakage rather than as "there
+     is more". 2.5rem is more than a gloss line's height so a line has room to
+     disappear over. */
+  .nm-shell:not([data-first]) .nm-hand > .nm-deal {
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 2.5rem), transparent);
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 2.5rem), transparent);
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+    gap: var(--space-2xs);
+    scroll-snap-type: none;
+    overflow-x: visible;
+    overflow-y: auto;
+    min-height: 0;
+    padding-block-end: var(--space-2xs);
+  }
+
+  .nm-shell:not([data-first]) .nm-hand .nm-dealt {
+    flex: initial;
+    scroll-snap-align: none;
+  }
+
   /* ── SAY IT ─────────────────────────────────────────────────────────────
      The page's own ink, not an app button. It sits inside the composer's
      rounded field at the left, mirroring the send arrow on the right, so the
@@ -569,6 +628,16 @@ if (!seedRow) {
         'stream tray'
         'hand tray'
         'composer tray';
+    }
+
+    /* Same inversion at desktop: the thread keeps a readable band, the result
+       takes the height it was giving away. */
+    .nm-shell:not([data-first]) {
+      grid-template-rows: minmax(0, auto) minmax(0, 1fr) auto;
+    }
+
+    .nm-shell:not([data-first]) .nm-streamwrap {
+      max-height: 34vh;
     }
 
 
