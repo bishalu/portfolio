@@ -461,6 +461,51 @@ export function pool(rows: readonly NaamRow[], prefs: Prefs, size = 40): NaamRow
       ((hash32(a.row.id) ^ seed) >>> 0) - ((hash32(b.row.id) ^ seed) >>> 0)
     )
   })
+
+  /**
+   * THE HEAD IS THE ANSWER; THE TAIL IS THE ROOM TO CHOOSE IN.
+   *
+   * The model reads the pool in order and mostly picks from the front, so the
+   * first rows must be the best rows the question earned. Everything after them
+   * is breadth — and taking it as a strict top-40 is what made the same names
+   * arrive for every question.
+   *
+   * So the head stays exactly as ranked, and the tail is drawn from a WIDER
+   * slice by a hash seeded on this query. Same question, same answer; different
+   * questions, different company.
+   */
+  /**
+   * 12 and 600, and both are swept rather than chosen. The deal is at most 8,
+   * so a head of 12 covers everything the model is likely to pick with headroom
+   * to spare, and its evocative density is byte-identical to a strict ranking —
+   * measured 87.5% either way. 600 of 2,098 is deep enough to reach past the
+   * crust that was answering every question and shallow enough that the rows in
+   * it still earned their place.
+   *
+   * Swept against coverage.mjs: (12,120) missed 127 hub 57, (12,300) missed 130
+   * hub 51, (16,300) missed 132 hub 51, (20,400) missed 133 hub 54, and
+   * (12,600) missed 125, evocative reach 77.1%, hub 50, reach 733 — better on
+   * every axis at once.
+   *
+   * A version WITHOUT the preserved head was tried and rejected: it took the
+   * hub to 43 and reach to 905, and paid for it by dropping the pool's
+   * evocative density from 86.5% to 70.9%. Reach that arrives as duller names
+   * is the metric improving while the product gets worse. This costs 3.2 points
+   * of tail density and none at the head.
+   */
+  const HEAD = 12
+  const DEEP = 600
+  if (ranked.length > HEAD) {
+    const head = ranked.slice(0, HEAD)
+    const tail = ranked
+      .slice(HEAD, DEEP)
+      .sort(
+        (a, b) =>
+          ((hash32(a.row.id) ^ seed) >>> 0) - ((hash32(b.row.id) ^ seed) >>> 0),
+      )
+    ranked.length = 0
+    ranked.push(...head, ...tail)
+  }
   if (size <= 0) return []
   if (prefs.letters.length === 1) return ranked.slice(0, size).map((m) => m.row)
 
