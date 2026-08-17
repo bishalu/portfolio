@@ -506,13 +506,27 @@ export const NAAM_COPY = {
    * So none of these lines may promise names underneath it any more. Each says
    * what happened and stops; `retry` and `escape` are what to do next.
    */
+  /**
+   * WHEN IT DOES NOT WORK, SAID IN THE VISITOR'S WORDS.
+   *
+   * These read "The model didn't answer." and "There is no model on this
+   * build." — true, and written for whoever maintains the page. Much of this
+   * family is over sixty and Nepali-first; "the model" and "this build" are not
+   * things they have. The deck's own rule is that errors say what happened and
+   * what to do next, with no apology and no blame, and a sentence somebody
+   * cannot parse fails all three.
+   *
+   * It also points at what still works. The document's own names come back on
+   * the failure path, so the visitor is never stranded — the line should say
+   * so rather than leaving them looking at an apology above a full shelf.
+   */
   failure: {
-    modelDown: 'The model didn’t answer.',
-    modelSlow: 'The model took too long to answer.',
-    modelOff: 'There is no model on this build.',
+    modelDown: 'That didn’t come back. The names below are from the document — or ask again.',
+    modelSlow: 'That took too long. The names below are from the document — or ask again.',
+    modelOff: 'Nothing is answering just now. The names below are from the document.',
     /** The same sentence, asked again. The visitor retypes nothing. */
-    retry: 'Try again',
-    dataDown: 'The full list did not load. Reload the page and it will try again.',
+    retry: 'Ask again',
+    dataDown: 'The full list did not finish loading. Reload the page and it will try again.',
   },
 
   card: {

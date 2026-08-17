@@ -1785,8 +1785,17 @@ if (!seedRow) {
     color: var(--nm-text);
   }
 
+  /* NOT ALARM RED. This line carries "That didn't come back. The names below
+     are from the document — or ask again." — a sentence that says what happened
+     and points at what still works, set in the same crimson as an error. For a
+     reader over sixty red means "you did something wrong", so the colour was
+     contradicting the words, and the deck's own rule is no apology and no
+     blame.
+
+     Ordinary ink, and the mark to its left is what distinguishes it. It still
+     reads as a different KIND of line without reading as a fault. */
   .nm-said--note {
-    color: var(--nm-accent-text);
+    color: var(--nm-text);
   }
 
   .nm-quiet-label {
@@ -2213,7 +2222,13 @@ if (!seedRow) {
     border: 1px solid var(--nm-hair-strong);
     border-radius: 999px;
     background: var(--nm-surface);
-    padding: 0.4rem 0.85rem;
+/* 44px. It shipped at 40, and this is the one control on the page a
+       visitor reaches for at the moment something has already gone wrong —
+       the worst possible place to make them aim. */
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 0.95rem;
     color: var(--nm-text-soft);
     font-size: 0.92rem;
     line-height: 1.7;
