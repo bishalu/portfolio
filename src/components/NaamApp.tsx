@@ -1799,12 +1799,14 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
    */
   const refineChips = useMemo(() => {
     if (!hand || !lastAsk) return []
+    const freshest = picks.length > 0 ? picks[picks.length - 1] : null
     return refinements(
       hand.matches.map((m) => m.row),
       lastAsk.prefs,
       lastAsk.text,
+      freshest ? { latin: freshest.spelling ?? freshest.id } : null,
     )
-  }, [hand, lastAsk])
+  }, [hand, lastAsk, picks])
 
   /**
    * PAPER, once per card, on the beat the card actually arrives. The deal is

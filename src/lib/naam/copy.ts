@@ -328,6 +328,18 @@ export const NAAM_COPY = {
       gentler: 'gentler',
       wiser: 'wiser',
       vedas: 'from the Vedas',
+      /**
+       * THE MOMENT AFTER A KEEP IS THE STRONGEST SIGNAL THE PAGE EVER GETS.
+       * Somebody has just said "this one" about a specific name, and the
+       * obvious next question is "are there others like it?" — which the page
+       * made them type.
+       *
+       * It goes in the chip row rather than on the card. The card is 176px and
+       * already carries Keep; a second control on it would be small furniture
+       * for exactly the readers least able to hit small furniture, and this
+       * page has removed a second tap path from the card once already.
+       */
+      moreLike: (name: string) => `more like ${name}`,
       /** Names the row for a screen reader. */
       label: 'Narrow these results',
     },

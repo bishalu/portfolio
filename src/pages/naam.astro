@@ -278,9 +278,52 @@ if (!seedRow) {
      the thread was still the biggest thing on screen, which is the arrangement
      this whole change exists to end. The reply stays readable and scrollable;
      it just stops outweighing the answer it produced. */
+  /* THE HANDOVER IS A MOVE, NOT A CUT. Measured across the swap at 100ms
+     sampling: the hand's height snapped 120px and the first card jumped 115px
+     in one frame when the twelve-card shelf became an eight-card deal. The
+     tray and composer never move, so the whole jolt is this one edge.
+
+     The height change is intentional — the result is taking over — so it is
+     eased rather than removed. Only the stream's cap animates; the hand is
+     flex and follows, which keeps the work on one property instead of two.
+     Respects reduced motion below. */
+  .nm-streamwrap {
+    /* An explicit start, or there is nothing to ease FROM: the base rule had
+       no max-height and `none -> 26vh` is not an animatable pair, which is why
+       the first attempt at this measured exactly the same 120px snap. 62vh is
+       effectively uncapped before the first ask — the invitation is the only
+       thing to read and it never reaches that — while giving the transition a
+       number at both ends. */
+    /* A BASIS, NOT A CAP, and the difference is the whole bug. Traced frame by
+       frame: the cap eased perfectly — 462 -> 337 -> 268 -> 243 -> 238 — while
+       the stream's actual height sat at 117px throughout and then jumped to 238
+       in a single frame, because a max-height only LIMITS a box, it does not
+       reserve it. What moved was the reply text arriving.
+
+       So the box is sized when the question is sent, before any words land, and
+       eases to that size while the shelf is still on screen. The reply then
+       arrives into a box that is already the right shape and scrolls inside it
+       instead of shoving the result down. Both ends are explicit because
+       `auto` is not an animatable value — the first two attempts at this
+       measured exactly the same 120px snap for that reason. */
+    flex: 1 1 62vh;
+    max-height: 62vh;
+    transition:
+      flex-basis 420ms cubic-bezier(0.22, 0.61, 0.36, 1),
+      max-height 420ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+
+  /* max-height ONLY. This also set `flex: 0 1 auto`, and flex is not an
+     animatable pair — so the eased max-height was correct and the flex change
+     beside it snapped anyway, which is why desktop measured 26px and the phone
+     still measured 120. One property moves; the hand follows it. */
   .nm-shell:not([data-first]) .nm-streamwrap {
-    flex: 0 1 auto;
+    flex: 1 1 26vh;
     max-height: 26vh;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nm-streamwrap { transition: none; }
   }
 
   .nm-shell:not([data-first]) .nm-hand {
@@ -4374,6 +4417,15 @@ if (!seedRow) {
   }
 
   .nm-tray-send {
+    /* 44px. It measured 142x37 — the one control that actually delivers the
+       family's three names, under the minimum, on a page whose audience is
+       largely over sixty. Found by sweeping every visible control rather than
+       by looking, which is the only way a button you have seen a hundred times
+       gets measured at all. */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
     animation: nm-say 420ms cubic-bezier(0.05, 0.7, 0.1, 1) backwards;
     transition:
       background var(--dur-base) ease,

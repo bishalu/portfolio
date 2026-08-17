@@ -71,11 +71,27 @@ export function refinements(
   dealt: readonly NaamRow[],
   prefs: { syllables: number[]; letters: string[]; themes: string[]; sources: string[] },
   ask: string,
+  /** The name most recently kept, if any. The strongest signal on the page. */
+  justKept?: { latin: string } | null,
 ): Refinement[] {
   const base = ask.trim()
   if (!base || dealt.length === 0) return []
 
   const out: Refinement[] = []
+
+  /**
+   * FIRST, BECAUSE IT IS THE ONE THEY MEANT. This is the only chip that does
+   * NOT compose onto the previous question — "more like Bhati" is a new
+   * subject, and it is a new subject the visitor just chose by keeping it.
+   * Every other chip narrows what they asked; this one follows what they liked.
+   */
+  if (justKept?.latin) {
+    out.push({
+      id: `like-${justKept.latin}`,
+      label: C.moreLike(justKept.latin),
+      prompt: `more like ${justKept.latin}`,
+    })
+  }
   const add = (id: string, label: string, clause: string) =>
     out.push({ id, label, prompt: `${base}, ${clause}` })
 
