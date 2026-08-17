@@ -305,6 +305,32 @@ export const NAAM_COPY = {
      * The caption walks and STOPS on the last one. Coming back around to
      * step one would say the request had restarted, and it has not.
      */
+    /**
+     * AFTER A DEAL, WHAT YOU CAN TAP INSTEAD OF TYPING. Short and command-like
+     * on purpose: arXiv 2410.10644 found users of prompt interfaces regress to
+     * exactly this register, and the fix is to offer the commands rather than a
+     * better box.
+     *
+     * Lowercase, because each one continues the visitor's own sentence rather
+     * than starting a new one — "a name that means light, two syllables".
+     */
+    refine: {
+      shorter: 'shorter',
+      longer: 'longer',
+      /* "more B" assumes you have read that B is Bishal. Someone who has not
+         reads a stray capital letter. Four more characters buys a label that
+         means something on its own. */
+      moreB: 'more B names',
+      moreS: 'more S names',
+      moreV: 'more V names',
+      calmer: 'calmer',
+      stronger: 'stronger',
+      gentler: 'gentler',
+      wiser: 'wiser',
+      vedas: 'from the Vedas',
+      /** Names the row for a screen reader. */
+      label: 'Narrow these results',
+    },
     askingSteps: [
       `reading ${n(NAAM_COUNTS.total)} names…`,
       'narrowing to the ones that fit…',

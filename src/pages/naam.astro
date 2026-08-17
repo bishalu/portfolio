@@ -208,6 +208,55 @@ if (!seedRow) {
 </DefaultLayout>
 
 <style lang="scss" is:global>
+  /* ── NARROW THESE ───────────────────────────────────────────────────────
+     Short, command-like, and sitting under the result they act on. Quieter
+     than Keep, because Keep is what the deal is for and these are how you get
+     a better deal to keep from. Scrolls sideways rather than wrapping, so the
+     row never steals a second line from the cards. */
+  .nm-refine {
+    display: flex;
+    position: relative;
+    z-index: 1;
+    flex: 0 0 auto;
+    gap: 0.4rem;
+    margin: 0.5rem 0 0;
+    padding: 0 0 0.15rem;
+    padding-inline-start: var(--nm-deal-indent, 0);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    list-style: none;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent);
+  }
+
+  .nm-refine::-webkit-scrollbar { display: none; }
+
+  /* 44px, and the reason is the audience rather than the guideline. Much of
+     this family is over sixty and on a phone; WCAG 2.5.5 asks for 44 and these
+     shipped at 31 because 31 looked right on a desktop screen to someone who
+     is not the user. Text at 0.9rem for the same reason — 0.8 was my default,
+     not theirs. */
+  .nm-refine-chip {
+    display: inline-flex;
+    align-items: center;
+    transition: border-color var(--dur-base) ease, color var(--dur-base) ease;
+    border: 1px solid color-mix(in srgb, var(--nm-text) 28%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--nm-paper, #fff) 72%, transparent);
+    padding: 0 0.85rem;
+    min-height: 44px;
+    color: color-mix(in srgb, var(--nm-text) 86%, transparent);
+    font-size: 0.9rem;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .nm-refine-chip:hover {
+    border-color: color-mix(in srgb, var(--nm-text) 45%, transparent);
+    color: var(--nm-text);
+  }
+
   /* ══ THE WORKSPACE INVERSION ═══════════════════════════════════════════
      A thread is a LOG: it grows downward, every turn weighs the same, and the
      thing you are doing now sits at the bottom of a scroller competing with
@@ -285,8 +334,10 @@ if (!seedRow) {
     background: none;
     cursor: pointer;
     gap: 0.32rem;
-    padding: 0.3rem 0.5rem 0.3rem 0.42rem;
-    height: 2.15rem;
+    /* 44px: it was 34, and this is the control built FOR the people least able
+       to hit a small one. */
+    padding: 0 0.6rem 0 0.5rem;
+    min-height: 44px;
     white-space: nowrap;
   }
 
@@ -663,6 +714,11 @@ if (!seedRow) {
        the thing it labels, which reads as debris rather than as a heading. */
     .nm-hand-lead {
       padding-inline-start: calc(clamp(0.75rem, 2.4vw, 1.4rem) + var(--nm-rail, 30px) + var(--nm-rail-gap, 0.8rem));
+    }
+
+    /* The chips line up with the cards, not with the band. */
+    .nm-refine {
+      --nm-deal-indent: calc(clamp(0.75rem, 2.4vw, 1.4rem) + var(--nm-rail, 30px) + var(--nm-rail-gap, 0.8rem));
       /* The colour rides here too. .label-mono sets `color: var(--paper-soft)`
          (#b0b5ca) and was winning despite a #naam-app rule that outranks it on
          paper — measured 1.01:1, invisible, while every probe read it present
@@ -2418,6 +2474,11 @@ if (!seedRow) {
        the thing it labels, which reads as debris rather than as a heading. */
     .nm-hand-lead {
       padding-inline-start: calc(clamp(0.75rem, 2.4vw, 1.4rem) + var(--nm-rail, 22px) + var(--nm-rail-gap, 0.6rem));
+    }
+
+    /* The chips line up with the cards, not with the band. */
+    .nm-refine {
+      --nm-deal-indent: calc(clamp(0.75rem, 2.4vw, 1.4rem) + var(--nm-rail, 22px) + var(--nm-rail-gap, 0.6rem));
       /* The colour rides here too. .label-mono sets `color: var(--paper-soft)`
          (#b0b5ca) and was winning despite a #naam-app rule that outranks it on
          paper — measured 1.01:1, invisible, while every probe read it present
@@ -4517,8 +4578,10 @@ if (!seedRow) {
     border: none;
     border-radius: 999px;
     background: var(--crimson-deep);
-    width: 36px;
-    height: 36px;
+    /* 44px. It was 36 — under WCAG 2.5.5 and under what a sixty-five-year-old
+       can hit reliably on a moving bus, which is the actual test. */
+    width: 44px;
+    height: 44px;
     color: var(--on-fill);
     font-size: 1rem;
 

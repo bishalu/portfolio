@@ -4,6 +4,8 @@ import NaamCard from './NaamCard'
 import NaamWall, { type WallNote } from './NaamWall'
 import { askNaam, failureNote, readAsk, withReasons } from '@/lib/naam/ask'
 import { useSpeech } from '@/lib/naam/speech'
+import { refinements } from '@/lib/naam/refine'
+import type { Prefs } from '@/lib/naam/match'
 import { NAAM_DEAL_SMALL } from '@/lib/naam/prompt'
 import { OPENING_STEPS, useOpening } from '@/lib/naam/opening'
 import { NAAM_COPY, NAAM_RELATIONS } from '@/lib/naam/copy'
@@ -835,6 +837,9 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
    */
   const asked = useMemo(() => turns.some((turn) => turn.kind === 'you'), [turns])
 
+  /** The sentence the visitor last sent, and what it parsed to. */
+  const [lastAsk, setLastAsk] = useState<{ text: string; prefs: Prefs } | null>(null)
+
   /**
    * SPEECH, AND IT ONLY EVER FILLS THE BOX. It calls setAsk and stops there —
    * submitting on a final transcript would act on a sentence nobody has read,
@@ -1043,6 +1048,9 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
       if (!dataset || !mount || asking || value.length === 0) return
 
       const { prefs, poolIds: allIds, near } = readAsk(value, dataset)
+      // Kept so the refinement chips can add a clause to THIS question rather
+      // than replacing it — see src/lib/naam/refine.ts for why that matters.
+      setLastAsk({ text: value, prefs })
       /**
        * THE TRAY TELLS THE POOL WHAT IT ALREADY HOLDS. Measured: keep Bhagin,
        * then ask "names that mean fortunate or blessed", and Bhagin comes back
@@ -1783,6 +1791,20 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
     }
     return null
   }, [turns])
+
+  /**
+   * What to offer under the deal. Derived from the rows that came back and the
+   * question that produced them, so every chip continues the visitor's own
+   * sentence — never starts a new one.
+   */
+  const refineChips = useMemo(() => {
+    if (!hand || !lastAsk) return []
+    return refinements(
+      hand.matches.map((m) => m.row),
+      lastAsk.prefs,
+      lastAsk.text,
+    )
+  }, [hand, lastAsk])
 
   /**
    * PAPER, once per card, on the beat the card actually arrives. The deal is
@@ -2736,7 +2758,27 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
           The room comes from the tray: with the cards gone it holds only the
           lamp and the three slots, so it gives back the height this needs. */}
       {hand ? (
-        <div className="nm-hand">{dealCards(hand.matches)}</div>
+        <div className="nm-hand">
+          {dealCards(hand.matches)}
+          {/* UNDER THE RESULT, because a control that acts on something belongs
+              beside it. Hidden while a turn is in flight so a tap cannot queue
+              a second request on top of the first. */}
+          {refineChips.length > 0 && !asking && (
+            <ul className="nm-refine" aria-label={C.app.refine.label}>
+              {refineChips.map((chip) => (
+                <li key={chip.id}>
+                  <button
+                    type="button"
+                    className="nm-refine-chip"
+                    onClick={() => runAsk(chip.prompt)}
+                  >
+                    {chip.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       ) : (
         /* THE DOCUMENT, OPENED. Same band, same cards, same Keep — no new
            component and no new geometry, so the measured phone layout (two
