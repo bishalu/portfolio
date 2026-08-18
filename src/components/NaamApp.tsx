@@ -30,6 +30,7 @@ import {
   addOwnPick,
   isOwnPick,
   removePick,
+  clearPicks,
   subscribe,
   togglePick,
   PICK_MAX,
@@ -944,6 +945,26 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
     el?.scrollTo({ top: el.scrollHeight, behavior: reducedMotion() ? 'auto' : 'smooth' })
   }, [opening.done, asked])
 
+  /**
+   * AND ALWAYS AFTER A SEND, whether or not anybody typed.
+   *
+   * Every other scroll on this page is gated on `asked`, which is true only
+   * once there is a 'you' turn. A visitor who keeps three names straight off
+   * the arrival shelf and sends them never types anything — so `asked` stays
+   * false, the settle never ran, and their "Dhanyabad." landed 135px below the
+   * fold. Measured: stream 345px tall, scrollTop 382 of a 862px scrollHeight,
+   * the confirmation ending 15px past the bottom edge.
+   *
+   * That is the most likely path for the reader this page was built for, and it
+   * was the one path where the thank-you could not be read.
+   */
+  const lastKind = turns[turns.length - 1]?.kind
+  useEffect(() => {
+    if (lastKind !== 'sent') return
+    const el = streamRef.current
+    el?.scrollTo({ top: el.scrollHeight, behavior: reducedMotion() ? 'auto' : 'smooth' })
+  }, [lastKind])
+
   const onStreamScroll = useCallback(() => {
     const el = streamRef.current
     if (!el) return
@@ -1744,6 +1765,23 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
       setFormShown(false)
       later(() => releaseToSky(rising), 120)
       setTurns((prev) => [...prev, { id: nextId(), kind: 'sent', text: line }])
+      /**
+       * THE TRAY EMPTIES, BECAUSE THE NAMES HAVE GONE.
+       *
+       * They did not before, and the culminating moment on the page read as
+       * though nothing had happened: "Dhanyabad." arrived in the thread while
+       * the three slots still held the same three names and the button still
+       * offered "Send these 3 →". A page that keeps offering to send what it
+       * has already sent is telling the visitor it did not hear them.
+       *
+       * `rising` was captured above, so the lanterns still carry these exact
+       * names up — which is where they visibly go. Emptying the slots is the
+       * other half of that gesture rather than a reset.
+       *
+       * Not on a rate-limit: nothing was queued, so the three are still theirs
+       * and error.rateLimited says to wait a moment and try again.
+       */
+      if (!rateLimited) clearPicks()
       setAnnounce(line)
     },
     [later, picks, releaseToSky, sending],
@@ -2281,6 +2319,9 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
       data-calm={calm ? 'true' : undefined}
       data-thinking={asking ? 'true' : undefined}
       data-kept={picks.length}
+      /* The three have gone. The shell uses this to give the thank-you the
+         room the result no longer needs. */
+      data-sent={turns[turns.length - 1]?.kind === 'sent' ? 'true' : undefined}
       data-first={!asked ? 'true' : undefined}
       /* data-still  the sky is stopped — WCAG 2.2.2. JS gates the canvas and
          the label loop; this is how the CSS keyframes hear about it, because

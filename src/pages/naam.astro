@@ -317,6 +317,25 @@ if (!seedRow) {
      animatable pair — so the eased max-height was correct and the flex change
      beside it snapped anyway, which is why desktop measured 26px and the phone
      still measured 120. One property moves; the hand follows it. */
+  /* WHEN IT IS DONE, THE MESSAGE LEADS AGAIN. The result leads while a visitor
+     is choosing; once the three have gone there is no result to lead, and
+     "Dhanyabad." was landing inside a 26vh cap with its second line clipped
+     mid-sentence — the warmest moment on the page, cut in half. Same rule as
+     before the first ask, for the same reason: the only thing to read is the
+     only thing on screen. */
+  .nm-shell[data-sent] .nm-streamwrap {
+    flex: 1 1 62vh;
+    max-height: 62vh;
+  }
+
+  /* And the shelf stops competing for it. Both bands are flex: 1 1, so raising
+     the stream's basis alone just split the difference and the confirmation
+     stayed clipped at 78%. Once the three have gone the deal is not the thing
+     being read, so it takes only what its content needs. */
+  .nm-shell[data-sent] .nm-hand {
+    flex: 0 1 auto;
+  }
+
   .nm-shell:not([data-first]) .nm-streamwrap {
     flex: 1 1 26vh;
     max-height: 26vh;
