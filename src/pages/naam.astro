@@ -208,6 +208,212 @@ if (!seedRow) {
 </DefaultLayout>
 
 <style lang="scss" is:global>
+  /* ── NARROW THESE ───────────────────────────────────────────────────────
+     Short, command-like, and sitting under the result they act on. Quieter
+     than Keep, because Keep is what the deal is for and these are how you get
+     a better deal to keep from. Scrolls sideways rather than wrapping, so the
+     row never steals a second line from the cards. */
+  .nm-refine {
+    display: flex;
+    position: relative;
+    z-index: 1;
+    flex: 0 0 auto;
+    gap: 0.4rem;
+    margin: 0.5rem 0 0;
+    padding: 0 0 0.15rem;
+    padding-inline-start: var(--nm-deal-indent, 0);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    list-style: none;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent);
+  }
+
+  .nm-refine::-webkit-scrollbar { display: none; }
+
+  /* 44px, and the reason is the audience rather than the guideline. Much of
+     this family is over sixty and on a phone; WCAG 2.5.5 asks for 44 and these
+     shipped at 31 because 31 looked right on a desktop screen to someone who
+     is not the user. Text at 0.9rem for the same reason — 0.8 was my default,
+     not theirs. */
+  .nm-refine-chip {
+    display: inline-flex;
+    align-items: center;
+    transition: border-color var(--dur-base) ease, color var(--dur-base) ease;
+    border: 1px solid color-mix(in srgb, var(--nm-text) 28%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--nm-paper, #fff) 72%, transparent);
+    padding: 0 0.85rem;
+    min-height: 44px;
+    color: color-mix(in srgb, var(--nm-text) 86%, transparent);
+    font-size: 0.9rem;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .nm-refine-chip:hover {
+    border-color: color-mix(in srgb, var(--nm-text) 45%, transparent);
+    color: var(--nm-text);
+  }
+
+  /* ══ THE WORKSPACE INVERSION ═══════════════════════════════════════════
+     A thread is a LOG: it grows downward, every turn weighs the same, and the
+     thing you are doing now sits at the bottom of a scroller competing with
+     everything you already did. A workspace is STATE: there is one current
+     result, it is the largest thing on screen, and history is available
+     without being in the way.
+
+     The page was the first and is now the second, and the switch is a state it
+     already tracked. `data-first` is present until the visitor asks something.
+     Before that the invitation should lead — it is the only thing to read.
+     After it, the RESULT leads and the words that produced it stand down to a
+     band you can still read and scroll.
+
+     Phone measured before: the deal was a horizontal rail showing 2 of 8
+     names. A result that leads should be a result you can see, so once there
+     is one it becomes a grid. */
+
+  /* 26vh, not 32: at 32 the words measured 263px against the result's 238 and
+     the thread was still the biggest thing on screen, which is the arrangement
+     this whole change exists to end. The reply stays readable and scrollable;
+     it just stops outweighing the answer it produced. */
+  /* THE HANDOVER IS A MOVE, NOT A CUT. Measured across the swap at 100ms
+     sampling: the hand's height snapped 120px and the first card jumped 115px
+     in one frame when the twelve-card shelf became an eight-card deal. The
+     tray and composer never move, so the whole jolt is this one edge.
+
+     The height change is intentional — the result is taking over — so it is
+     eased rather than removed. Only the stream's cap animates; the hand is
+     flex and follows, which keeps the work on one property instead of two.
+     Respects reduced motion below. */
+  .nm-streamwrap {
+    /* An explicit start, or there is nothing to ease FROM: the base rule had
+       no max-height and `none -> 26vh` is not an animatable pair, which is why
+       the first attempt at this measured exactly the same 120px snap. 62vh is
+       effectively uncapped before the first ask — the invitation is the only
+       thing to read and it never reaches that — while giving the transition a
+       number at both ends. */
+    /* A BASIS, NOT A CAP, and the difference is the whole bug. Traced frame by
+       frame: the cap eased perfectly — 462 -> 337 -> 268 -> 243 -> 238 — while
+       the stream's actual height sat at 117px throughout and then jumped to 238
+       in a single frame, because a max-height only LIMITS a box, it does not
+       reserve it. What moved was the reply text arriving.
+
+       So the box is sized when the question is sent, before any words land, and
+       eases to that size while the shelf is still on screen. The reply then
+       arrives into a box that is already the right shape and scrolls inside it
+       instead of shoving the result down. Both ends are explicit because
+       `auto` is not an animatable value — the first two attempts at this
+       measured exactly the same 120px snap for that reason. */
+    /* MIN-HEIGHT IS THE PROPERTY THAT ACTUALLY HOLDS THIS BOX, and finding
+       that took three attempts. Easing max-height did nothing: a cap limits,
+       it does not reserve. Easing flex-basis did nothing either — traced frame
+       by frame, the stream went 345px -> 117px in the FIRST frame after submit,
+       nowhere near either basis, because with the hand growing beside it the
+       size is decided by flex-SHRINK and the basis never gets a say.
+       min-height is the floor the shrink cannot cross, and it animates.
+
+       Measured before: 228px in one frame. */
+    flex: 1 1 auto;
+    max-height: 62vh;
+  }
+
+  /* ID SPECIFICITY, ON PURPOSE. A phone rule further down this file sets
+     `.nm-streamwrap { min-height: 5.5rem }` and wins on source order, so the
+     floor written up here computed to 88px and the transition had no value to
+     start from — which is exactly why the two earlier attempts measured no
+     change at all. Same failure as the shelf label: the rule was never in the
+     cascade. #naam-app settles it wherever the neighbours sit. */
+  #naam-app .nm-streamwrap {
+    min-height: 38vh;
+    transition:
+      min-height 420ms cubic-bezier(0.22, 0.61, 0.36, 1),
+      max-height 420ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+
+  #naam-app .nm-shell:not([data-first]) .nm-streamwrap {
+    min-height: 26vh;
+  }
+
+
+  /* NOTHING MOVES WHEN THE NAMES ARE SENT, and that is the third rule this
+     pass deleted rather than tuned. Sending used to grow the stream from 26vh
+     to 46vh so the thank-you had room — which pushed the tray, the slots and
+     the composer down 34px, the only interaction on the page that disturbed
+     the three things a visitor navigates by.
+
+     It was never a room problem. The confirmation is 128px and the band is
+     238; it read as clipped because the stream never SCROLLED to it — every
+     scroll here was gated on `asked`, and somebody who keeps three names off
+     the shelf never types a word. With that gate fixed the confirmation
+     measures 100% visible on both phone and desktop inside the unchanged
+     band, so the band stops changing. The last thing this page does is now
+     completely still. */
+
+  /* max-height ONLY. This also set `flex: 0 1 auto`, and flex is not an
+     animatable pair — so the eased max-height was correct and the flex change
+     beside it snapped anyway, which is why desktop measured 26px and the phone
+     still measured 120. One property moves; the hand follows it. */
+  /* WHEN IT IS DONE, THE MESSAGE LEADS AGAIN. The result leads while a visitor
+     is choosing; once the three have gone there is no result to lead, and
+     "Dhanyabad." was landing inside a 26vh cap with its second line clipped
+     mid-sentence — the warmest moment on the page, cut in half. Same rule as
+     before the first ask, for the same reason: the only thing to read is the
+     only thing on screen. */
+
+  /* THE SHELF IS LEFT ALONE AFTER SENDING, and that is a reversal.
+     Collapsing it did make room for the confirmation — but the room was not
+     what was missing. The stream simply never scrolled to the thank-you,
+     because every scroll here is gated on `asked` and somebody who keeps
+     three names off the shelf never types. With that fixed the confirmation
+     reads at 100% without touching the shelf, and collapsing it moved the tray
+     and the composer 25px — the two things that had held perfectly still
+     through every other interaction on the page. Anchors moving is worse than
+     a band resizing. */
+
+  .nm-shell:not([data-first]) .nm-streamwrap {
+    min-height: 26vh;
+    max-height: 26vh;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nm-streamwrap { transition: none; }
+  }
+
+  .nm-shell:not([data-first]) .nm-hand {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  /* The rail becomes a grid, and scrolls vertically with the rest of the
+     result rather than sideways against it. Two up at 412 shows four names in
+     the same band that used to show two. */
+  /* Same rule the stream and the chip rail already follow: content meeting an
+     edge runs out of ink, it is not guillotined. Measured before: the fourth
+     card's gloss was cut mid-phrase and read as breakage rather than as "there
+     is more". 2.5rem is more than a gloss line's height so a line has room to
+     disappear over. */
+  .nm-shell:not([data-first]) .nm-hand > .nm-deal {
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 2.5rem), transparent);
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 2.5rem), transparent);
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+    gap: var(--space-2xs);
+    scroll-snap-type: none;
+    overflow-x: visible;
+    overflow-y: auto;
+    min-height: 0;
+    padding-block-end: var(--space-2xs);
+  }
+
+  .nm-shell:not([data-first]) .nm-hand .nm-dealt {
+    flex: initial;
+    scroll-snap-align: none;
+  }
+
   /* ── SAY IT ─────────────────────────────────────────────────────────────
      The page's own ink, not an app button. It sits inside the composer's
      rounded field at the left, mirroring the send arrow on the right, so the
@@ -226,8 +432,10 @@ if (!seedRow) {
     background: none;
     cursor: pointer;
     gap: 0.32rem;
-    padding: 0.3rem 0.5rem 0.3rem 0.42rem;
-    height: 2.15rem;
+    /* 44px: it was 34, and this is the control built FOR the people least able
+       to hit a small one. */
+    padding: 0 0.6rem 0 0.5rem;
+    min-height: 44px;
     white-space: nowrap;
   }
 
@@ -544,8 +752,20 @@ if (!seedRow) {
   @media (min-width: 1100px) {
     .nm-shell {
       display: grid;
-      /* Two rows since the topbar went: the columns, then the composer. */
-      grid-template-rows: minmax(0, 1fr) auto;
+      /* THREE ROWS, AND THE STREAM'S IS `auto`. This was `minmax(0, 1fr) auto`
+         against three areas, so the hand sized to its content — 414px of
+         arrival shelf — and the stream got the 259px left over. But the stream
+         carries a 38vh floor, so it did not shrink into 259: it OVERFLOWED its
+         own row by 83px, under a shelf that is `position: relative` and
+         therefore paints on top. The bottom of the welcome was behind the
+         cards, and on the first ask the whole shelf snapped 83px down in a
+         single frame as the row template changed under it.
+
+         `auto` on the stream row means the row grows to the floor instead of
+         being overflowed by it, and the hand takes what is left — which is the
+         same shape the post-ask state already had, so leaving the arrival
+         state now changes only the SIZES, and those ease. */
+      grid-template-rows: auto minmax(0, 1fr) auto;
       /* The plate is sized from the CARD, not from the leftovers. Three cards
          plus the gaps and the tray's padding need ~700px before a gloss stops
          breaking mid-phrase — at 46vw the cards came out 180px and "to shine,
@@ -571,10 +791,53 @@ if (!seedRow) {
         'composer tray';
     }
 
+    /* Same inversion at desktop: the thread keeps a readable band, the result
+       takes the height it was giving away. */
+    .nm-shell:not([data-first]) {
+      grid-template-rows: minmax(0, auto) minmax(0, 1fr) auto;
+    }
+
+    /* THE ARRIVAL STREAM IS CAPPED AT ITS OWN FLOOR, for the same reason.
+       With the row set to `auto` the stream took its CONTENT height — 531px of
+       welcome — and left the shelf 142px, one row of a twelve-name shelf that
+       is the whole point of the arrival. Capping it at the floor it already
+       carries makes the row exactly 38vh, the shelf gets the remainder, and
+       the welcome scrolls the way every other turn in this column scrolls.
+
+       It also makes arriving and working the same layout at two sizes: 342 and
+       331 before the ask, 306 and 367 after. Nothing reflows on the first ask;
+       two numbers ease past each other. */
+    #naam-app .nm-shell[data-first] .nm-streamwrap {
+      max-height: 38vh;
+    }
+
+    /* THE FLOOR AND THE CAP ARE THE SAME NUMBER, and that equality is the
+       whole fix. Desktop had a floor of 26vh and a cap of 34vh, so between
+       the ask and the reply — the moment the old turn is cleared and the new
+       one has not arrived — the band had nothing holding it up and fell to
+       its floor, then sprang back to the cap when the words landed. Measured:
+       342 -> 280 -> 306, with the shelf under it dropping 83px in a single
+       frame and rising 62 back. A bounce, in the one place the page asks
+       somebody to wait.
+
+       The phone never had it, and comparing the two is what found this: there
+       the floor and the cap are both 26vh, so the band is simply a fixed
+       height and an empty reply cannot move it. Same construction here. The
+       stream is a window of a known size after the first ask; what changes
+       inside it is the text, not the furniture. */
+    #naam-app .nm-shell:not([data-first]) .nm-streamwrap {
+      min-height: 34vh;
+      max-height: 34vh;
+    }
+
 
 
   .nm-hand {
       grid-area: hand;
+      /* A column, so the deal can be told to take what is left after the
+         label rather than guessing at a viewport fraction. */
+      display: flex;
+      flex-direction: column;
       /* ── INSIDE THE CONVERSATION, NOT BESIDE IT ─────────────────────────
          The hand spanned the full 704px column while every line of the thread
          is inset past the mala rail and held to a measure — so the cards ran
@@ -587,6 +850,21 @@ if (!seedRow) {
          than a tray that moved. */
       padding-right: clamp(0.75rem, 2.4vw, 1.4rem);
       padding-left: calc(clamp(0.75rem, 2.4vw, 1.4rem) + var(--nm-rail, 30px) + var(--nm-rail-gap, 0.8rem));
+
+      /* THE DEAL IS HELD TO THE BAND, and without this it was not. A grid item
+         will not shrink below its content unless it is told it may, so the
+         deal took its content height — 414px of cards inside a 331px row —
+         and, with the hand at `overflow: visible`, the extra 84px simply
+         spilled under the composer's opaque band.
+
+         What that cost was the FADE. The deal already masks its own bottom
+         2.5rem so a clipped row reads as "there is more, scroll", but the mask
+         sits at the deal's bottom edge — which was 84px below the visible
+         area. So the one row a visitor could see cut off was cut by an opaque
+         white band with no gradient at all, which reads as broken layout
+         rather than as a scroller. `min-height: 0` lets the row do its job and
+         puts the fade back where the cut is. */
+      min-height: 0;
     }
 
     /* The lead sits at the cards' own left edge, not the band's. It was
@@ -594,6 +872,11 @@ if (!seedRow) {
        the thing it labels, which reads as debris rather than as a heading. */
     .nm-hand-lead {
       padding-inline-start: calc(clamp(0.75rem, 2.4vw, 1.4rem) + var(--nm-rail, 30px) + var(--nm-rail-gap, 0.8rem));
+    }
+
+    /* The chips line up with the cards, not with the band. */
+    .nm-refine {
+      --nm-deal-indent: calc(clamp(0.75rem, 2.4vw, 1.4rem) + var(--nm-rail, 30px) + var(--nm-rail-gap, 0.8rem));
       /* The colour rides here too. .label-mono sets `color: var(--paper-soft)`
          (#b0b5ca) and was winning despite a #naam-app rule that outranks it on
          paper — measured 1.01:1, invisible, while every probe read it present
@@ -647,7 +930,18 @@ if (!seedRow) {
     }
 
     .nm-hand > .nm-deal {
-      max-height: 46vh;
+      /* THE BAND, NOT A FRACTION OF THE VIEWPORT. This was `max-height: 46vh`,
+         which at 900px tall is 414px — inside a hand row that is 331. The deal
+         overflowed its own band by 84px and, since the hand does not clip,
+         those 84px went under the composer's opaque white band.
+
+         The fade below is the casualty: it masks the deal's BOTTOM EDGE, and
+         that edge was 84px past the last visible pixel. So the row a visitor
+         could see cut was cut by an opaque band with no gradient on it — the
+         exact "guillotine" this rule's own comment says to avoid. Sized off
+         the band it actually lives in, the fade is back where the cut is. */
+      flex: 1 1 auto;
+      min-height: 0;
       /* A row cut flush against the composer reads as broken rather than as
          scrollable. The padding leaves the clipped row visibly mid-card, which
          is what says "there is more below" — and the fade makes it a soft edge
@@ -725,7 +1019,7 @@ if (!seedRow) {
        block-background phase, which is UNDER every positioned descendant of
        the same stacking context — so the sky was drawn over the paper. Its two
        neighbours never had the bug because .nm-streamwrap is already
-       `position: relative` (the doodle hangs off it) and .nm-composer already
+       `position: relative` and .nm-composer already
        carries `z-index: 2` for exactly this reason.
 
        `relative` with no z-index is enough: that puts it in the positioned
@@ -1209,7 +1503,6 @@ if (!seedRow) {
 
   .nm-streamwrap {
     display: flex;
-    /* The doodle hangs off this. */
     position: relative;
     flex: 1 1 0;
     min-height: 0;
@@ -1660,8 +1953,17 @@ if (!seedRow) {
     color: var(--nm-text);
   }
 
+  /* NOT ALARM RED. This line carries "That didn't come back. The names below
+     are from the document — or ask again." — a sentence that says what happened
+     and points at what still works, set in the same crimson as an error. For a
+     reader over sixty red means "you did something wrong", so the colour was
+     contradicting the words, and the deck's own rule is no apology and no
+     blame.
+
+     Ordinary ink, and the mark to its left is what distinguishes it. It still
+     reads as a different KIND of line without reading as a fault. */
   .nm-said--note {
-    color: var(--nm-accent-text);
+    color: var(--nm-text);
   }
 
   .nm-quiet-label {
@@ -2088,7 +2390,13 @@ if (!seedRow) {
     border: 1px solid var(--nm-hair-strong);
     border-radius: 999px;
     background: var(--nm-surface);
-    padding: 0.4rem 0.85rem;
+/* 44px. It shipped at 40, and this is the one control on the page a
+       visitor reaches for at the moment something has already gone wrong —
+       the worst possible place to make them aim. */
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 0.95rem;
     color: var(--nm-text-soft);
     font-size: 0.92rem;
     line-height: 1.7;
@@ -2349,6 +2657,11 @@ if (!seedRow) {
        the thing it labels, which reads as debris rather than as a heading. */
     .nm-hand-lead {
       padding-inline-start: calc(clamp(0.75rem, 2.4vw, 1.4rem) + var(--nm-rail, 22px) + var(--nm-rail-gap, 0.6rem));
+    }
+
+    /* The chips line up with the cards, not with the band. */
+    .nm-refine {
+      --nm-deal-indent: calc(clamp(0.75rem, 2.4vw, 1.4rem) + var(--nm-rail, 22px) + var(--nm-rail-gap, 0.6rem));
       /* The colour rides here too. .label-mono sets `color: var(--paper-soft)`
          (#b0b5ca) and was winning despite a #naam-app rule that outranks it on
          paper — measured 1.01:1, invisible, while every probe read it present
@@ -2773,188 +3086,7 @@ if (!seedRow) {
      the very words they were answering. Submitting is the event worth marking,
      and submitting already changes the whole stream. */
 
-  /* ── THE DOODLE ────────────────────────────────────────────────────────
-     A drawn hint rather than a written one. "Type here" is an instruction and
-     reads as an apology for the interface; a line curving down to the box is
-     the gesture a person makes when they point at something across a table.
 
-     It draws itself once — stroke-dashoffset from the full length to zero, so
-     the line is made rather than revealed — then sways a degree and a half on a
-     slow loop so it stays alive without asking for attention. It leaves the
-     instant the visitor types. */
-  /* IT SPANS THE GAP IT IS POINTING ACROSS. It used to be an 81px scribble in
-     the bottom-left corner of a 255px void — pointing, but from nowhere in
-     particular to nowhere in particular. Anchored to the bottom of the stream
-     and given real height, it starts under the last line of the invitation and
-     ends just above the composer, so the thing it connects is legible as a
-     connection.
-
-     Bottom-anchored rather than top-anchored because the invitation's height
-     changes with the viewport and the composer's does not: measuring down from
-     the fixed end is the one that cannot drift into the text. */
-  /* IT SITS UNDER THE TEXT, WHICH IS WHERE IT WAS POINTING FROM.
-     Measured at 1280: the invitation's lines run 56→541 with their centre at
-     298 and the composer's input centre at 265, while the doodle sat at 46→110,
-     centred on 78. It was not under the invitation at all — it hung off the left
-     margin, over the mala's rail, and pointed down past the corner of the box.
-     A gesture across a table only reads as one when it starts where you were
-     looking, so it is centred on the column both ends share.
-
-     `left` and a negative half-width rather than translateX, because the sway
-     and the arrival both animate `transform` and a static translate on the same
-     element is simply overwritten by them. */
-  .nm-doodle {
-    position: absolute;
-    /* `top` and `height` are written by NaamApp from the measured gap between
-       the last line of the invitation and the composer. Nothing here may set
-       either, or the arrow goes back to floating. */
-    left: 50%;
-    /* 90px because the viewBox is 90 units wide: at 1:1 there is no scaling, so
-       the generated height IS the height on screen and the arrow lands exactly
-       where it was measured to. The old clamp() width scaled the drawing, which
-       silently shortened it by the same factor. */
-    margin-left: -45px;
-    width: 90px;
-    z-index: 3;
-    /* ── LAST, NOT ALONGSIDE ────────────────────────────────────────────
-       The arrow used to start 900ms after the invitation finished, which put
-       it on the left of the fold drawing itself while the lanterns rose on the
-       right. That is the same two-clocks fault the sky was just moved to avoid
-       (L2), reintroduced by the fix for it — both were waiting on the same
-       `opening.done`.
-
-       It goes last. The sky answers the ask, the sky settles, and then the page
-       makes one final small gesture toward the box. An arrow is an instruction,
-       and an instruction belongs after the explanation rather than during it.
-
-       2600ms is the sky's own length: 500ms of rest plus eight lanterns at
-       0.07s apart plus a 0.95s lift. */
-    animation: nm-doodle-in 400ms ease 2600ms backwards;
-    pointer-events: none;
-
-    /* ── The colour, and why the old one looked dirty ──────────────────────
-       It was `color-mix(in srgb, var(--nm-keep) 74%, var(--nm-text-soft))` —
-       marigold #b87413 mixed with a dark navy. Those sit on opposite sides of
-       the warm/cool axis, and sRGB interpolation runs the blend through the
-       desaturated middle, so the result was khaki: the exact mud you get
-       mixing complementary poster paints.
-
-       The fix is not a nicer brown. It is to stop crossing the axis at all,
-       and to pick a hue with a reason. This page's source document is a pothi
-       manuscript, and that tradition rules its margins and marks its
-       annotations in RED — so a red annotation on the paper is what this
-       gesture actually is. It also pulls the arrow clear of the mala's brown,
-       which is the other half of "these two feel the same".
-
-       Mixed in oklab and toward the PAPER rather than toward the ink:
-       lightening a hue against the ground it sits on desaturates it without
-       dulling it. */
-    color: color-mix(in oklab, var(--crimson-text) 74%, var(--nm-canvas));
-  }
-
-
-  /* The shaft is FILLED, not stroked — it is an outline with real width that
-     varies along its length (see NaamApp). The barbs stay strokes: a barb is a
-     flick, short enough that varying its width would be invisible work. */
-  .nm-doodle-line {
-    fill: currentcolor;
-    stroke: none;
-  }
-
-  .nm-doodle-reveal,
-  .nm-doodle-barb {
-    /* Normalised by pathLength="100" on both, so this one number is correct
-       regardless of their real lengths. */
-    stroke-dasharray: 100;
-  }
-
-  .nm-doodle-barb {
-    stroke: currentcolor;
-    /* Matched to the ink where the shaft ends, not to its widest point — a barb
-       heavier than the line it finishes reads as a separate mark. */
-    stroke-width: 1.7;
-  }
-
-  /* ONE CONFIDENT STROKE, 480ms. The first cut ran 1100ms on an ease-in-out,
-     which is the speed AND the evenness of a progress bar rather than a pen — a
-     ~140px line drawn at roughly 0.29px/ms is a hand moving. This curve
-     accelerates into the middle of the stroke and decelerates at the tip, which
-     is what a wrist does; `linear` is the plotter tell. */
-  /* DRAWN SLOWLY ENOUGH TO FOLLOW.
-     480ms for a ~230px path is roughly 0.5px/ms — the speed of a hand, and far
-     too fast to WATCH. The point of a drawn hint is that you see it being made:
-     at 480ms it has already happened by the time the eye reaches it, which
-     makes it indistinguishable from a hint that simply appeared. 2200ms is
-     about 0.1px/ms, closer to somebody doodling absently than signing their
-     name, and it gives the two loops time to read as loops rather than as a
-     blur that resolves into one.
-
-     The delay is 900ms rather than 3400 because the arrow no longer runs on its
-     own clock: it is not rendered at all until the opening has finished (see
-     NaamApp), so this is measured from the end of the invitation rather than
-     from a page load that knows nothing about it. */
-  /* The mask is what moves; the ink underneath it never changes. */
-  .nm-doodle-reveal {
-    /* 2200ms of drawing was generous for a thin hand-drawn arrow, and it is
-       the last thing on screen now — a closing gesture that outstays its
-       welcome stops being one. */
-    animation: nm-doodle-draw 1300ms cubic-bezier(0.4, 0, 0.5, 1) 2600ms backwards;
-  }
-
-  /* The barbs land after the shaft arrives, 40ms apart, because that is the
-     order and the rhythm a hand draws them in. */
-  /* The barbs land after the shaft arrives — 3100ms in, 40ms apart, because
-     that is the order and the rhythm a hand draws them in. Still quick: a barb
-     is a flick, not a stroke. */
-  .nm-doodle-barb {
-    animation: nm-doodle-draw 170ms cubic-bezier(0.65, 0, 0.35, 1) 3900ms backwards;
-  }
-
-  .nm-doodle-barb--b {
-    animation-delay: 3860ms;
-  }
-
-  @keyframes nm-doodle-draw {
-    from {
-      stroke-dashoffset: 100;
-    }
-
-    to {
-      stroke-dashoffset: 0;
-    }
-  }
-
-  @keyframes nm-doodle-in {
-    from {
-      opacity: 0;
-    }
-
-    to {
-      opacity: 1;
-    }
-  }
-
-  @keyframes nm-doodle-sway {
-    0%,
-    100% {
-      rotate: -1.5deg;
-    }
-
-    50% {
-      rotate: 1.5deg;
-    }
-  }
-
-  /* The hint leaves when the question is answered, not when it is being typed.
-     It stays mounted and fades rather than unmounting, so there is something to
-     animate — an element removed from the tree cannot transition. */
-  .nm-doodle[data-gone] {
-    transform: translateY(8px);
-    opacity: 0;
-    transition:
-      opacity 320ms ease,
-      transform 320ms ease;
-  }
 
   /* ── THE COMPOSER, ARRIVING AND ANSWERING ──────────────────────────────
      Two moments, and both exist because a text field is the least alive thing
@@ -4229,6 +4361,15 @@ if (!seedRow) {
   }
 
   .nm-tray-send {
+    /* 44px. It measured 142x37 — the one control that actually delivers the
+       family's three names, under the minimum, on a page whose audience is
+       largely over sixty. Found by sweeping every visible control rather than
+       by looking, which is the only way a button you have seen a hundred times
+       gets measured at all. */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
     animation: nm-say 420ms cubic-bezier(0.05, 0.7, 0.1, 1) backwards;
     transition:
       background var(--dur-base) ease,
@@ -4408,9 +4549,13 @@ if (!seedRow) {
     width: 100%;
     max-width: 720px;
 
-    &:focus-within {
-      border-color: var(--crimson);
-    }
+    /* NO FOCUS COLOUR HERE. It was `border-color: var(--crimson)`, and a
+       second .nm-composer-in block further up already gives focus the amber
+       --nm-keep plus a matching glow. Being later, this one won the border and
+       lost the glow — so the focused box came out with an amber halo around a
+       crimson ring, which on a page whose only other red is nowhere reads as
+       an error state rather than as "you are typing here". One definition,
+       one colour: the one the glow was mixed from. */
   }
 
   .nm-composer-input {
@@ -4448,8 +4593,10 @@ if (!seedRow) {
     border: none;
     border-radius: 999px;
     background: var(--crimson-deep);
-    width: 36px;
-    height: 36px;
+    /* 44px. It was 36 — under WCAG 2.5.5 and under what a sixty-five-year-old
+       can hit reliably on a moving bus, which is the actual test. */
+    width: 44px;
+    height: 44px;
     color: var(--on-fill);
     font-size: 1rem;
 
@@ -4753,12 +4900,6 @@ if (!seedRow) {
     }
 
     .nm-shell[data-first] .nm-said,
-    /* Drawn already, and still. stroke-dashoffset must be zeroed explicitly:
-       killing the animation alone would leave the dasharray at 100 and the
-       arrow would simply never appear. */
-    .nm-doodle,
-    .nm-doodle-reveal,
-    .nm-doodle-barb,
     .nm-overlay-scrim,
     .nm-overlay-sheet {
       animation: none;
@@ -4766,8 +4907,7 @@ if (!seedRow) {
     }
 
     .nm-said,
-    .nm-turn,
-    .nm-doodle[data-gone] {
+    .nm-turn {
       transform: none;
       transition: opacity 200ms ease;
     }
@@ -4902,20 +5042,12 @@ if (!seedRow) {
       --nm-bead-top: 7px;
     }
 
-    /* NO ARROW HERE, AND THAT IS THE POINT OF IT.
-       The doodle exists to span an empty gap between the invitation and the
-       composer — on a 1280 desktop that gap is a 255px void and the gesture
-       reads. At 390 there is no void: measured, the stream is 376px tall, the
-       invitation overflows it and scrolls, and a 224px arrow bottom-anchored to
-       that stream draws itself straight down through "6,715 names, out of the
-       Vedas and the Sutras" and through the question under it. A hint that
-       crosses out the words it is pointing at is worse than no hint, and on a
-       phone the composer is already inches below the text it refers to.
-
-       Hidden rather than shortened: any height at all lands on copy, because
-       the copy reaches the bottom of the stream. */
-    .nm-doodle {
-      display: none;
-    }
+    /* THE ARROW IS GONE EVERYWHERE, and this rule is where its reason was
+       first written down: "a hint that crosses out the words it is pointing at
+       is worse than no hint." That was measured on a phone, where a 224px
+       stroke drew itself down through "6,715 names, out of the Vedas and the
+       Sutras". It became true on desktop too the moment the arrival shelf
+       filled the void the gesture existed to span — 138px of pink drawn across
+       the cards. Hidden here, deleted there, same finding. */
   }
 </style>

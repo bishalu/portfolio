@@ -82,7 +82,26 @@ const C = NAAM_COPY
 /** Eight cards is what a stream turn can hold before it becomes a list. */
 export const RESULT_MAX = 8
 /** What the model is allowed to talk about. The route caps its own side at 60. */
-export const POOL_SIZE = 40
+/**
+ * SIXTY, WHICH IS THE CEILING THE SYSTEM ALREADY HAD. naam-chat.ts caps the
+ * submitted pool at POOL_MAX = 60 and silently drops the rest, so anything
+ * above this makes the client and the model disagree about what was on offer.
+ *
+ * It was 40, and the 20 rows in between are where the good names were sitting.
+ * Measured across 88 coverage queries: of the evocative themed names that never
+ * surfaced, the median rank within their own theme query is 57 — just outside a
+ * pool of 40. Bhasin, "shining, brilliant", ranks 30 for "a name that means
+ * light" and was still missing it.
+ *
+ *   missed-themed   125 -> 87        ever returned  733 -> 866
+ *   evocative reach 77.1% -> 83.9%   gini          0.860 -> 0.842
+ *
+ * The cost is honest and small: the whole pool's evocative density falls 83.1%
+ * to 79.9% and the worst hub rises 50 to 53. The density that matters does not
+ * move — the first eight rows, which is what the model reads before it chooses,
+ * are 86.7% evocative at 40 and at 60. The extra rows land in the tail.
+ */
+export const POOL_SIZE = 60
 /**
  * Neighbours per name the visitor mentioned. Six is enough for the model to
  * have a real choice among names like that one, and small enough that two

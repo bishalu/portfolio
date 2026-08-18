@@ -503,6 +503,28 @@ export function pool(rows: readonly NaamRow[], prefs: Prefs, size = 40): NaamRow
         (a, b) =>
           ((hash32(a.row.id) ^ seed) >>> 0) - ((hash32(b.row.id) ^ seed) >>> 0),
       )
+    /**
+     * A FLAT SHUFFLE, AND A WEIGHTED DRAW WAS TRIED AND REJECTED BY
+     * MEASUREMENT — the fourth failed attempt on this problem, recorded because
+     * the diagnosis behind it was correct and the conclusion still wrong.
+     *
+     * The diagnosis: of the evocative themed names that never surface, the
+     * median rank within their own theme query is 57 and p75 is 99. Bhasin,
+     * "shining, brilliant", ranks 30 for "a name that means light" — inside the
+     * top 40 — and a flat shuffle of ranks 12-600 into 28 slots still made it a
+     * coin flip. Weighting by rank so near names usually win looked obviously
+     * right.
+     *
+     * Measured, it is worse at every strength: spread 40 -> 128 missed, 80 ->
+     * 131, 140 -> 134, 240 -> 129, 400 -> 128, against 125 flat. Reach falls
+     * from 733 to ~660 and the hub climbs from 50 to 61.
+     *
+     * The reason is that a coin flip PER QUERY is what produces coverage ACROSS
+     * queries. Weighting returns the same good names again and again — better
+     * for one question, worse for the corpus, and the corpus is the thing the
+     * complaint was about.
+     */
+
     ranked.length = 0
     ranked.push(...head, ...tail)
   }
