@@ -13,12 +13,6 @@ import type { NaamMatch } from '@/lib/naam/match'
 import { hydrateSound, playCue, setSound, soundOff, soundOn, subscribeSound } from '@/lib/naam/sound'
 import { NAAM_SEED_ROWS, NAAM_SEED_VOTES } from '@/lib/naam/seeds'
 import { pickStarters, type NaamStarter } from '@/lib/naam/starters'
-import { buildDoodle, type Doodle } from '@/lib/naam/doodle'
-
-/** Clear air between the last line of type and where the pen starts. */
-const GAP_ABOVE = 10
-/** And between the arrowhead and the box, so the point does not touch it. */
-const GAP_BELOW = 12
 import {
   getDefaultPreferB,
   getEmptyPicks,
@@ -485,9 +479,6 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
    */
   const [live, setLive] = useState(false)
   useEffect(() => setLive(true), [])
-  /** The doodle's containing block, and the two things it is measured against. */
-  const streamWrapRef = useRef<HTMLDivElement | null>(null)
-  const composerRef = useRef<HTMLDivElement | null>(null)
   const shellRef = useRef<HTMLDivElement | null>(null)
   const valleyRef = useRef<HTMLCanvasElement | null>(null)
   /** The scene loads ~260ms after mount, long after the first notes exist, so
@@ -1227,59 +1218,18 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
    * Picked in an effect and not during render: the island is `client:load`, and
    * a random choice made while rendering would not match the server's HTML.
    */
-  /**
-   * THE DOODLE'S BOX, measured rather than assumed.
-   *
-   * It has to start where the invitation ends and finish just above the box it
-   * points at, and both of those move: the gap between them is 173px at 1280,
-   * 381px at 1440 and 176px at 1024. So the geometry is rebuilt from the two
-   * measurements, and buildDoodle absorbs the difference in the tail rather
-   * than scaling the whole drawing (which turns the loops into ovals).
-   *
-   * useLayoutEffect, not useEffect: this writes `top` and `height` straight
-   * onto an absolutely positioned element, and doing that after paint would
-   * show the arrow in the wrong place for a frame.
-   */
-  const [doodle, setDoodle] = useState<{ top: number; height: number; geometry: Doodle } | null>(null)
-  useLayoutEffect(() => {
-    if (!opening.done) return undefined
+  /* THE DOODLE IS GONE, and the arrival shelf is why. It was a pen-stroke
+     curving from the last line of the invitation down to the composer, built
+     for a desktop layout where those two had 255px of nothing between them —
+     "a line curving down to the box is the gesture a person makes when they
+     point at something across a table."
 
-    const measure = () => {
-      const wrap = streamWrapRef.current
-      const composer = composerRef.current
-      if (!wrap || !composer) return setDoodle(null)
-      // The last turn currently on screen is the one it hangs from — during the
-      // opening that is the third block, and after a question it is whatever
-      // was said last, which is still the right thing to point away from.
-      /**
-       * VISIBLE turns only. The phone-only wall row is a .nm-turn that is
-       * display:none on this layout, so it reports a 0x0 box — and being LAST
-       * in the list it became the thing the arrow measured from. The arrow
-       * then started at the top of the page and ran a straight line down
-       * through the invitation.
-       */
-      const turns = [...wrap.querySelectorAll<HTMLElement>('.nm-turn .nm-turn-body')].filter(
-        (el) => el.getBoundingClientRect().height > 0,
-      )
-      const last = turns[turns.length - 1]
-      if (!last) return setDoodle(null)
-
-      const wrapBox = wrap.getBoundingClientRect()
-      const top = last.getBoundingClientRect().bottom - wrapBox.top + GAP_ABOVE
-      const height = composer.getBoundingClientRect().top - wrapBox.top - top - GAP_BELOW
-      const geometry = buildDoodle(height)
-      return setDoodle(geometry ? { top, height, geometry } : null)
-    }
-
-    measure()
-    const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(measure) : null
-    if (streamWrapRef.current) observer?.observe(streamWrapRef.current)
-    window.addEventListener('resize', measure)
-    return () => {
-      observer?.disconnect()
-      window.removeEventListener('resize', measure)
-    }
-  }, [opening.done, turns.length])
+     The shelf now occupies that table. Measured at 1440: the stroke ran
+     582->720 inside a hand running 401->732, so 138px of it was drawn straight
+     across the cards and the gesture meaning "the box is down there" landed as
+     a stray pink mark on the Svaraj card. It pointed across a gap that no
+     longer exists. Twelve real names with the composer directly beneath them
+     say where to go without drawing on anything. */
 
   /**
    * ── THE SKY ANSWERS THE ASK ─────────────────────────────────────────────
@@ -2125,7 +2075,7 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
        * these", and the answers a visitor gives when they are handed options
        * are not the ones they arrived with. The invitation now teaches what to
        * say in its own words — a meaning, a sound, a single word — and the
-       * doodle points at where to say it.
+       * arrival shelf shows what one looks like.
        *
        * The turn kind survives so a session stored before this change still
        * renders; it simply draws nothing.
@@ -2384,7 +2334,7 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
               before. */}
       <h1 className="sr-only">{C.app.heading}</h1>
 
-      <div className="nm-streamwrap" ref={streamWrapRef}>
+      <div className="nm-streamwrap">
         {/* Both rules are wrong for a scrollable transcript, and axe is the
             gate that decides (P10): role="list" is restorative because
             `list-style: none` strips list semantics in Safari, and tabIndex is
@@ -2491,53 +2441,6 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
             </li>
           )}
         </ol>
-
-        {/* THE DOODLE — built to the space it has, not drawn once and hoped.
-            Measured, the old fixed 90x214 path began 57px INSIDE the paragraph
-            at 1280 and 151px BELOW it at 1440, because the gap between the
-            invitation and the box swings from 173px to 381px with the viewport.
-            See lib/naam/doodle.ts: the loops keep their size and the tail takes
-            up the slack, which is what a hand does over a longer reach. */}
-        {opening.done && doodle && (
-          <svg
-            className="nm-doodle"
-            style={{ top: `${doodle.top}px`, height: `${doodle.height}px` }}
-            viewBox={doodle.geometry.viewBox}
-            aria-hidden="true"
-            focusable="false"
-            data-gone={asked ? 'true' : undefined}
-          >
-            <defs>
-              <mask id="nm-doodle-reveal" maskUnits="userSpaceOnUse">
-                <path
-                  className="nm-doodle-reveal"
-                  d={doodle.geometry.centre}
-                  pathLength="100"
-                  fill="none"
-                  stroke="#fff"
-                  strokeWidth="7"
-                  strokeLinecap="round"
-                />
-              </mask>
-            </defs>
-            {/* The ink is a filled outline whose width follows the curve's own
-                curvature — a pen pools where it slows, and it slows in the
-                loops. SVG cannot vary stroke-width along a path, so the shaft
-                is a shape and the mask above is what draws it on. */}
-            <path className="nm-doodle-line" d={doodle.geometry.outline} mask="url(#nm-doodle-reveal)" />
-            {/* Two barbs, on separate beats after the shaft lands. One path
-                drawing shaft-and-head in a single sweep is a stroke no hand can
-                make, and the eye knows it even when it cannot say why. */}
-            <path className="nm-doodle-barb" d={doodle.geometry.barbs[0]} pathLength="100" fill="none" strokeLinecap="round" />
-            <path
-              className="nm-doodle-barb nm-doodle-barb--b"
-              d={doodle.geometry.barbs[1]}
-              pathLength="100"
-              fill="none"
-              strokeLinecap="round"
-            />
-          </svg>
-        )}
 
         {!pinned && (
           <button type="button" className="nm-jump label-mono label-mono--sm" onClick={jumpToLatest}>
@@ -2865,7 +2768,7 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
       {/* LAST IN-FLOW ITEM OF THE COLUMN, never position: fixed — a fixed
           composer sits against the layout viewport and ends up underneath the
           iOS keyboard permanently. */}
-      <div className="nm-composer" ref={composerRef} data-typing={ask.trim().length > 0 ? 'true' : undefined}>
+      <div className="nm-composer" data-typing={ask.trim().length > 0 ? 'true' : undefined}>
         {/* Present for the whole conversation, refreshing as they are used.
             THE SLOT IS ALWAYS HERE, THE CHIPS ARE NOT. The starters are picked
             at random on mount, so they cannot be server-rendered without a
@@ -2887,6 +2790,14 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
             replaces the first. So they share the row that was already reserved
             above the input, crossfading on opacity alone. The composer's height
             never changes, so there is no layout to animate. */}
+        {/* AND THE ROW STAYS EMPTY RATHER THAN CLOSING, which was measured
+            and reverted. Once the refinements show, this slot can never be
+            filled again, so collapsing it looked like free space — 44px of
+            nothing between the chips and the box. Collapsing it moved the
+            COMPOSER 58px and the hand 47px on the first deal. The composer and
+            the tray are the two things that hold still through every
+            interaction on this page; a visitor navigates by them. Dead space
+            above the box costs less than the box moving under a thumb. */}
         <div className="nm-starters-slot">
         <p className="nm-cue-reading label-mono label-mono--sm" data-on={notReady && !dataFailed ? 'true' : undefined} aria-hidden="true">
           {C.app.reading}
@@ -2901,7 +2812,18 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
             They arrive with the ask now, in the same beat — a question and its
             examples are one thought, not two events. The row's height is still
             reserved from the first frame, so nothing moves when they land. */}
-        {starters.length > 0 && opening.done && (
+        {/* ONE CHIP RAIL AT A TIME, NEVER TWO. After a deal the refine chips
+            sit above this row and these examples sat under them: two rows of
+            identical pills, 60px apart, one meaning "ask me something like
+            this" and the other meaning "narrow what you just got". Measured at
+            1440: .nm-refine at y=682 with four chips, .nm-starters at y=742
+            with three. Nothing on either row says which is which.
+
+            The examples teach how to answer the invitation, and once a visitor
+            has answered it they have been taught. From then on the refinements
+            are the tool, because they compose onto the sentence that person
+            actually wrote. */}
+        {starters.length > 0 && opening.done && refineChips.length === 0 && (
           <ul className="nm-starters" aria-label={C.app.startersLabel} data-on={notReady ? undefined : 'true'}>
             {starters.map((starter) => (
               <li key={starter.id}>
