@@ -848,8 +848,46 @@ if (!seedRow) {
          rail and its gap. The cards now start on the text's left edge and end
          where it ends, which is what makes them part of the exchange rather
          than a tray that moved. */
-      padding-right: clamp(0.75rem, 2.4vw, 1.4rem);
-      padding-left: calc(clamp(0.75rem, 2.4vw, 1.4rem) + var(--nm-rail, 30px) + var(--nm-rail-gap, 0.8rem));
+      /* The inset that the turns get from `max-width: 720px; margin: 0 auto`,
+         expressed as padding so the BAND can stay full width. Capping the band
+         itself and centring it worked for the alignment and cost the paper:
+         at 1600 it left 50px of bare page down each side of the card shelf,
+         with the valley showing through where the column's own surface used to
+         be continuous. The measure is a property of the CONTENT, not of the
+         surface it sits on. */
+      --nm-measure-inset: max(clamp(0.75rem, 2.4vw, 1.4rem), calc((100% - 720px) / 2));
+
+      padding-right: var(--nm-measure-inset);
+      padding-left: calc(var(--nm-measure-inset) + var(--nm-rail, 30px) + var(--nm-rail-gap, 0.8rem));
+
+      /* ── THE SAME MEASURE AS THE TURNS, AND THEREFORE THE SAME RAIL ───────
+         A turn is `max-width: 720px; margin: 0 auto`, so past about 1440 the
+         transcript stops growing and starts CENTRING — and the hand did not.
+         It kept its padding and stayed pinned to the left edge, so the two
+         drifted apart as the window widened:
+
+             width   text starts   cards start   thread top   thread bottom
+             1440        65            65            37             37
+             1600       115            65            87             37
+             1920       275            65           247             37
+             2560       595            65           567             37
+
+         One mala down the transcript and a second one 530px to its left,
+         with the card band hanging off the edge of the column it belongs to.
+         The strand is one object; it cannot be in two places.
+
+         Matching the turns' measure fixes the alignment and the column count
+         in the same stroke, because the count was only ever a function of the
+         width nobody had capped: 677px of card track fits three 11rem cards
+         and their gaps, and cannot fit four. Three at every width from here
+         up, which is what the shelf was designed around.
+
+         Two things were tried and reverted on the way here. `margin-inline:
+         auto` on the band takes a grid item off `stretch` and onto
+         shrink-to-fit, so it collapsed onto its own content and auto-fill
+         resolved to ONE column. Adding `width: 100%` fixed that and left the
+         second fault: a centred band is narrower than its column, and the
+         50px down each side stopped being paper. */
 
       /* THE DEAL IS HELD TO THE BAND, and without this it was not. A grid item
          will not shrink below its content unless it is told it may, so the
@@ -1624,7 +1662,7 @@ if (!seedRow) {
     position: absolute;
     top: 0;
     bottom: 0;
-    left: clamp(0.75rem, 2.4vw, 1.4rem);
+    left: var(--nm-measure-inset, clamp(0.75rem, 2.4vw, 1.4rem));
     /* Declared here rather than inherited: --nm-rail lives on .nm-turn, which
        is in a different subtree. Same number, and the phone override below
        keeps the two in step. */
