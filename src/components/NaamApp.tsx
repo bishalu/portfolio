@@ -934,7 +934,33 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
   useEffect(() => {
     if (!opening.done || asked) return
     const el = streamRef.current
-    el?.scrollTo({ top: el.scrollHeight, behavior: reducedMotion() ? 'auto' : 'smooth' })
+    if (!el) return
+    /**
+     * AS FAR AS THE INVITATION, AND NOT ONE PIXEL FURTHER.
+     *
+     * This scrolled to `scrollHeight`, and that was right when the opening was
+     * four blocks: they could not fit, so resting on the last of them was the
+     * best available answer. The opening is two blocks now, and at rest on a
+     * 412x915 phone they fit almost exactly — greeting 24->187, invitation
+     * 187->345, in a 348px band. Scrolling to the end no longer reveals the
+     * invitation; it scrolls PAST it to uncover the wall row underneath, which
+     * is a third .nm-turn on this layout and 103px tall. Measured: scrollTop
+     * 118 of 118, and the first words on the phone were "name before he
+     * arrives, and we would like to find it together" — नमस्ते, and the fact
+     * that this page is asking on behalf of two named people, both above the
+     * top edge and never read.
+     *
+     * `[data-turn]` is the opening's own turns and nothing else: the wall row
+     * carries no such attribute, which is exactly the distinction that was
+     * missing. So the page settles onto the bottom of the last thing it SAID,
+     * and if that already fits it does not move at all.
+     */
+    const spoken = el.querySelectorAll<HTMLElement>('[data-turn]')
+    const last = spoken[spoken.length - 1]
+    if (!last) return
+    const target = Math.max(0, last.offsetTop + last.offsetHeight - el.clientHeight)
+    if (Math.abs(target - el.scrollTop) < 2) return
+    el.scrollTo({ top: target, behavior: reducedMotion() ? 'auto' : 'smooth' })
   }, [opening.done, asked])
 
   /**
@@ -2441,6 +2467,33 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
               </div>
             </li>
           )}
+
+          {/* ── WHERE THE THREAD LEAVES THE TRANSCRIPT ────────────────────────
+              An anchor, not a turn. The rope is strung through whatever carries
+              `.nm-bead` inside the scroller and it ENDS at the last one, so on
+              a wide screen it stopped at the invitation's bead — which sits at
+              the TOP of a 94px block — and left 57px of empty gutter above the
+              cards. The cord below then read as a second object starting for no
+              reason. Measured at 1440; on a phone the wall row happened to hang
+              a bead lower down and hid the fault entirely, which is why it took
+              a desktop crop to see.
+
+              One more anchor at the foot of the transcript and the rope reaches
+              the boundary on its own, at any viewport and any length, with no
+              number written down anywhere. The bead it draws there lands on the
+              divider — which is what a bead at a boundary should look like. */}
+          <li className="nm-turn nm-turn--tail" aria-hidden="true">
+            <span className="nm-turn-rail">
+              {/* `said`, the ordinary agent bead. It was `note` — borrowed
+                  because the wall row's bead was the nearest thing to hand —
+                  and note renders pale, so the thread ended on a marker as
+                  emphatic as the guru bead, announcing a boundary rather than
+                  crossing one. This bead sits at the end of what the page
+                  SAID, which is exactly what `said` means. A bead with no
+                  state at all renders bare white, so one has to be chosen. */}
+              <span className="nm-bead" data-bead="said"></span>
+            </span>
+          </li>
         </ol>
 
         {!pinned && (

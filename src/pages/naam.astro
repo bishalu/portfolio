@@ -1709,22 +1709,44 @@ if (!seedRow) {
          can see each bead END and the cord carry on to the next. At 8px on a
          12px pitch there are 4px of visible thread between beads and they
          separate into countable things. */
-      repeating-radial-gradient(
-        circle at 50% 4px,
-        #c39c6c 0 1.6px,
-        #a3804f 1.6px 2.8px,
-        #7a5931 2.8px 3.6px,
-        #543c20 3.6px 4px,
-        transparent 4.1px 6px
+      /* ONE BEAD EVERYWHERE, AND THIS IS WHERE IT LIVES. These three layers
+         were written for the hand's rail and left here in the old fallback
+         form — pale, concentric, one gradient per bead. That is invisible
+         while the simulated rope is up, because the rope covers this cord and
+         `[data-rope]` hides it. Block the rope's chunk and the fault is
+         immediate: the transcript strings donuts on a ladder while the cards
+         below string turned spheres, across a divider eight pixels wide.
+         Measured from a crop with the module aborted at the network.
+
+         So the whole thread — every turn's rail and the hand's — is cut from
+         the one recipe: body and highlight as separate layers so a bead reads
+         as a sphere rather than a ring, the highlight offset up-left, and the
+         browns taken from mala.ts's own `wood()` walk so the cord and the rope
+         are the same material. */
+      radial-gradient(
+        circle at 38% 2.6px,
+        rgba(255, 240, 214, 0.85) 0 0.75px,
+        rgba(226, 178, 122, 0.45) 0.75px 1.5px,
+        transparent 1.75px
       ),
-      linear-gradient(#8a7048 0 100%);
+      radial-gradient(
+        circle at 50% 4px,
+        rgb(168 116 70) 0 2px,
+        rgb(140 90 52) 2px 3px,
+        rgb(108 62 35) 3px 3.65px,
+        rgb(78 44 25) 3.65px 4px,
+        transparent 4.15px
+      ),
+      linear-gradient(rgba(138, 112, 72, 0.85) 0 100%);
     background-position:
+      center top,
       center top,
       center top;
     background-size:
-      9px 12px,
+      9px 10px,
+      9px 10px,
       2px 100%;
-    background-repeat: repeat-y, repeat-y;
+    background-repeat: repeat-y, repeat-y, repeat-y;
     width: 9px;
     content: '';
   }
@@ -1746,6 +1768,22 @@ if (!seedRow) {
     bottom: 0;
   }
 
+  /* The tail carries a bead and nothing else: no body, no gap above it, and
+     no height of its own beyond the bead it hangs. It exists so the rope has
+     somewhere to reach. */
+  .nm-turn--tail {
+    --nm-gap: 0px;
+    padding-top: 0;
+    min-height: var(--nm-bead);
+    /* NO NEGATIVE MARGIN HERE, and it was tried. Cancelling the scroller's
+       own padding-bottom to drop the anchor onto the boundary does nothing:
+       the stream is pinned to its end, so shortening the content just
+       re-pins and the whole transcript rides up instead — measured, it left
+       19px of blank under the last line and moved the bead not at all. The
+       residual step belongs to the scroller's padding and is the same few
+       pixels the thread would disappear behind on a real mala. */
+  }
+
   /* ONE LAYER ON THE HAND'S RAIL, TOP TO BOTTOM. The turns run two: `::before`
      is the connector that DRAWS from the previous bead to this one, and its
      height is a function of --nm-gap. There is no previous bead here and
@@ -1754,73 +1792,6 @@ if (!seedRow) {
   .nm-hand-rail::after {
     top: 0;
     bottom: 0;
-
-    /* ── STRUNG TO THE SAME SCALE AS THE ROPE ─────────────────────────────
-       The cord is the no-WebGL fallback, and beside the transcript it is never
-       seen — the simulated rope covers it and `[data-rope]` hides it. Beside
-       the cards there is no rope, so it is on show for the first time, and at
-       its fallback scale it does not read as the same object: 8px beads on a
-       12px pitch in a dead-straight line, against the rope's ~13px beads on a
-       hanging curve. Photographed at 3x side by side, the top half is a mala
-       and the bottom half is a zip.
-
-       So the beads beside the cards are cut to the rope's size. Same woods,
-       same top-left light, same thread — 13px across on a 16px pitch, which
-       leaves the 3px of visible cord between beads that makes them countable
-       rather than fused. The straightness stays: this length is not being
-       swung by anything, and a hanging strand below the last bead is what a
-       mala actually does. */
-    left: calc(var(--nm-rail) / 2 - 7.5px);
-    /* TWO LAYERS PER BEAD, BECAUSE ONE MAKES A RING. The fallback cord draws
-       each bead as a single radial gradient running light-at-the-centre to
-       dark-at-the-rim. At 8px that passes; at rope scale it is unmistakably a
-       donut — a bright disc inside a dark annulus — and a column of donuts is
-       not a mala. What makes the rope's beads read as turned wood is that the
-       highlight is OFF centre, up and to the left, the way light falls on a
-       sphere. A concentric gradient cannot say that at any size.
-
-       So the body is one layer and the highlight is another, offset into the
-       bead's top-left on the same 15x16 tile. */
-    /* PLAIN radial-gradient, NOT repeating-. The tiling here is done by
-       `background-size` plus `repeat-y` — one bead per tile — so a *repeating*
-       gradient repeats a second time, radially, and rings each bead with a
-       ghost of itself at twice the radius. That is what put a pale square halo
-       behind every bead and made the strand read as a ladder. The fallback
-       cord gets away with it only because its tile is small enough to clip the
-       echo. */
-    background-image:
-      /* THE ROPE'S OWN PALETTE, read out of mala.ts rather than guessed. Its
-         beads walk between rgb(182 124 74) sandalwood and rgb(104 58 33)
-         rosewood, take a rgba(46 26 12 / .5) terminator on the lower right and
-         a tight rgba(255 240 214 / .85) specular up-left, and the thread is
-         rgba(138 112 72 / .85). Cut from the fallback cord's browns instead,
-         these came out a pale gold — the same object in a different wood,
-         which is worse than a different object. */
-      radial-gradient(
-        circle at 38% 4.2px,
-        rgba(255, 240, 214, 0.85) 0 1.2px,
-        rgba(226, 178, 122, 0.45) 1.2px 2.4px,
-        transparent 2.8px
-      ),
-      radial-gradient(
-        circle at 50% 6.5px,
-        rgb(168 116 70) 0 3.2px,
-        rgb(140 90 52) 3.2px 4.8px,
-        rgb(108 62 35) 4.8px 5.9px,
-        rgb(78 44 25) 5.9px 6.5px,
-        transparent 6.7px
-      ),
-      linear-gradient(rgba(138, 112, 72, 0.85) 0 100%);
-    background-position:
-      center top,
-      center top,
-      center top;
-    background-size:
-      15px 16px,
-      15px 16px,
-      3px 100%;
-    background-repeat: repeat-y, repeat-y, repeat-y;
-    width: 15px;
   }
 
   .nm-turn:first-child .nm-turn-rail::before {
@@ -5164,32 +5135,35 @@ if (!seedRow) {
     }
 
     /* And the beads shrink with them. The rope's strung beads go 13px -> 10px
-       at this width along with --nm-bead, so a cord still cut to the desktop
-       13 reads as a heavier chain than the one it continues. Same geometry,
-       scaled: 10px beads on a 12.5px pitch, 2.5px of thread. */
+       at this width along with --nm-bead — mala.ts sizes them
+       `max(3.2, markerRadius * 0.46)`, so a 13px marker gives a 3.2px radius
+       and 6.4px beads. Same geometry, scaled to that: 6.6px on an 8.5px
+       pitch. */
+    .nm-turn-rail::before,
+    .nm-turn-rail::after,
     .nm-hand-rail::after {
-      left: calc(var(--nm-rail) / 2 - 5.5px);
+      left: calc(var(--nm-rail) / 2 - 3.5px);
       background-image:
         radial-gradient(
-          circle at 38% 3.2px,
-          rgba(255, 240, 214, 0.85) 0 0.95px,
-          rgba(226, 178, 122, 0.45) 0.95px 1.9px,
-          transparent 2.2px
+          circle at 38% 2.1px,
+          rgba(255, 240, 214, 0.85) 0 0.6px,
+          rgba(226, 178, 122, 0.45) 0.6px 1.2px,
+          transparent 1.4px
         ),
         radial-gradient(
-          circle at 50% 5px,
-          rgb(168 116 70) 0 2.5px,
-          rgb(140 90 52) 2.5px 3.7px,
-          rgb(108 62 35) 3.7px 4.5px,
-          rgb(78 44 25) 4.5px 5px,
-          transparent 5.2px
+          circle at 50% 3.3px,
+          rgb(168 116 70) 0 1.65px,
+          rgb(140 90 52) 1.65px 2.45px,
+          rgb(108 62 35) 2.45px 3px,
+          rgb(78 44 25) 3px 3.3px,
+          transparent 3.45px
         ),
         linear-gradient(rgba(138, 112, 72, 0.85) 0 100%);
       background-size:
-        11px 12.5px,
-        11px 12.5px,
-        2.5px 100%;
-      width: 11px;
+        7px 8.5px,
+        7px 8.5px,
+        1.75px 100%;
+      width: 7px;
     }
 
     /* THE ARROW IS GONE EVERYWHERE, and this rule is where its reason was
