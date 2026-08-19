@@ -387,14 +387,15 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
   const [dataFailed, setDataFailed] = useState(false)
   const [turns, setTurns] = useState<Turn[]>(() => [
     { id: 'greeting', kind: 'agent', text: C.app.greeting, lead: true },
-    // What the list actually is — the count, the two corpora, the three
-    // letters — stated once, quietly, before anything is asked. Without it a
-    // visitor cannot tell whether this page is reading a real document or
-    // inventing names, which is the one thing it must never be ambiguous about.
-    // Second, because it is the question the primary audience arrives with and
-    // everything after it depends on the answer.
-    { id: 'why', kind: 'agent', text: C.app.why },
-    { id: 'source', kind: 'agent', text: C.app.source, quiet: true },
+    // TWO TURNS, NOT FOUR. The nwaran explanation and the "6,715 names, out of
+    // the Vedas and the Sutras" line were cut on the owner's instruction. What
+    // is left is who is asking and what they are asking for — the greeting and
+    // the invitation, which were always the two halves of one thought.
+    //
+    // The provenance did not leave the page with them: every card still carries
+    // the document's own gloss in mono, and the no-JS fallback still opens with
+    // the count, the corpora and the letters (C.hero.*), which is where that
+    // sentence lived before it was ever a turn.
     { id: 'invitation', kind: 'agent', text: C.app.invitation },
   ])
   const [ask, setAsk] = useState('')
@@ -2705,6 +2706,12 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
           lamp and the three slots, so it gives back the height this needs. */}
       {hand ? (
         <div className="nm-hand">
+          {/* THE MALA CARRIES ON PAST THE WORDS. The strand ran beside the
+            transcript and stopped at the bottom of it, so the cards below
+            sat in an empty gutter and read as a tray that had been parked
+            under the conversation rather than as part of the same strung
+            object. It is one thread; the names are on it. */}
+          <div className="nm-hand-rail" aria-hidden="true" />
           {dealCards(hand.matches)}
           {/* UNDER THE RESULT, because a control that acts on something belongs
               beside it. Hidden while a turn is in flight so a tap cannot queue
@@ -2759,7 +2766,11 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
            speak, so it does not need a turn. */
         arrivalHand.length > 0 && (
           <div className="nm-hand" data-arrival="true">
-            <p className="nm-hand-lead label-mono label-mono--sm">{C.app.openShelf}</p>
+            <div className="nm-hand-rail" aria-hidden="true" />
+            {/* NO LABEL OVER THE SHELF. "A few from the document" named what
+                the cards already are — twelve cited names, each with its
+                meaning printed on it — and it was the only heading in a column
+                that otherwise just speaks. Cut on the owner's instruction. */}
             {dealCards(arrivalHand)}
           </div>
         )

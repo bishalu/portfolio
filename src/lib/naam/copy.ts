@@ -176,32 +176,19 @@ export const NAAM_COPY = {
      */
     greeting:
       'नमस्ते. Sneha and Bishal are expecting a son. He needs a name before he arrives, and we would like to find it together.',
-    /**
-     * WHAT THE LIST IS, said once and quietly. A visitor who does not know
-     * where these names come from cannot tell whether the page is reading a
-     * real document or making things up, and that is the one thing this whole
-     * build is trying to be trustworthy about. So it is stated plainly, as a
-     * fact and not a boast: the count, the two corpora, the three letters.
+    /*
+     * `why` and `source` USED TO SIT HERE — the nwaran ("On the eleventh day, a
+     * priest reads the stars…") and the list's provenance ("6,715 names, out of
+     * the Vedas and the Sutras…"). Both cut on the owner's instruction.
      *
-     * The number is interpolated from naam-facts.ts and never retyped, and the
-     * letters are the family's own joke arriving as information — B for Bishal,
-     * S for Sneha, V because at home व is said ब.
+     * Recorded because the reasoning for them is worth keeping if either ever
+     * comes back: the nwaran answered the question a Nepali reader arrives with
+     * and without it the page can read as a puzzle, and the source line was the
+     * page's one plain statement that it is reading a real document rather than
+     * inventing names. The cards still carry the document's own glosses, and
+     * the no-JS fallback still opens with the count, the corpora and the three
+     * letters — see `hero.standfirst` and `hero.letters`.
      */
-    /**
-     * WHY THERE IS A PAGE AT ALL. A Nepali reader arrives knowing a priest
-     * gives the child a name, and until that is answered the whole page is a
-     * puzzle — they cannot tell what is being asked of them. It lived only in
-     * the no-JS fallback, so the audience it was written for had never read it.
-     *
-     * Two sentences, not three. The fallback's third — "That is the one we are
-     * asking about" — is dropped here because the invitation two blocks later
-     * asks it directly, with the question mark, and two sentences doing one job
-     * cost the greeting its place on the phone's first screen.
-     */
-    why: 'On the eleventh day, at the nwaran, a priest reads the stars and gives him one name. The name we call him at home is ours to choose.',
-    /** The letters line joins this rather than taking a beat of its own: the
-        count, the two corpora and the three letters are one fact. */
-    source: `${n(NAAM_COUNTS.total)} names, out of the Vedas and the Sutras — the ones that begin with B, S or V. B is Bishal, S is Sneha; the V names are here for a reason of their own.`,
     /**
      * THE ASK, AND THE PROMISE THAT SOMEONE IS LISTENING. It ended "or start
      * with one of these" and pointed at four pre-written chips; the chips are
@@ -231,19 +218,8 @@ export const NAAM_COPY = {
      * someone else. "People" is all three of them, and it is still warm.
      */
     familyLead: 'Names people keep coming back to',
-    /**
-     * THE DOCUMENT, OPENED, BEFORE ANYONE HAS TYPED. Measured on arrival: the
-     * eight loudest names on the phone's first screen are the family's wall,
-     * and SIX OF THEM ARE NOT IN names-core.json. The page's whole proposition
-     * is that a name only appears if the document contains it — and the only
-     * names a visitor could act on were the ones it cannot vouch for. That is
-     * worse than showing none.
-     *
-     * Parallel to familyLead so the two bands read as a pair: one is what
-     * others chose, one is what the document holds. A label labels; the Keep
-     * pill on each card says what to do.
-     */
-    openShelf: 'A few from the document',
+    /* `openShelf` — "A few from the document" — was the label over the arrival
+       shelf. Cut on the owner's instruction: the cards say what they are. */
     /**
      * Tapping a name in the sky used to KEEP it, making the scene a second way
      * to do the one thing the cards do. It asks instead, and borrows the chips'
