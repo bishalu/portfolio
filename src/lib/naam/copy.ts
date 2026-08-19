@@ -395,6 +395,22 @@ export const NAAM_COPY = {
          first-time visitor has about three empty sockets. This says what they
          are. The cap is still on screen: there are three of them, numbered. */
       label: 'The three you send us',
+      /**
+       * AND WHAT THE SAME HEADING SAYS ONCE THEY HAVE GONE.
+       *
+       * The slots empty on send, which is right: on the wide layout the three
+       * names visibly rise into the lantern sky and the tray emptying is the
+       * other half of that gesture. A PHONE HAS NO SKY — the lanterns are a
+       * desktop surface — so there the names left the slots and landed
+       * nowhere the visitor could see, under a heading still promising "the
+       * three you send us" and three numbered sockets with plus signs. Read
+       * cold, that is a tray that has forgotten what just happened.
+       *
+       * So the heading takes the state instead. It does not repeat the
+       * confirmation directly above it; it answers the question the empty
+       * slots now raise, which is whether the visitor is finished.
+       */
+      labelSent: 'Keep more if you like',
       /** Devanagari numerals. Free, and unmistakably Nepali. */
       ordinals: ['१', '२', '३'],
       empty: (slot: number) => `Slot ${slot} of three, empty`,
@@ -435,7 +451,19 @@ export const NAAM_COPY = {
        * never meant to be the price of being heard.
        */
       lead: 'Who should we thank for this? Keep more if you like — up to three.',
-      picksLabel: 'Sending',
+      /**
+       * NOT "Sending" — it named a process that had not started. This label
+       * sits above the chosen names INSIDE the form, before the button is
+       * pressed, and rendered uppercase as SENDING it told a visitor the thing
+       * was already going. On a page most of whose readers are over sixty,
+       * that is the difference between waiting and pressing again.
+       *
+       * "Your three" was the first replacement and is wrong for the same
+       * reason the line above it was rewritten: one name is enough to send,
+       * so the label has to be true at one, two or three. This one is, and it
+       * says plainly that nothing has happened yet.
+       */
+      picksLabel: 'Ready to send',
       /** The app's code-switch, glossed by the English right beside it. */
       why: 'Kina? — why this one?',
       submit: 'Send them to us',

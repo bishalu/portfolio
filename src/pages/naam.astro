@@ -439,8 +439,30 @@ if (!seedRow) {
     white-space: nowrap;
   }
 
+  /* ── CAPTION SIZE IS NOT A FLOOR FOR THIS PAGE ──────────────────────────
+     `.label-mono--sm` is the site's caption at 0.65rem — 10.4px. On /naam it
+     is not decoration: it labels every field in the send form (YOUR NAME, HOW
+     DO WE KNOW YOU?, KINA? — WHY THIS ONE?), it heads the tray, it names the
+     family's row, and it carries the promise about what happens to the names.
+     Most of the people who will use this page are over sixty, and 10.4px
+     uppercase mono is the hardest thing on it to read.
+
+     Raised to the same 14px floor as the rest of the task, scoped to this page
+     so the site's captions elsewhere are untouched. Letter-spacing comes down
+     a little because 0.1em at 14px is a lot of air between glyphs — the
+     longest of these, "NAMES PEOPLE KEEP COMING BACK TO", has to stay on one
+     line in a 356px column. */
+  #naam-app .label-mono--sm {
+    font-size: 0.875rem;
+    letter-spacing: 0.06em;
+  }
+
   #naam-app .nm-speak-word {
-    color: color-mix(in srgb, var(--nm-text) 62%, transparent);
+    /* 62% of the ink measured 4.31:1 on the glyphs — under the floor, on the
+       one control that exists so somebody who finds typing hard does not have
+       to type. It is also the control this audience is least likely to expect,
+       so it is the last place to be economical with contrast. */
+    color: color-mix(in srgb, var(--nm-text) 82%, transparent);
   }
 
   /* Below 360 the field has to choose between the word and the sentence being
@@ -449,6 +471,7 @@ if (!seedRow) {
   @media (max-width: 359px) {
     .nm-speak-word { display: none; }
   }
+
 
   .nm-speak:disabled {
     opacity: 0.4;
@@ -1987,7 +2010,9 @@ if (!seedRow) {
     background: none;
     padding: 0;
     min-width: 0;
-    min-height: 24px;
+    /* A collapsed turn is a control — pressing it reopens what was said — and
+       at 24px it was the smallest target on the page. */
+    min-height: 44px;
     color: var(--nm-text-soft);
     text-align: left;
 
@@ -2692,12 +2717,17 @@ if (!seedRow) {
       min-width: 4.1rem;
     }
 
+    /* These two are the phone's version of the lantern sky — a row of names
+       the family already carries, and each one is a BUTTON: tapping it asks
+       about that name. 13.76px and 9.92px on a control, on this page, for
+       this audience. The roman line is the one a Nepali-first reader checks
+       the spelling against, and it was the smallest text in the whole task. */
     #naam-app .nm-wallrow-deva {
-      font-size: 0.86rem;
+      font-size: 1rem;
     }
 
     #naam-app .nm-wallrow-latin {
-      font-size: 0.62rem;
+      font-size: 0.875rem;
     }
 
     /* ── THE LAMP STANDS BESIDE ITS LABEL ────────────────────────────────
@@ -3806,7 +3836,11 @@ if (!seedRow) {
   }
 
   .nm-latin-alt {
+    color: color-mix(in srgb, var(--nm-text) 84%, transparent);
     min-height: 1rem;
+    /* The other spelling — Bastu against Vastu — which on this page is the
+       whole reason the V names are here. It was 12px. */
+    font-size: 0.875rem;
     line-height: 1rem;
   }
 
@@ -3826,7 +3860,11 @@ if (!seedRow) {
   .nm-syl {
     margin: 0 0.04em;
     color: var(--nm-text-soft);
-    opacity: 0.55;
+    /* 0.55 on top of an already-soft ink put the syllable break at 3.98:1.
+       It is aria-hidden and decorative to a screen reader, but it is the mark
+       that tells a sighted reader how the name is said — which is the whole
+       reason the document flags them. */
+    opacity: 0.8;
   }
 
   /* The document's own `!` — a harder consonant cluster, marked on the break
@@ -3913,8 +3951,16 @@ if (!seedRow) {
     display: -webkit-box;
     margin: 0;
     overflow: hidden;
-    color: var(--nm-text-soft);
-    font-size: 0.82rem;
+    /* 84%, not --nm-text-soft's 65%. The soft ink is measured against white
+       paper and passes there; a KEPT card is cream, and on cream the same
+       words drop to about 4.5:1 — right on the line, on the cards somebody has
+       already chosen and will look at longest. Cropped at 4x it reads grey
+       rather than dark. Raising the ink lifts both backgrounds at once. */
+    color: color-mix(in srgb, var(--nm-text) 84%, transparent);
+    /* 14px, not 13.12. This is the line somebody reads to decide whether a
+       name means what they want it to mean, and it was the smallest thing on
+       the card. 0.82rem measured 13.12px against a 14px floor. */
+    font-size: 0.875rem;
     line-height: 1.5;
     font-family: var(--font-deva), var(--font-mono);
     -webkit-box-orient: vertical;
@@ -4012,8 +4058,15 @@ if (!seedRow) {
     border: 1px solid color-mix(in srgb, var(--nm-keep) 55%, transparent);
     border-radius: 999px;
     padding: 0.1rem 0.42rem 0.14rem;
-    color: var(--nm-accent-text);
-    font-size: 0.7rem;
+    /* THE INK, NOT THE ACCENT. Measured on the rendered glyphs this word came
+       out 2.83:1 — the accent colour is tuned to sit ON the amber, not to be
+       read at 11px against paper. The ring stays amber and carries the colour
+       cue; the word is set in the page's ink so it can actually be read. */
+    color: var(--nm-text);
+    /* And 14px, up from 11.2. The comment above already argued that under 10px
+       is not a label an older reader can rely on for the primary action; 11.2
+       is not either, and 14 is the floor this whole pass is measured against. */
+    font-size: 0.875rem;
     font-family: var(--font-mono);
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -4189,16 +4242,22 @@ if (!seedRow) {
     border-radius: 1px;
   }
 
-  /* On a phone the rail has the wordmark, two toggles and a link in 44px. The
-     switch keeps its glyph — which is the state — and drops the word. */
+  /* THE SWITCH KEEPS ITS WORD ON A PHONE, and that reverses what was here.
+     The old note said "the glyph is the state, so the word can go" — but the
+     glyph is a small ring and a small diamond, and stripped of their words
+     the two most easily-missed controls on the page became a bare circle and
+     a bare lozenge in the bottom corner. One of them is the Pause/Stop for
+     the moving sky, which WCAG 2.2.2 requires a visitor to be able to FIND;
+     a mechanism nobody can identify is not one. And this page is read mostly
+     by people over sixty, for whom an unlabelled dot is not an invitation.
+
+     The words need 421px of a 388px rail, so the LIVE badge goes instead —
+     it reports that the assistant is up, which is a fact about the system
+     and not a thing anybody does. That leaves about 358px and both switches
+     say what they are. */
   @media (max-width: 599px) {
-    .nm-sound-word {
-      position: absolute;
-      clip-path: inset(50%);
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      white-space: nowrap;
+    .nm-utility .nm-badge--rail {
+      display: none;
     }
   }
 
@@ -4406,7 +4465,10 @@ if (!seedRow) {
     transition:
       opacity var(--dur-base) ease,
       transform var(--dur-base) ease;
-    color: var(--nm-accent-text);
+    /* The accent is tuned to sit on amber, not to be read against the slot's
+       own paper: measured 3.45:1 on the glyph. This "+" is the only thing in
+       an empty slot saying a name can go there. */
+    color: var(--nm-text);
     font-size: 0.95rem;
     line-height: 1;
   }
@@ -4614,7 +4676,9 @@ if (!seedRow) {
 
   .nm-token-latin {
     color: var(--nm-text);
-    font-size: 0.8rem;
+    /* 12.8px. This is the roman spelling of a name somebody has chosen to
+       send — the line they will check before pressing the button. */
+    font-size: 0.875rem;
     line-height: 1.4;
     font-family: var(--font-display);
   }
@@ -4844,15 +4908,30 @@ if (!seedRow) {
       border: 1px solid var(--nm-hair-strong);
       border-radius: 9px;
       background: var(--nm-surface-2);
+      /* 44px, MEASURED ON THE RENDERED BOX. These came out 38px on a phone —
+         padding plus a 0.95rem line, which looks right on a desktop to
+         somebody who is not the person filling it in. This form is the last
+         thing the page asks of a visitor and most of them are over sixty. */
+      min-height: 44px;
       padding: 0.55rem 0.75rem;
       color: var(--nm-text);
       font-size: 0.95rem;
       line-height: 1.7;
       font-family: var(--font-deva), var(--font-body);
 
-      &:focus-visible {
-        border-color: var(--crimson);
-      }
+      /* ONE RING, NOT TWO — and it is the site's, not a new one.
+         The field opened with a red ring around it and read as an error
+         before a character was typed. The obvious fix was the amber the
+         composer uses, and it is wrong: measured, #EFA33B on this paper is
+         2.01:1, under the 3:1 floor a non-text focus indicator has to meet,
+         while the site's crimson is 4.15:1. Amber cannot carry focus on its
+         own.
+
+         So what was actually broken was that there were TWO rings in two
+         colours — my amber border inside the site's crimson outline — which
+         is what made it read as an alarm rather than as a cursor. The border
+         no longer changes on focus and the outline does the whole job, the
+         same way it does on every other field on the site. */
     }
 
     label {
@@ -4867,7 +4946,9 @@ if (!seedRow) {
     border: none;
     border-radius: 999px;
     background: var(--crimson-deep);
-    padding: 0.45rem 1.1rem;
+    /* The terminal action of the whole page, and it shipped at 154x37. */
+    min-height: 44px;
+    padding: 0.45rem 1.4rem;
     color: var(--on-fill);
     font-size: 0.95rem;
     font-family: var(--font-display);

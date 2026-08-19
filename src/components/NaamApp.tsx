@@ -2542,7 +2542,9 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
             for; the header nav carries four of those five and the fifth is now
             one quiet link in the rail. */}
         <div className="nm-tray-head">
-          <p className="label-mono label-mono--sm nm-quiet-label">{C.app.tray.label}</p>
+          <p className="label-mono label-mono--sm nm-quiet-label">
+            {lastKind === 'sent' && picks.length === 0 ? C.app.tray.labelSent : C.app.tray.label}
+          </p>
         </div>
 
         {/* eslint-disable-next-line jsx-a11y/no-redundant-roles -- restorative, see above */}
@@ -2641,7 +2643,19 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
               sends. In a flex row it rendered 250px to the button's right,
               over the sunset, at 3.45:1 — correct copy in the correct
               component and nowhere near the decision. */}
-          {picks.length > 0 && !formShown && (
+          {/* AND IT IS HERE BEFORE THERE IS ANYTHING TO SEND. This slot is
+              reserved so the send button can appear without shoving the slots
+              above it, which is right — but until a name is kept the reserve
+              was 86px of empty valley on a 915px phone, between the three
+              slots and the composer. Measured: slots end at 640, composer
+              starts at 744.
+
+              The promise is true before the first pick and after it — it says
+              where the names go, under a heading that already says which
+              names. So the space that was scenery now answers the question
+              somebody has while they are deciding, and nothing moves when the
+              button arrives above it. */}
+          {!formShown && (
             <p className="nm-tray-promise label-mono label-mono--sm">{C.app.send.promise}</p>
           )}
         </div>
