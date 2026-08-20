@@ -943,6 +943,19 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
     const el = streamRef.current
     if (!el) return
     setPinned(el.scrollHeight - el.scrollTop - el.clientHeight < 100)
+    /**
+     * THE TOP FADE ONLY EXISTS ONCE THERE IS SOMETHING ABOVE.
+     *
+     * The stream masks its top 4rem to transparent, and the note on that mask
+     * says why it was free to: "the stream is pinned to its end, so everything
+     * up there has already been read." That stopped being true when the
+     * opening was changed to rest at scrollTop 0 — the top of the transcript
+     * is now the BEGINNING, and the fade was washing out नमस्ते, its first
+     * line, and the bead beside it. Cropped at 5x the first bead read as a
+     * different colour from the second, and both are the same kind of turn.
+     */
+    if (el.scrollTop > 8) el.dataset.scrolled = 'true'
+    else delete el.dataset.scrolled
   }, [])
 
   const jumpToLatest = useCallback(() => {
@@ -2881,9 +2894,15 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
                 aria-hidden="true"
                 focusable="false"
               >
-                <rect x="5.6" y="1.6" width="4.8" height="8" rx="2.4" />
-                <path d="M3.2 7.6a4.8 4.8 0 0 0 9.6 0" />
-                <path d="M8 12.4v2.1" />
+                {/* Sized to the button, not to the viewBox. The first cut drew
+                    9.6 of 16 units into an 18px box, so the mark came out 11px
+                    across inside a 44px target — a correct microphone nobody
+                    over sixty is going to squint at. The cradle was also twice
+                    the capsule's width, which reads closer to an umbrella; a
+                    real one is nearer 1.8x. */}
+                <rect x="5.4" y="1.2" width="5.2" height="8.6" rx="2.6" />
+                <path d="M3.3 7.8a4.7 4.7 0 0 0 9.4 0" />
+                <path d="M8 12.5v2.6" />
               </svg>
               <span className="sr-only">{speech.listening ? C.app.speak.listening : C.app.speak.idle}</span>
             </button>

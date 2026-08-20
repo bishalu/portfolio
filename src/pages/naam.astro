@@ -481,8 +481,12 @@ if (!seedRow) {
   .nm-speak-glyph {
     display: block;
     transition: color var(--dur-base) ease;
-    width: 1.15rem;
-    height: 1.15rem;
+    /* The drawing spans 9.4 of 16 viewBox units, so the box has to be ~1.6x
+       the mark you want. At 1.6rem the mic renders about 15px inside a 44px
+       target — roughly a third of it, which is where an icon button sits
+       before it starts to look like a sticker. */
+    width: 1.6rem;
+    height: 1.6rem;
     color: color-mix(in srgb, var(--nm-text) 72%, transparent);
     fill: none;
     stroke: currentColor;
@@ -494,16 +498,37 @@ if (!seedRow) {
     color: var(--nm-text);
   }
 
-  /* Listening is a state somebody needs to be able to see from across a room:
-     the mic warms to the page's action colour and breathes. */
-  .nm-speak-glyph[data-on] {
-    animation: nm-speak-open 1100ms ease-in-out infinite;
-    color: var(--nm-accent, var(--nm-keep));
+  /* ── LISTENING IS A FILLED BUTTON, NOT A TINTED LINE ────────────────────
+     Tinting the stroke amber was the first cut and it fails twice. Amber on
+     this paper measures 2.01:1 — under the 3:1 a non-text indicator has to
+     meet — so the one cue that the microphone is live was the weakest mark on
+     the page. And `.nm-speak:hover .nm-speak-glyph` is 0,3,0 against
+     `.nm-speak-glyph[data-on]`'s 0,2,0, so on a desktop simply resting the
+     pointer on the button turned the state back off.
+
+     Filled, the amber becomes the BACKGROUND and the mic is drawn on it in
+     the page's ink — which is the contrast direction that actually works, and
+     it is the pattern every recording control already uses. It survives
+     hover because the fill is on the button rather than the glyph, and it
+     survives prefers-reduced-motion because it is not motion. */
+  .nm-speak[aria-pressed='true'] {
+    background: var(--nm-keep);
   }
 
+  .nm-speak[aria-pressed='true'] .nm-speak-glyph,
+  .nm-speak[aria-pressed='true']:hover .nm-speak-glyph {
+    color: var(--nm-text);
+  }
+
+  .nm-speak-glyph[data-on] {
+    animation: nm-speak-open 1100ms ease-in-out infinite;
+  }
+
+  /* A small breath, not a blink: the glyph stays fully legible at every point
+     in the cycle, because the fill is what carries the state. */
   @keyframes nm-speak-open {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.45; }
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(0.9); }
   }
 
   /* ── THE ARRIVAL SHELF'S LABEL ─────────────────────────────────────────
@@ -1598,10 +1623,10 @@ if (!seedRow) {
        cut wearing a gradient. A line needs more room than itself to run out of
        ink. Free at the top — the stream is pinned to its end, so everything up
        there has already been read. */
+    /* The bottom fade is unconditional; the top one is not — see below. */
     mask-image: linear-gradient(
       to bottom,
-      transparent 0,
-      #000 4rem,
+      #000 0,
       #000 calc(100% - 1rem),
       transparent 100%
     );
@@ -1612,6 +1637,20 @@ if (!seedRow) {
        pull-to-refresh on a page that must never move. */
     overscroll-behavior: contain;
     list-style: none;
+  }
+
+  /* AND THE TOP FADES ONLY ONCE SOMETHING IS ABOVE IT. `data-scrolled` is set
+     by the stream's own scroll handler. Before that the first thing in the
+     transcript is the greeting, and fading it — along with the bead that marks
+     it — makes the opening look like the tail of something the visitor missed. */
+  .nm-stream[data-scrolled] {
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      #000 4rem,
+      #000 calc(100% - 1rem),
+      transparent 100%
+    );
   }
 
   /* ── The thread, and the beads strung on it ───────────────────────────
