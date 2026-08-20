@@ -225,7 +225,7 @@ export const NAAM_COPY = {
      * to do the one thing the cards do. It asks instead, and borrows the chips'
      * own word — they already teach "like X" ("Short, like Bisa"), so the sky
      * needs no new vocabulary. Lowercase: it enters the thread as the visitor's
-     * own turn, beside a composer that says "even one word is enough…".
+     * own turn, beside a composer that opens his sentence for him.
      */
     askLike: (name: string) => `more like ${name}`,
     /** Over a fresh deal of cards. */
@@ -345,7 +345,34 @@ export const NAAM_COPY = {
     /* Names the group for a screen reader. "Ways to start" rather than
        "suggestions": each one is a whole question, and tapping it asks it. */
     startersLabel: 'Ways to start',
-    composerPlaceholder: 'even one word is enough…',
+    /**
+     * A STEM, NOT A PERMISSION SLIP.
+     *
+     * It read "even one word is enough…", which is generous and asks nothing.
+     * A box that asks nothing gets one vague word or an empty box, and the
+     * people this page was built for — a grandfather, a great-uncle, reading
+     * on a phone in his second language — are exactly the ones least likely
+     * to start writing into silence.
+     *
+     * So the placeholder is now the first half of his own sentence. He does
+     * not have to decide how to begin, only how to finish, and the ending it
+     * invites is a MEANING, which is what the search behind it is strongest
+     * on. The invitation above already gives him permission and lists the
+     * three ways in; this does the one thing that line cannot, which is put
+     * him mid-sentence.
+     *
+     * NOT "I would like a name that means…", which was the first draft and is
+     * the better sentence. It does not fit. Measured against the real field:
+     * the text runs 255px, and the input is 207px at 360 and 237px at 390 —
+     * so on the two commonest phone widths it renders as "…a name that me…".
+     * A stem cut mid-word is worse than a shorter whole one, and the person
+     * reading it is the one least likely to guess what was clipped.
+     *
+     * This is the same stem with the "I would like" taken off. It fits at 360
+     * with room to spare, and it still hands him a sentence to finish rather
+     * than an empty box and permission to leave it empty.
+     */
+    composerPlaceholder: 'A name that means…',
     composerSend: 'Send',
     /**
      * The site footer is display:none here, and the full index used to ride on

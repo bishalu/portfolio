@@ -652,168 +652,21 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
   }, [])
 
   /**
-   * ── ONE THREAD, AND NO SIMULATION UNDER IT ──────────────────────────────
+   * ── NO STRAND, JUST THE BEADS ───────────────────────────────────────────
    *
-   * The mala was a small physics canvas hung inside the transcript's scroller,
-   * and it was the wrong object in three ways at once.
+   * The mala had a thread through it, drawn first as a physics rope and then
+   * as one continuous CSS run, and both were the same bet: that the object
+   * worth showing is the STRING. It is not. What each bead marks is a real
+   * thing — somebody spoke, names came back, three went off — and the string
+   * between them marks nothing at all. It only ever earned its keep by being
+   * hard to draw well, which is the opposite of a reason.
    *
-   * IT COULD NOT CROSS THE BOUNDARY. The canvas lives in the scroller so it
-   * scrolls with the text for free — and therefore stops where the scroller
-   * stops. The cards below got a CSS thread instead, so the gutter held a
-   * hanging arc with varying beads above the divider and a ruler-straight
-   * chain below it. Filmed at 3x, they are plainly two different objects.
-   *
-   * IT ARRIVED LATE AND REPLACED SOMETHING ELSE. The CSS cord draws on the
-   * first frame; the canvas mounts around 650ms and takes over. Measured:
-   * `data-rope` false at 400ms, true at 700ms. So the strand a visitor sees
-   * while the page is still coming up is not the strand they end up with.
-   *
-   * AND IT KINKED. The rope's polyline resolved into visible zig-zags — slack
-   * rope reads as an error rather than as weight.
-   *
-   * What the object actually is: a thread whose beads mark the turns. That
-   * needs no simulation. One element spans the whole gutter, drawn the same
-   * way from the first paint, and the marker beads — which are DOM, inside the
-   * turns — slide along it as the transcript scrolls, which is what counting a
-   * mala looks like.
-   *
-   * The only thing measured here is where the thread ENDS: the bottom of the
-   * hand, which is the last band the strand belongs to. Below that sit the
-   * tray and the composer, and a thread running past them into the valley was
-   * a real bug once already.
+   * So the beads stay exactly where they were, one per turn, and everything
+   * that existed to connect them is gone: the canvas and its physics, the
+   * per-turn cord, the second rail beside the cards, the tail anchor, and the
+   * measurement that kept the whole run aligned to a bead that moves while it
+   * arrives. That last one cost three production fixes on its own.
    */
-  useLayoutEffect(() => {
-    const shell = shellRef.current
-    if (!shell) return undefined
-    /**
-     * X COMES FROM A BEAD, NOT FROM THE INSET ARITHMETIC.
-     *
-     * The thread has to sit exactly under the marker beads, and those are
-     * placed by the turns' own rail column — which is centred on a 720px
-     * measure, so its x moves as the window widens. Re-deriving that from the
-     * clamp and the rail width worked at 1440 and drifted everywhere else;
-     * reading one rendered bead cannot drift, because it IS the thing being
-     * aligned to.
-     */
-    const measure = () => {
-      const box = shell.getBoundingClientRect()
-      const wrap = shell.querySelector<HTMLElement>('.nm-streamwrap')
-      const hand = shell.querySelector<HTMLElement>('.nm-hand')
-      const bead = [...shell.querySelectorAll<HTMLElement>('.nm-bead')].find(
-        (el) => el.getBoundingClientRect().height > 0,
-      )
-      if (!wrap) return
-      const top = wrap.getBoundingClientRect().top - box.top
-      const end = (hand ?? wrap).getBoundingClientRect().bottom - box.top
-      shell.style.setProperty('--nm-thread-top', `${Math.round(top)}px`)
-      shell.style.setProperty('--nm-thread-h', `${Math.max(0, Math.round(end - top))}px`)
-      if (bead) {
-        const r = bead.getBoundingClientRect()
-        shell.style.setProperty('--nm-thread-x', `${Math.round(r.left + r.width / 2 - box.left)}px`)
-      }
-    }
-    measure()
-    /**
-     * AND RE-MEASURE WHEN THE THING THAT MOVES IT MOVES.
-     *
-     * The first cut observed the shell and the hand, which are the boxes whose
-     * HEIGHT the thread depends on — and missed the box whose WIDTH decides
-     * its x. The turns are centred on a 720px measure inside the transcript's
-     * column, so anything that reflows that column moves every bead sideways
-     * without changing either observed box.
-     *
-     * Caught in production and not locally: `--nm-thread-x` was 26px on the
-     * live page against a bead sitting at 23, while the same build measured 23
-     * on both locally. A web font swapping in after first paint is the obvious
-     * candidate and `document.fonts.ready` is the fix for it; observing the
-     * transcript's own box covers the rest.
-     */
-    const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(measure) : null
-    ro?.observe(shell)
-    /**
-     * THE RAIL ITSELF IS ON THE LIST, and leaving it off is what kept the bug
-     * alive through one fix. Observing the shell, the hand and the transcript
-     * catches everything that changes a BOX — and the thing that moved the
-     * beads changed none of them.
-     *
-     * Measured on the live page: `--nm-thread-x` 26px against a bead at 23.
-     * 26 is 12px of transcript padding plus half a 30px rail; 23 is the same
-     * padding plus half a 22px one. The phone rail is a custom property on
-     * .nm-turn, so when it takes effect the bead slides 4px inside a stream
-     * whose own width never changed — invisible to every observer above.
-     * Local dev inlines its styles and never showed it; production links a
-     * stylesheet, so the island can measure before the narrower rail applies.
-     *
-     * .nm-turn-rail IS that width, so it cannot change without firing.
-     */
-    for (const sel of ['.nm-hand', '.nm-streamwrap', '.nm-stream', '.nm-turn-rail'] as const) {
-      const box = shell.querySelector<HTMLElement>(sel)
-      if (box) ro?.observe(box)
-    }
-    window.addEventListener('resize', measure)
-    // Fonts land after first paint and reflow the column the beads hang in.
-    document.fonts?.ready.then(measure).catch(() => {})
-    // And once everything the document asked for has arrived.
-    window.addEventListener('load', measure)
-    /**
-     * ── AND AFTER THE BEAD HAS STOPPED MOVING ────────────────────────────
-     *
-     * This is the one that actually mattered, and two fixes went past it.
-     *
-     * The turns ARRIVE — each one animates in — so for the first half second
-     * of the page every bead is sliding. Traced on the live page: at t=264ms
-     * the first bead sits at left 19.3 and this function computes 26; by
-     * t=603 it has settled at 16.5 and the right answer is 23. The var was
-     * written at 264 and never touched again, so the thread hung three pixels
-     * beside the beads for the rest of the session.
-     *
-     * No ResizeObserver could catch it. The bead MOVES, it does not resize —
-     * its box is 13px wide before, during and after. Observing the shell, the
-     * transcript and the rail was observing the wrong verb.
-     *
-     * Locally the island hydrates fast enough to measure before the animation
-     * starts, and it read 23 every time. Which is why this only ever appeared
-     * on the deployed page, and why the two earlier fixes both verified clean
-     * at six widths and changed nothing.
-     *
-     * `animationend` bubbles, so one listener on the shell covers every turn
-     * that will ever arrive, and the last one to finish gets the last word.
-     */
-    shell.addEventListener('animationend', measure)
-    shell.addEventListener('animationcancel', measure)
-    shell.addEventListener('transitionend', measure)
-    /**
-     * AND A SETTLE POLL, because `animationend` is not guaranteed to arrive:
-     * an animation that is cancelled or replaced mid-flight fires
-     * `animationcancel` at best, and a subtree React regenerates on a
-     * hydration mismatch can drop the event entirely. This walks the page's
-     * own animation list and re-measures until nothing is running, then stops.
-     * Bounded, so a permanently-animating page cannot spin it forever — the
-     * valley and the lanterns run continuously by design.
-     */
-    let settles = 0
-    const settle = () => {
-      measure()
-      const moving = typeof document.getAnimations === 'function'
-        && document.getAnimations().some((a) => a.playState === 'running')
-      if (moving && settles < 20) {
-        settles += 1
-        timer = window.setTimeout(settle, 120)
-      }
-    }
-    let timer = window.setTimeout(settle, 120)
-    return () => {
-      ro?.disconnect()
-      window.removeEventListener('resize', measure)
-      window.removeEventListener('load', measure)
-      shell.removeEventListener('animationend', measure)
-      shell.removeEventListener('animationcancel', measure)
-      shell.removeEventListener('transitionend', measure)
-      window.clearTimeout(timer)
-    }
-  /* `turns.length` covers a new turn arriving; the ResizeObserver covers
-     everything else, including the bands resizing on the first ask. */
-  }, [turns.length])
 
   /* — mount ————————————————————————————————————————————————————————— */
 
@@ -3005,19 +2858,33 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
             <button
               type="button"
               className="nm-speak"
+              title={speech.listening ? C.app.speak.listening : C.app.speak.idle}
               aria-pressed={speech.listening}
               disabled={!live || asking}
               onClick={() => speech.toggle()}
             >
-              <span className="nm-speak-glyph" aria-hidden="true" data-on={speech.listening ? 'true' : undefined} />
-              {/* THE WORD IS ON THE PAGE. An unlabelled glyph for an action is
-                  the exact fault L10 was earned on — the Keep control spent a
-                  session as a 14px ring with its verb in an .sr-only span, and
-                  no sighted visitor ever saw it. Same corner, same footprint,
-                  carrying its own word. */}
-              <span className="nm-speak-word label-mono label-mono--sm" aria-hidden="true">
-                {speech.listening ? C.app.speak.listening : C.app.speak.idle}
-              </span>
+              {/* A MICROPHONE, ASKED FOR BY NAME.
+                  What was here was a mouth — two strokes that opened while it
+                  listened — on the reasoning that a mic glyph would be the one
+                  piece of app furniture on a page with no other iconography.
+                  That reasoning holds right up until you ask who is reading it.
+                  A mic is the most recognised symbol in software; the mouth had
+                  to be learned, and the word beside it was doing the work.
+
+                  Icon-only, so the accessible name is not optional: `title`
+                  gives a pointer its tooltip and .sr-only gives a screen reader
+                  the same words, both switching with the state. */}
+              <svg
+                className="nm-speak-glyph"
+                data-on={speech.listening ? 'true' : undefined}
+                viewBox="0 0 16 16"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <rect x="5.6" y="1.6" width="4.8" height="8" rx="2.4" />
+                <path d="M3.2 7.6a4.8 4.8 0 0 0 9.6 0" />
+                <path d="M8 12.4v2.1" />
+              </svg>
               <span className="sr-only">{speech.listening ? C.app.speak.listening : C.app.speak.idle}</span>
             </button>
           )}
@@ -3133,16 +3000,6 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
           </a>
         </div>
       </div>
-
-      {/* ── THE THREAD ────────────────────────────────────────────────────
-          Last in the shell, and that placement is the whole reason it works.
-          The card band carries the column's paper and is a positioned sibling
-          of the transcript, so a thread drawn inside the transcript was simply
-          painted over below the divider — which is exactly how the strand came
-          to stop at the boundary. Drawn after both bands it crosses them, and
-          `z-index: 0` keeps it under the marker beads, which is the right way
-          round: the beads are ON the string. */}
-      <div className="nm-thread" aria-hidden="true" />
 
       {/* Flying names live here. It is rendered with no children, so React
           never diffs what is inside it. */}

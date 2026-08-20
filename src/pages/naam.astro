@@ -432,9 +432,12 @@ if (!seedRow) {
     background: none;
     cursor: pointer;
     gap: 0.32rem;
-    /* 44px: it was 34, and this is the control built FOR the people least able
-       to hit a small one. */
-    padding: 0 0.6rem 0 0.5rem;
+    /* 44px BOTH WAYS: it was 34 tall, and once the word came off in favour of
+       the mic it went to 36 WIDE — the height was fixed and the width was
+       never stated, so removing a label quietly shrank the target. This is
+       the control built for the people least able to hit a small one. */
+    padding: 0 0.45rem;
+    min-width: 44px;
     min-height: 44px;
     white-space: nowrap;
   }
@@ -457,19 +460,11 @@ if (!seedRow) {
     letter-spacing: 0.06em;
   }
 
-  #naam-app .nm-speak-word {
-    /* 62% of the ink measured 4.31:1 on the glyphs — under the floor, on the
-       one control that exists so somebody who finds typing hard does not have
-       to type. It is also the control this audience is least likely to expect,
-       so it is the last place to be economical with contrast. */
-    color: color-mix(in srgb, var(--nm-text) 82%, transparent);
-  }
 
   /* Below 360 the field has to choose between the word and the sentence being
      typed into it, and the sentence wins — the glyph and the accessible name
      both stay. */
   @media (max-width: 359px) {
-    .nm-speak-word { display: none; }
   }
 
 
@@ -481,27 +476,34 @@ if (!seedRow) {
   /* A mouth, not a microphone: two strokes that open when it is listening.
      A mic glyph on a page with no other iconography would be the one piece of
      app furniture on it. */
+  /* Drawn, not filled: the same 1.5px stroke weight the rest of this page's
+     marks use, so the mic sits with the type rather than on top of it. */
   .nm-speak-glyph {
     display: block;
-    transition: height var(--dur-base) ease, border-color var(--dur-base) ease;
-    border: 1.5px solid color-mix(in srgb, var(--nm-text) 55%, transparent);
-    border-radius: 999px;
-    width: 0.95rem;
-    height: 0.5rem;
+    transition: color var(--dur-base) ease;
+    width: 1.15rem;
+    height: 1.15rem;
+    color: color-mix(in srgb, var(--nm-text) 72%, transparent);
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.4;
+    stroke-linecap: round;
   }
 
   .nm-speak:hover .nm-speak-glyph {
-    border-color: var(--nm-text);
+    color: var(--nm-text);
   }
 
+  /* Listening is a state somebody needs to be able to see from across a room:
+     the mic warms to the page's action colour and breathes. */
   .nm-speak-glyph[data-on] {
     animation: nm-speak-open 1100ms ease-in-out infinite;
-    border-color: var(--nm-accent, var(--nm-keep));
+    color: var(--nm-accent, var(--nm-keep));
   }
 
   @keyframes nm-speak-open {
-    0%, 100% { height: 0.5rem; }
-    50% { height: 0.9rem; }
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
   }
 
   /* ── THE ARRIVAL SHELF'S LABEL ─────────────────────────────────────────
@@ -1663,62 +1665,11 @@ if (!seedRow) {
     max-width: 720px;
   }
 
-  /* ── THE THREAD ─────────────────────────────────────────────────────────
-     One element for the whole strand, from the top of the transcript to the
-     bottom of the cards, drawn identically on the first frame and the last.
+  /* THE THREAD IS GONE, and only the beads remain. Each bead marks something
+     real — somebody spoke, names came back, three went off. The line between
+     them marked nothing, and cost a canvas, a physics module, a per-turn cord,
+     a second rail and three production fixes to keep aligned. */
 
-     It replaces three things: a physics canvas that hung inside the scroller
-     and therefore stopped at it, a per-turn CSS cord that segmented the line
-     between turns, and a second rail beside the hand. Those made the gutter
-     read as two objects with a seam — an arc with varying beads above the
-     divider, a straight uniform chain below.
-
-     It does NOT scroll. The transcript scrolls past it and the marker beads,
-     which are DOM inside the turns, slide along it. That is what counting a
-     mala looks like, and it is why the thread can be one static run: the
-     thing that moves is the beads, not the string.
-
-     `--nm-thread-h` is measured in NaamApp — the distance from this box's top
-     to the bottom of the hand. Below that are the tray and the composer, and
-     a thread running past them into the valley was a real bug once. */
-  .nm-thread {
-    position: absolute;
-    top: var(--nm-thread-top, 0);
-    /* Centred on a rendered bead, measured in NaamApp — see the note there. */
-    left: calc(var(--nm-thread-x, 37px) - 4.5px);
-    z-index: 0;
-    width: 9px;
-    height: var(--nm-thread-h, 0);
-    pointer-events: none;
-
-    /* Body and highlight as separate layers so a bead reads as a sphere and
-       not a ring, the highlight offset up-left, and the browns taken from the
-       wood the marker beads are cut from. Plain radial-gradient, not
-       repeating-: the tiling is background-size's job, and a repeating
-       gradient rings every bead with a ghost of itself. */
-    background-image:
-      radial-gradient(
-        circle at 38% 2.6px,
-        rgba(255, 240, 214, 0.85) 0 0.75px,
-        rgba(226, 178, 122, 0.45) 0.75px 1.5px,
-        transparent 1.75px
-      ),
-      radial-gradient(
-        circle at 50% 4px,
-        rgb(168 116 70) 0 2px,
-        rgb(140 90 52) 2px 3px,
-        rgb(108 62 35) 3px 3.65px,
-        rgb(78 44 25) 3.65px 4px,
-        transparent 4.15px
-      ),
-      linear-gradient(rgba(138, 112, 72, 0.85) 0 100%);
-    background-position: center top, center top, center top;
-    background-size:
-      9px 10px,
-      9px 10px,
-      2px 100%;
-    background-repeat: repeat-y, repeat-y, repeat-y;
-  }
 
 
   /* Nothing is strung above the first bead, and the stream's own top padding
@@ -1736,7 +1687,6 @@ if (!seedRow) {
      columns without anything having to be placed by hand. */
   .nm-turn-rail {
     position: relative;
-    /* Above .nm-thread, which is z-index 0. The beads are on the string. */
     z-index: 1;
   }
 
@@ -1762,8 +1712,8 @@ if (!seedRow) {
      segment — `::before` a connector up to the previous bead, `::after` a run
      down to the bottom of its own block — which meant the strand was N
      segments with the inter-turn gap showing between them, and it had to be
-     suppressed entirely the moment the canvas rope mounted. One `.nm-thread`
-     spans the lot now and never changes hands. */
+     suppressed entirely the moment the canvas rope mounted. Nothing connects
+     the beads now — each one marks its own turn and that is all. */
 
 
   /* THE CONNECTOR, and it draws. The line REACHING the new bead is the progress
@@ -5149,32 +5099,6 @@ if (!seedRow) {
     }
 
 
-    /* The beads shrink with the rail: --nm-bead goes 17px -> 13px here, so
-       the counting beads follow at 6.6px on an 8.5px pitch. */
-    .nm-thread {
-      left: calc(var(--nm-thread-x, 23px) - 3.5px);
-      background-image:
-        radial-gradient(
-          circle at 38% 2.1px,
-          rgba(255, 240, 214, 0.85) 0 0.6px,
-          rgba(226, 178, 122, 0.45) 0.6px 1.2px,
-          transparent 1.4px
-        ),
-        radial-gradient(
-          circle at 50% 3.3px,
-          rgb(168 116 70) 0 1.65px,
-          rgb(140 90 52) 1.65px 2.45px,
-          rgb(108 62 35) 2.45px 3px,
-          rgb(78 44 25) 3px 3.3px,
-          transparent 3.45px
-        ),
-        linear-gradient(rgba(138, 112, 72, 0.85) 0 100%);
-      background-size:
-        7px 8.5px,
-        7px 8.5px,
-        1.75px 100%;
-      width: 7px;
-    }
 
     /* THE ARROW IS GONE EVERYWHERE, and this rule is where its reason was
        first written down: "a hint that crosses out the words it is pointing at
