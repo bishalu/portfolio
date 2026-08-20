@@ -755,10 +755,61 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
     document.fonts?.ready.then(measure).catch(() => {})
     // And once everything the document asked for has arrived.
     window.addEventListener('load', measure)
+    /**
+     * ── AND AFTER THE BEAD HAS STOPPED MOVING ────────────────────────────
+     *
+     * This is the one that actually mattered, and two fixes went past it.
+     *
+     * The turns ARRIVE — each one animates in — so for the first half second
+     * of the page every bead is sliding. Traced on the live page: at t=264ms
+     * the first bead sits at left 19.3 and this function computes 26; by
+     * t=603 it has settled at 16.5 and the right answer is 23. The var was
+     * written at 264 and never touched again, so the thread hung three pixels
+     * beside the beads for the rest of the session.
+     *
+     * No ResizeObserver could catch it. The bead MOVES, it does not resize —
+     * its box is 13px wide before, during and after. Observing the shell, the
+     * transcript and the rail was observing the wrong verb.
+     *
+     * Locally the island hydrates fast enough to measure before the animation
+     * starts, and it read 23 every time. Which is why this only ever appeared
+     * on the deployed page, and why the two earlier fixes both verified clean
+     * at six widths and changed nothing.
+     *
+     * `animationend` bubbles, so one listener on the shell covers every turn
+     * that will ever arrive, and the last one to finish gets the last word.
+     */
+    shell.addEventListener('animationend', measure)
+    shell.addEventListener('animationcancel', measure)
+    shell.addEventListener('transitionend', measure)
+    /**
+     * AND A SETTLE POLL, because `animationend` is not guaranteed to arrive:
+     * an animation that is cancelled or replaced mid-flight fires
+     * `animationcancel` at best, and a subtree React regenerates on a
+     * hydration mismatch can drop the event entirely. This walks the page's
+     * own animation list and re-measures until nothing is running, then stops.
+     * Bounded, so a permanently-animating page cannot spin it forever — the
+     * valley and the lanterns run continuously by design.
+     */
+    let settles = 0
+    const settle = () => {
+      measure()
+      const moving = typeof document.getAnimations === 'function'
+        && document.getAnimations().some((a) => a.playState === 'running')
+      if (moving && settles < 20) {
+        settles += 1
+        timer = window.setTimeout(settle, 120)
+      }
+    }
+    let timer = window.setTimeout(settle, 120)
     return () => {
       ro?.disconnect()
       window.removeEventListener('resize', measure)
       window.removeEventListener('load', measure)
+      shell.removeEventListener('animationend', measure)
+      shell.removeEventListener('animationcancel', measure)
+      shell.removeEventListener('transitionend', measure)
+      window.clearTimeout(timer)
     }
   /* `turns.length` covers a new turn arriving; the ResizeObserver covers
      everything else, including the bands resizing on the first ask. */
