@@ -713,11 +713,30 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
       }
     }
     measure()
+    /**
+     * AND RE-MEASURE WHEN THE THING THAT MOVES IT MOVES.
+     *
+     * The first cut observed the shell and the hand, which are the boxes whose
+     * HEIGHT the thread depends on — and missed the box whose WIDTH decides
+     * its x. The turns are centred on a 720px measure inside the transcript's
+     * column, so anything that reflows that column moves every bead sideways
+     * without changing either observed box.
+     *
+     * Caught in production and not locally: `--nm-thread-x` was 26px on the
+     * live page against a bead sitting at 23, while the same build measured 23
+     * on both locally. A web font swapping in after first paint is the obvious
+     * candidate and `document.fonts.ready` is the fix for it; observing the
+     * transcript's own box covers the rest.
+     */
     const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(measure) : null
     ro?.observe(shell)
-    const band = shell.querySelector<HTMLElement>('.nm-hand')
-    if (band) ro?.observe(band)
+    for (const sel of ['.nm-hand', '.nm-streamwrap', '.nm-stream'] as const) {
+      const box = shell.querySelector<HTMLElement>(sel)
+      if (box) ro?.observe(box)
+    }
     window.addEventListener('resize', measure)
+    // Fonts land after first paint and reflow the column the beads hang in.
+    document.fonts?.ready.then(measure).catch(() => {})
     return () => {
       ro?.disconnect()
       window.removeEventListener('resize', measure)
