@@ -652,64 +652,78 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
   }, [])
 
   /**
-   * THE MALA IS A HANGING OBJECT NOW. Audited at 3×, the CSS version read as a
-   * zipper: the counting beads were a repeating gradient, so the ring artefact
-   * tiled at a fixed pitch, every bead was identical, and the cord was a
-   * dead-straight vertical — the one thing everybody knows about a mala is that
-   * it hangs. Measured alongside it: nothing on this column animated at rest or
-   * responded to the pointer, at all.
+   * ── ONE THREAD, AND NO SIMULATION UNDER IT ──────────────────────────────
    *
-   * Its own small renderer rather than the valley's: the valley is a full-bleed
-   * diorama painted once and cached, this is a strip that must stay pinned to
-   * lines of text. Sharing a surface would mean converting bead positions out
-   * of a page-sized coordinate space on every layout, which is the drift class
-   * that made lampSpots a shared module.
+   * The mala was a small physics canvas hung inside the transcript's scroller,
+   * and it was the wrong object in three ways at once.
+   *
+   * IT COULD NOT CROSS THE BOUNDARY. The canvas lives in the scroller so it
+   * scrolls with the text for free — and therefore stops where the scroller
+   * stops. The cards below got a CSS thread instead, so the gutter held a
+   * hanging arc with varying beads above the divider and a ruler-straight
+   * chain below it. Filmed at 3x, they are plainly two different objects.
+   *
+   * IT ARRIVED LATE AND REPLACED SOMETHING ELSE. The CSS cord draws on the
+   * first frame; the canvas mounts around 650ms and takes over. Measured:
+   * `data-rope` false at 400ms, true at 700ms. So the strand a visitor sees
+   * while the page is still coming up is not the strand they end up with.
+   *
+   * AND IT KINKED. The rope's polyline resolved into visible zig-zags — slack
+   * rope reads as an error rather than as weight.
+   *
+   * What the object actually is: a thread whose beads mark the turns. That
+   * needs no simulation. One element spans the whole gutter, drawn the same
+   * way from the first paint, and the marker beads — which are DOM, inside the
+   * turns — slide along it as the transcript scrolls, which is what counting a
+   * mala looks like.
+   *
+   * The only thing measured here is where the thread ENDS: the bottom of the
+   * hand, which is the last band the strand belongs to. Below that sit the
+   * tray and the composer, and a thread running past them into the valley was
+   * a real bug once already.
    */
-  const malaRef = useRef<{ relayout(): void; nudge(s?: number): void; destroy(): void } | null>(null)
-
-  useEffect(() => {
-    const host = streamRef.current
-    if (!host) return
-    let cancelled = false
-    const still = reducedMotion()
-
-    const start = window.setTimeout(async () => {
-      try {
-        const { mountMala } = await import('@/lib/naam/scene/mount-mala')
-        if (cancelled) return
-        const handle = await mountMala({ host, still })
-        if (cancelled) handle?.destroy()
-        else if (handle) {
-          malaRef.current = handle
-          // ONLY ON A REAL HANDLE. This guard was described in the comment
-          // below and not actually written: the branch ran on `else`, so a
-          // mountMala that returned null — which is exactly what it does when
-          // getContext fails — still set the flag. Audited on a phone with the
-          // canvas blocked, the result was the worst version of this feature:
-          // the CSS cord hidden, the rope absent, and three marker beads
-          // floating unconnected down an empty gutter. Losing the physics
-          // should cost the physics, not the mala.
-          shellRef.current?.setAttribute('data-rope', 'true')
-        }
-      } catch {
-        // The CSS rail is still underneath, so losing the rope costs the
-        // physics rather than the mala. Nothing worth reporting.
+  useLayoutEffect(() => {
+    const shell = shellRef.current
+    if (!shell) return undefined
+    /**
+     * X COMES FROM A BEAD, NOT FROM THE INSET ARITHMETIC.
+     *
+     * The thread has to sit exactly under the marker beads, and those are
+     * placed by the turns' own rail column — which is centred on a 720px
+     * measure, so its x moves as the window widens. Re-deriving that from the
+     * clamp and the rail width worked at 1440 and drifted everywhere else;
+     * reading one rendered bead cannot drift, because it IS the thing being
+     * aligned to.
+     */
+    const measure = () => {
+      const box = shell.getBoundingClientRect()
+      const wrap = shell.querySelector<HTMLElement>('.nm-streamwrap')
+      const hand = shell.querySelector<HTMLElement>('.nm-hand')
+      const bead = [...shell.querySelectorAll<HTMLElement>('.nm-bead')].find(
+        (el) => el.getBoundingClientRect().height > 0,
+      )
+      if (!wrap) return
+      const top = wrap.getBoundingClientRect().top - box.top
+      const end = (hand ?? wrap).getBoundingClientRect().bottom - box.top
+      shell.style.setProperty('--nm-thread-top', `${Math.round(top)}px`)
+      shell.style.setProperty('--nm-thread-h', `${Math.max(0, Math.round(end - top))}px`)
+      if (bead) {
+        const r = bead.getBoundingClientRect()
+        shell.style.setProperty('--nm-thread-x', `${Math.round(r.left + r.width / 2 - box.left)}px`)
       }
-    }, 320)
-
-    return () => {
-      cancelled = true
-      window.clearTimeout(start)
-      malaRef.current?.destroy()
-      malaRef.current = null
-      shellRef.current?.removeAttribute('data-rope')
     }
-  }, [])
-
-  /** Every new turn restretches the rail, so the rope is rebuilt and swung. */
-  useEffect(() => {
-    malaRef.current?.relayout()
-    malaRef.current?.nudge(1)
+    measure()
+    const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(measure) : null
+    ro?.observe(shell)
+    const band = shell.querySelector<HTMLElement>('.nm-hand')
+    if (band) ro?.observe(band)
+    window.addEventListener('resize', measure)
+    return () => {
+      ro?.disconnect()
+      window.removeEventListener('resize', measure)
+    }
+  /* `turns.length` covers a new turn arriving; the ResizeObserver covers
+     everything else, including the bands resizing on the first ask. */
   }, [turns.length])
 
   /* — mount ————————————————————————————————————————————————————————— */
@@ -2468,32 +2482,11 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
             </li>
           )}
 
-          {/* ── WHERE THE THREAD LEAVES THE TRANSCRIPT ────────────────────────
-              An anchor, not a turn. The rope is strung through whatever carries
-              `.nm-bead` inside the scroller and it ENDS at the last one, so on
-              a wide screen it stopped at the invitation's bead — which sits at
-              the TOP of a 94px block — and left 57px of empty gutter above the
-              cards. The cord below then read as a second object starting for no
-              reason. Measured at 1440; on a phone the wall row happened to hang
-              a bead lower down and hid the fault entirely, which is why it took
-              a desktop crop to see.
-
-              One more anchor at the foot of the transcript and the rope reaches
-              the boundary on its own, at any viewport and any length, with no
-              number written down anywhere. The bead it draws there lands on the
-              divider — which is what a bead at a boundary should look like. */}
-          <li className="nm-turn nm-turn--tail" aria-hidden="true">
-            <span className="nm-turn-rail">
-              {/* `said`, the ordinary agent bead. It was `note` — borrowed
-                  because the wall row's bead was the nearest thing to hand —
-                  and note renders pale, so the thread ended on a marker as
-                  emphatic as the guru bead, announcing a boundary rather than
-                  crossing one. This bead sits at the end of what the page
-                  SAID, which is exactly what `said` means. A bead with no
-                  state at all renders bare white, so one has to be chosen. */}
-              <span className="nm-bead" data-bead="said"></span>
-            </span>
-          </li>
+          {/* The tail anchor that used to live here is gone with the rope.
+              It existed so the simulated strand had one more `.nm-bead` to
+              reach, which is how it was made to touch the boundary; a thread
+              that spans both bands by construction needs no such thing, and
+              the bead it drew marked nothing. */}
         </ol>
 
         {!pinned && (
@@ -2773,12 +2766,6 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
           lamp and the three slots, so it gives back the height this needs. */}
       {hand ? (
         <div className="nm-hand">
-          {/* THE MALA CARRIES ON PAST THE WORDS. The strand ran beside the
-            transcript and stopped at the bottom of it, so the cards below
-            sat in an empty gutter and read as a tray that had been parked
-            under the conversation rather than as part of the same strung
-            object. It is one thread; the names are on it. */}
-          <div className="nm-hand-rail" aria-hidden="true" />
           {dealCards(hand.matches)}
           {/* UNDER THE RESULT, because a control that acts on something belongs
               beside it. Hidden while a turn is in flight so a tap cannot queue
@@ -2833,7 +2820,6 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
            speak, so it does not need a turn. */
         arrivalHand.length > 0 && (
           <div className="nm-hand" data-arrival="true">
-            <div className="nm-hand-rail" aria-hidden="true" />
             {/* NO LABEL OVER THE SHELF. "A few from the document" named what
                 the cards already are — twelve cited names, each with its
                 meaning printed on it — and it was the only heading in a column
@@ -3058,6 +3044,16 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
           </a>
         </div>
       </div>
+
+      {/* ── THE THREAD ────────────────────────────────────────────────────
+          Last in the shell, and that placement is the whole reason it works.
+          The card band carries the column's paper and is a positioned sibling
+          of the transcript, so a thread drawn inside the transcript was simply
+          painted over below the divider — which is exactly how the strand came
+          to stop at the boundary. Drawn after both bands it crosses them, and
+          `z-index: 0` keeps it under the marker beads, which is the right way
+          round: the beads are ON the string. */}
+      <div className="nm-thread" aria-hidden="true" />
 
       {/* Flying names live here. It is rendered with no children, so React
           never diffs what is inside it. */}

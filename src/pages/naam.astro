@@ -1663,36 +1663,63 @@ if (!seedRow) {
     max-width: 720px;
   }
 
-  /* ── THE SAME THREAD, PAST THE LAST WORD ────────────────────────────────
-     The rope hangs beside the transcript and ends with it, because the canvas
-     lives inside the scroller (mount-mala.ts: "the rail is a descendant of
-     .nm-stream, so a canvas placed there scrolls with the text for free").
-     The hand is a band of its own outside that scroller, so the cards had a
-     30px gutter to their left with nothing in it — and a shelf beside an empty
-     gutter reads as a tray parked under the conversation.
+  /* ── THE THREAD ─────────────────────────────────────────────────────────
+     One element for the whole strand, from the top of the transcript to the
+     bottom of the cards, drawn identically on the first frame and the last.
 
-     This is the cord, not the rope: one strand continuing where the simulated
-     one stops. It is positioned off the SAME two numbers the turns use — the
-     stream's own inline padding, then the rail's width — so it lands on the
-     turns' rail column exactly, and the cards were already inset to the body
-     column, which is why nothing had to move to make room for it.
+     It replaces three things: a physics canvas that hung inside the scroller
+     and therefore stopped at it, a per-turn CSS cord that segmented the line
+     between turns, and a second rail beside the hand. Those made the gutter
+     read as two objects with a seam — an arc with varying beads above the
+     divider, a straight uniform chain below.
 
-     Absolutely positioned rather than a grid column, deliberately: the hand's
-     box model is what the frame pass just settled (min-height, flex, the deal
-     taking the band), and a thread drawn beside that band should not be able
-     to change its size. */
-  .nm-hand-rail {
+     It does NOT scroll. The transcript scrolls past it and the marker beads,
+     which are DOM inside the turns, slide along it. That is what counting a
+     mala looks like, and it is why the thread can be one static run: the
+     thing that moves is the beads, not the string.
+
+     `--nm-thread-h` is measured in NaamApp — the distance from this box's top
+     to the bottom of the hand. Below that are the tray and the composer, and
+     a thread running past them into the valley was a real bug once. */
+  .nm-thread {
     position: absolute;
-    top: 0;
-    bottom: 0;
-    left: var(--nm-measure-inset, clamp(0.75rem, 2.4vw, 1.4rem));
-    /* Declared here rather than inherited: --nm-rail lives on .nm-turn, which
-       is in a different subtree. Same number, and the phone override below
-       keeps the two in step. */
-    --nm-rail: 30px;
-    width: var(--nm-rail);
+    top: var(--nm-thread-top, 0);
+    /* Centred on a rendered bead, measured in NaamApp — see the note there. */
+    left: calc(var(--nm-thread-x, 37px) - 4.5px);
+    z-index: 0;
+    width: 9px;
+    height: var(--nm-thread-h, 0);
     pointer-events: none;
+
+    /* Body and highlight as separate layers so a bead reads as a sphere and
+       not a ring, the highlight offset up-left, and the browns taken from the
+       wood the marker beads are cut from. Plain radial-gradient, not
+       repeating-: the tiling is background-size's job, and a repeating
+       gradient rings every bead with a ghost of itself. */
+    background-image:
+      radial-gradient(
+        circle at 38% 2.6px,
+        rgba(255, 240, 214, 0.85) 0 0.75px,
+        rgba(226, 178, 122, 0.45) 0.75px 1.5px,
+        transparent 1.75px
+      ),
+      radial-gradient(
+        circle at 50% 4px,
+        rgb(168 116 70) 0 2px,
+        rgb(140 90 52) 2px 3px,
+        rgb(108 62 35) 3px 3.65px,
+        rgb(78 44 25) 3.65px 4px,
+        transparent 4.15px
+      ),
+      linear-gradient(rgba(138, 112, 72, 0.85) 0 100%);
+    background-position: center top, center top, center top;
+    background-size:
+      9px 10px,
+      9px 10px,
+      2px 100%;
+    background-repeat: repeat-y, repeat-y, repeat-y;
   }
+
 
   /* Nothing is strung above the first bead, and the stream's own top padding
      is already the air above it. 0px, not 0: it is read inside calc(). */
@@ -1709,6 +1736,8 @@ if (!seedRow) {
      columns without anything having to be placed by hand. */
   .nm-turn-rail {
     position: relative;
+    /* Above .nm-thread, which is z-index 0. The beads are on the string. */
+    z-index: 1;
   }
 
   /**
@@ -1723,158 +1752,39 @@ if (!seedRow) {
    * object spanning every turn, and a per-turn class would have to be applied
    * to turns that do not exist yet.
    */
-  .nm-shell[data-rope] .nm-turn-rail::before,
-  .nm-shell[data-rope] .nm-turn-rail::after {
-    opacity: 0;
-  }
+
 
   /* The marker beads STAY. They are the anchors the rope is nailed to, they are
      positioned by the same grid as the text so they track it for free, and they
      are what a visitor sees if the rope never loads. */
 
-  /* The cord: a continuous faint line with diagonal ticks laid over it. Two
-     layers, because either one alone is wrong — the ticks by themselves render
-     as a dashed border, which is worse than a plain rule, and a plain 1px
-     vertical rule IS the timeline-library look. Together the line carries the
-     continuity a strung object needs and the ticks give it a twist, and at
-     13% under 26% neither is individually legible. */
-  /* THE CORD IS STRUNG WITH BEADS, and that is what was missing. It used to be
-     a 2px line with a diagonal twist laid over it — honest about being a cord,
-     and it read as a hairline rule, because the thing that makes a mala legible
-     is not the thread. It is that the thread is COVERED in beads.
+  /* THE PER-TURN CORD IS GONE. Each turn used to draw its own two-layer
+     segment — `::before` a connector up to the previous bead, `::after` a run
+     down to the bottom of its own block — which meant the strand was N
+     segments with the inter-turn gap showing between them, and it had to be
+     suppressed entirely the moment the canvas rope mounted. One `.nm-thread`
+     spans the lot now and never changes hands. */
 
-     So the cord carries its own: a repeating radial-gradient of 4px beads every
-     7px down its length, each one lit from the top-left like the big ones. The
-     line between the turns stops being empty. At a glance you see a strung
-     object; at reading distance you see the beads that matter sitting among the
-     ones that are only counting. */
-  .nm-turn-rail::before,
-  .nm-turn-rail::after,
-  .nm-hand-rail::after {
-    position: absolute;
-    /* Half the cord's own width, so it stays centred in the rail when either
-       number changes. It was hard-coded to 3px for a 6px cord and would have
-       drifted a pixel and a half off-centre the moment the cord widened. */
-    left: calc(var(--nm-rail) / 2 - 4.5px);
-    background-image:
-      /* THE COUNTING BEADS ARE THE SAME WOOD AS THE BIG ONES. They were mixed
-         from --nm-text, which is this page's INK — so they came out blue-grey,
-         and the cord read as a dashed rule with wooden beads parked on it.
-         That is two objects, not one strung thing. Cut from the same browns
-         now, lit from the same top-left, on a warm thread rather than a
-         hairline. */
-      /* YOU HAVE TO SEE THE THREAD BETWEEN THEM. The counting beads were 5.6px
-         across on a 6.8px pitch — 1.2px of cord showing — so they fused into a
-         single dashed stroke and the rail read as a dotted border. What makes a
-         strung object legible is not that the thread is covered; it is that you
-         can see each bead END and the cord carry on to the next. At 8px on a
-         12px pitch there are 4px of visible thread between beads and they
-         separate into countable things. */
-      /* ONE BEAD EVERYWHERE, AND THIS IS WHERE IT LIVES. These three layers
-         were written for the hand's rail and left here in the old fallback
-         form — pale, concentric, one gradient per bead. That is invisible
-         while the simulated rope is up, because the rope covers this cord and
-         `[data-rope]` hides it. Block the rope's chunk and the fault is
-         immediate: the transcript strings donuts on a ladder while the cards
-         below string turned spheres, across a divider eight pixels wide.
-         Measured from a crop with the module aborted at the network.
-
-         So the whole thread — every turn's rail and the hand's — is cut from
-         the one recipe: body and highlight as separate layers so a bead reads
-         as a sphere rather than a ring, the highlight offset up-left, and the
-         browns taken from mala.ts's own `wood()` walk so the cord and the rope
-         are the same material. */
-      radial-gradient(
-        circle at 38% 2.6px,
-        rgba(255, 240, 214, 0.85) 0 0.75px,
-        rgba(226, 178, 122, 0.45) 0.75px 1.5px,
-        transparent 1.75px
-      ),
-      radial-gradient(
-        circle at 50% 4px,
-        rgb(168 116 70) 0 2px,
-        rgb(140 90 52) 2px 3px,
-        rgb(108 62 35) 3px 3.65px,
-        rgb(78 44 25) 3.65px 4px,
-        transparent 4.15px
-      ),
-      linear-gradient(rgba(138, 112, 72, 0.85) 0 100%);
-    background-position:
-      center top,
-      center top,
-      center top;
-    background-size:
-      9px 10px,
-      9px 10px,
-      2px 100%;
-    background-repeat: repeat-y, repeat-y, repeat-y;
-    width: 9px;
-    content: '';
-  }
 
   /* THE CONNECTOR, and it draws. The line REACHING the new bead is the progress
      signal; a node simply appearing is not, and instant appearance is what
      makes a sequence read as a log. scaleY off a top origin rather than an SVG
      stroke-dashoffset: on a straight 2px vertical the two are pixel-identical,
      and this one composites and costs no element. */
-  .nm-turn-rail::before {
-    top: calc(-1 * var(--nm-gap));
-    transform-origin: top;
-    animation: nm-thread 500ms cubic-bezier(0.05, 0.7, 0.1, 1) backwards;
-    height: calc(var(--nm-gap) + var(--nm-bead-top));
-  }
 
-  .nm-turn-rail::after {
-    top: calc(var(--nm-bead-top) + var(--nm-bead));
-    bottom: 0;
-  }
 
-  /* The tail carries a bead and nothing else: no body, no gap above it, and
-     no height of its own beyond the bead it hangs. It exists so the rope has
-     somewhere to reach. */
-  .nm-turn--tail {
-    --nm-gap: 0px;
-    padding-top: 0;
-    min-height: var(--nm-bead);
-    /* NO NEGATIVE MARGIN HERE, and it was tried. Cancelling the scroller's
-       own padding-bottom to drop the anchor onto the boundary does nothing:
-       the stream is pinned to its end, so shortening the content just
-       re-pins and the whole transcript rides up instead — measured, it left
-       19px of blank under the last line and moved the bead not at all. The
-       residual step belongs to the scroller's padding and is the same few
-       pixels the thread would disappear behind on a real mala. */
-  }
 
   /* ONE LAYER ON THE HAND'S RAIL, TOP TO BOTTOM. The turns run two: `::before`
      is the connector that DRAWS from the previous bead to this one, and its
      height is a function of --nm-gap. There is no previous bead here and
      nothing to animate towards — the cord beside the cards is just cord — so
      the hand takes the continuous layer only, and takes it edge to edge. */
-  .nm-hand-rail::after {
-    top: 0;
-    bottom: 0;
-  }
 
-  .nm-turn:first-child .nm-turn-rail::before {
-    display: none;
-  }
 
   /* The thread ends at the bead you are on. There is nothing strung after it
      yet, and a cord running past the last bead into empty space is the log's
      "and it continues" — the opposite of what a counting object says. */
-  .nm-turn:last-child .nm-turn-rail::after {
-    display: none;
-  }
 
-  @keyframes nm-thread {
-    from {
-      transform: scaleY(0);
-    }
-
-    to {
-      transform: scaleY(1);
-    }
-  }
 
   /* FIVE SILHOUETTES, NEVER ONE REPEATED DOT — the repeated bullet is the
      single thing that makes a vertical sequence read as a log, and a mala is
@@ -2632,11 +2542,8 @@ if (!seedRow) {
   .nm-hand {
     min-width: 0;
     /* THE RAIL'S CONTAINING BLOCK, and it has to be here rather than in the
-       desktop block where it happened to already exist. .nm-hand-rail is
-       absolutely positioned with `top: 0; bottom: 0`, so on a phone — where
-       nothing had given the hand a position — it resolved against the shell
-       instead and drew a second strand the full height of the page, parallel
-       to the rope and straight through the tray into the valley. */
+       desktop block where it happened to already exist: the hand is the
+       containing block its own contents are positioned against. */
     position: relative;
   }
 
@@ -5073,13 +4980,6 @@ if (!seedRow) {
       display: none;
     }
 
-    /* The thread is DRAWN, not animated away. The global block already floors
-       the duration, but `backwards` would otherwise hold the connector at
-       scaleY(0) for that instant and a reduced-motion visitor would see the
-       mala with its cord missing between beads. */
-    .nm-turn-rail::before {
-      animation: none;
-    }
 
     /* A leaf still arrives and still marks itself as yours; it stops sliding
        in to do it. The float and the parallax go entirely — depth stays, told
@@ -5248,20 +5148,11 @@ if (!seedRow) {
       --nm-bead-top: 7px;
     }
 
-    /* In step with the turns, for the reason given where it is declared. */
-    .nm-hand-rail {
-      --nm-rail: 22px;
-    }
 
-    /* And the beads shrink with them. The rope's strung beads go 13px -> 10px
-       at this width along with --nm-bead — mala.ts sizes them
-       `max(3.2, markerRadius * 0.46)`, so a 13px marker gives a 3.2px radius
-       and 6.4px beads. Same geometry, scaled to that: 6.6px on an 8.5px
-       pitch. */
-    .nm-turn-rail::before,
-    .nm-turn-rail::after,
-    .nm-hand-rail::after {
-      left: calc(var(--nm-rail) / 2 - 3.5px);
+    /* The beads shrink with the rail: --nm-bead goes 17px -> 13px here, so
+       the counting beads follow at 6.6px on an 8.5px pitch. */
+    .nm-thread {
+      left: calc(var(--nm-thread-x, 23px) - 3.5px);
       background-image:
         radial-gradient(
           circle at 38% 2.1px,
