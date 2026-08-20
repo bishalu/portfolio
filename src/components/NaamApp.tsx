@@ -730,16 +730,35 @@ export default function NaamApp({ seed, arrival }: NaamAppProps) {
      */
     const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(measure) : null
     ro?.observe(shell)
-    for (const sel of ['.nm-hand', '.nm-streamwrap', '.nm-stream'] as const) {
+    /**
+     * THE RAIL ITSELF IS ON THE LIST, and leaving it off is what kept the bug
+     * alive through one fix. Observing the shell, the hand and the transcript
+     * catches everything that changes a BOX — and the thing that moved the
+     * beads changed none of them.
+     *
+     * Measured on the live page: `--nm-thread-x` 26px against a bead at 23.
+     * 26 is 12px of transcript padding plus half a 30px rail; 23 is the same
+     * padding plus half a 22px one. The phone rail is a custom property on
+     * .nm-turn, so when it takes effect the bead slides 4px inside a stream
+     * whose own width never changed — invisible to every observer above.
+     * Local dev inlines its styles and never showed it; production links a
+     * stylesheet, so the island can measure before the narrower rail applies.
+     *
+     * .nm-turn-rail IS that width, so it cannot change without firing.
+     */
+    for (const sel of ['.nm-hand', '.nm-streamwrap', '.nm-stream', '.nm-turn-rail'] as const) {
       const box = shell.querySelector<HTMLElement>(sel)
       if (box) ro?.observe(box)
     }
     window.addEventListener('resize', measure)
     // Fonts land after first paint and reflow the column the beads hang in.
     document.fonts?.ready.then(measure).catch(() => {})
+    // And once everything the document asked for has arrived.
+    window.addEventListener('load', measure)
     return () => {
       ro?.disconnect()
       window.removeEventListener('resize', measure)
+      window.removeEventListener('load', measure)
     }
   /* `turns.length` covers a new turn arriving; the ResizeObserver covers
      everything else, including the bands resizing on the first ask. */
