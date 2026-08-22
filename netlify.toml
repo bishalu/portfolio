@@ -6,6 +6,15 @@
 [functions]
   node_bundler = "esbuild"
 
+# /vibeset/choon was a real page and sat in the sitemap, so it is indexed and
+# linked from outside. The page is gone — Choon ships its own site — and a 301
+# hands those visitors to the destination rather than a 404.
+[[redirects]]
+  from = "/vibeset/choon"
+  to = "https://choon.vibeset.ai"
+  status = 301
+  force = true
+
 [dev]
   command = "npm run dev"
   targetPort = 4321
