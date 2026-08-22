@@ -96,7 +96,6 @@ const VALID_PATHS = new Set([
   '/research',
   '/vibeset/curation',
   '/vibeset/cue',
-  '/vibeset/choon',
   '/notes/choon',
   '/accessibility-statement',
   '/thank-you',

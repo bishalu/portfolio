@@ -2,11 +2,9 @@
    INTERACTIVE WIDGETS — shared styles for the React islands.
 
    These live outside any single component because the islands are mounted on
-   more than one page: VibeFinder on the landing page, ChoonStressTest on
-   /vibeset/choon. They were previously an `is:global` block inside
-   VibesetSection, which meant a widget rendered anywhere else lost its styling.
-
-   The .vf-* and .ch-* rules share selectors in places, so they stay together.
+   more than one page: VibeFinder on the landing page, CueSync on /vibeset/cue.
+   They were previously an `is:global` block inside VibesetSection, which meant
+   a widget rendered anywhere else lost its styling.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ═══ VibeFinder (island) ═══════════════════════════════════════════ */
@@ -137,18 +135,14 @@
 
 /* WCAG 2.5.8 wants 24px for a standalone control. These sat at 21px. */
 .vf-chip,
-.ch-chip,
 .vf-example,
 .vf-go,
 .cx-pick,
-.cx-play,
-.ch-identify,
-.ch-play {
+.cx-play {
   min-height: 24px;
 }
 
-.vf-chip,
-.ch-chip {
+.vf-chip {
   transition:
     border-color var(--dur-base) ease,
     background-color var(--dur-base) ease,
@@ -165,8 +159,7 @@
   cursor: pointer;
 }
 
-.vf-chip-on,
-.ch-chip-on {
+.vf-chip-on {
   border-color: var(--crimson-deep);
   background: var(--crimson-deep);
   color: var(--on-fill);
@@ -203,8 +196,7 @@
   }
 }
 
-.vf-loading,
-.ch-loading {
+.vf-loading {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -346,152 +338,6 @@
   .vf-track-meta {
     display: none;
   }
-}
-
-/* ═══ ChoonStressTest (island) ══════════════════════════════════════ */
-.ch {
-  border: 1px solid var(--hairline-on-ink);
-  border-radius: 16px;
-  background: var(--ink);
-  padding: 1.1rem;
-}
-
-.ch-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.ch-clips,
-.ch-presets {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-
-.ch-presets {
-  margin-top: 0.6rem;
-}
-
-.ch-play {
-  flex-shrink: 0;
-  border: none;
-  border-radius: 50%;
-  background: var(--crimson-deep);
-  width: 42px;
-  height: 42px;
-  color: var(--on-fill);
-  font-size: 0.8rem;
-  cursor: pointer;
-
-  &:hover {
-    box-shadow: var(--glow-crimson);
-  }
-}
-
-.ch-scope-wrap {
-  display: flex;
-  position: relative;
-  justify-content: center;
-  align-items: center;
-  margin-top: 0.9rem;
-  /* A screen. The spectrum is 48 saturated bars drawn additively in JS; on bone
-     they smear into a wash. Keeping this on --stage is also why
-     ChoonStressTest.tsx needs no colour change at all. */
-  border: 1px solid var(--stage-hair);
-  border-radius: 10px;
-  background: var(--stage);
-  height: 110px;
-  overflow: hidden;
-}
-
-.ch-scope {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-/* Sits ON the stage, so it cannot inherit .label-mono's --paper-soft — that is
-   ink on a dark screen, 1.34:1. Anything rendered inside a --stage surface has
-   to opt into the on-stage pair explicitly. */
-.ch-scope-hint {
-  position: relative;
-  margin: 0;
-  padding: 0 1rem;
-  color: var(--on-stage-soft);
-  text-align: center;
-}
-
-.ch-id-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.75rem;
-  margin-top: 0.9rem;
-}
-
-.ch-identify {
-  border: none;
-  border-radius: 999px;
-  background: var(--crimson-deep);
-  padding: 0.5rem 1.1rem;
-  color: var(--on-fill);
-  font-weight: 500;
-  font-size: 0.8rem;
-  letter-spacing: var(--tracking-label);
-  font-family: var(--font-mono);
-  text-transform: uppercase;
-  cursor: pointer;
-
-  &:disabled {
-    background: var(--ink-2);
-    cursor: default;
-    color: var(--paper-soft);
-  }
-}
-
-.ch-note {
-  font-size: 0.65rem;
-}
-
-.ch-result-zone {
-  min-height: 3.2rem;
-  margin-top: 0.6rem;
-}
-
-.ch-result {
-  animation: sig-pop var(--dur-fast) var(--ease-out) both;
-  border-top: 1px solid var(--hairline-on-ink);
-  padding-top: 0.6rem;
-}
-
-.ch-result-top {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-}
-
-.ch-check {
-  color: var(--glacier-text);
-  font-weight: 700;
-}
-
-.ch-result-name {
-  color: var(--paper);
-  font-weight: 700;
-  font-size: 0.95rem;
-}
-
-.ch-result-sub {
-  color: var(--paper-soft);
-  font-weight: 400;
-  font-size: 0.85rem;
-}
-
-.ch-result-meta {
-  margin-top: 0.25rem;
 }
 
 /* ═══ CueSync (island) ═══════════════════════════════════════════════════
@@ -730,63 +576,3 @@
   line-height: 1.5;
 }
 
-/* ── Choon: where the answer came from, and which channel found it ──────── */
-.ch-src {
-  margin-left: auto;
-  border-radius: var(--radius-pill);
-  padding: 0.1rem 0.45rem;
-  font-size: 0.58rem;
-  letter-spacing: 0.1em;
-}
-
-.ch-src-live {
-  background: color-mix(in srgb, var(--glacier) 14%, transparent);
-  color: var(--glacier-text);
-}
-
-.ch-src-replay {
-  background: color-mix(in srgb, var(--marigold) 14%, transparent);
-  color: var(--marigold-text);
-}
-
-/* The two channels side by side. On anything degraded the spectral score
-   collapses and the embedding model carries it — that contrast is the
-   argument for running two, so both are always shown. */
-.ch-tiers {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1px;
-  margin-top: 0.6rem;
-  border: 1px solid var(--hairline-on-ink);
-  border-radius: var(--radius-small);
-  background: var(--hairline-on-ink);
-  overflow: hidden;
-}
-
-.ch-tier {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 0.5rem;
-  background: var(--ink-2);
-  padding: 0.45rem 0.6rem;
-
-  span {
-    color: var(--paper-soft);
-    font-size: 0.58rem;
-    letter-spacing: 0.1em;
-  }
-
-  b {
-    color: var(--paper-soft);
-    font-weight: 600;
-    font-size: 0.95rem;
-    font-family: var(--font-display);
-    font-variant-numeric: tabular-nums;
-  }
-}
-
-/* The channel that actually answered. */
-.ch-tier-on b {
-  color: var(--marigold-text);
-}

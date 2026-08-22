@@ -24,7 +24,6 @@ const ROUTES = [
   '/research',
   '/vibeset/curation',
   '/vibeset/cue',
-  '/vibeset/choon',
   '/notes/choon',
   '/accessibility-statement',
   '/thank-you',
@@ -203,24 +202,6 @@ async function widgets(browser) {
   }
   if (other.length) console.log(`  (note: ${other.length} other request(s) in the window, not attributable to the fit)`)
   await page.screenshot({ path: `${OUT}/widget-cue.png`, clip: await page.locator('.cx').boundingBox() })
-
-  // ── Choon: lives on its product page now, and identifies for real ──
-  await page.goto(base + '/vibeset/choon', { waitUntil: 'networkidle' })
-  await settle(page)
-  await page.locator('.ch').scrollIntoViewIfNeeded()
-  const presets = await page.$$('.ch-presets button')
-  if (presets.length >= 3) await presets[2].click()
-  await page.waitForTimeout(400)
-  await page.click('.ch-identify')
-  await page.waitForTimeout(9000) // a cold matcher can take a while before falling back
-  const meta = ((await page.textContent('.ch-result-meta').catch(() => '')) || '').trim()
-  const src = ((await page.textContent('.ch-src').catch(() => '')) || '').trim()
-  console.log(`choon — ${meta} [${src || 'no source badge'}]`)
-  if (!meta) {
-    console.log('  FAIL: no identification rendered — the fallback should have covered this')
-    problems += 1
-  }
-  await page.screenshot({ path: `${OUT}/widget-choon.png`, clip: await page.locator('.ch').boundingBox() })
 
   // ── /naam: the whole page is the widget ──────────────────────────────────
   // THE AGENT LEADS THIS PAGE. Nothing renders behind the model's call — the

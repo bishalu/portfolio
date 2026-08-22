@@ -14,6 +14,17 @@ const publications = (await getCollection('publications', ({ id }) => !id.starts
 
 const slugOf = (id: string) => id.replace(/\.mdx$/, '')
 const isPruning = (id: string) => slugOf(id) === 'structured-pruning'
+
+/**
+ * appliedIn names a product, not a URL. Most products have a page here; Choon
+ * does not — it ships its own site — so the cross-link resolves through the
+ * products collection and falls back to liveUrl rather than assuming a route.
+ */
+const PRODUCT_PAGES = new Set(['curation', 'cue'])
+const products = await getCollection('products')
+const liveUrlOf = (id: string) => products.find((p) => slugOf(p.id) === id)?.data.liveUrl
+const appliedHref = (id: string) =>
+  PRODUCT_PAGES.has(id) ? `/vibeset/${id}` : (liveUrlOf(id) ?? '#vibeset')
 ---
 
 <section class="rt" id="research">
@@ -96,7 +107,7 @@ const isPruning = (id: string) => slugOf(id) === 'structured-pruning'
                 <span class="rt-applied-tag label-mono">In production</span>
                 <span class="rt-applied-text">
                   {pub.data.appliedNote}{' '}
-                  <a href={`/vibeset/${pub.data.appliedIn}`}>
+                  <a href={appliedHref(pub.data.appliedIn)} rel="noopener">
                     See {pub.data.appliedIn.charAt(0).toUpperCase() + pub.data.appliedIn.slice(1)} ↳
                   </a>
                 </span>

@@ -1,13 +1,13 @@
 ---
 import DefaultLayout from '@layouts/DefaultLayout.astro'
 import { getCollection, render } from 'astro:content'
-import ChoonStressTest from '@components/ChoonStressTest.tsx'
-import ChoonBenchmark from '@components/ChoonBenchmark.astro'
 
 export const prerender = true
 
 export async function getStaticPaths() {
-  const products = await getCollection('products')
+  // Choon has no page here — it lives at choon.vibeset.ai, and every link
+  // that used to point at /vibeset/choon now goes straight there.
+  const products = await getCollection('products', ({ id }) => !id.startsWith('choon'))
   return products.map((p) => ({
     params: { product: p.id.replace(/\.mdx$/, '') },
     props: { entry: p },
@@ -96,13 +96,6 @@ const media: Record<string, Media> = {
     alt: 'Cue sign-in screen: “Music perfectly synced to picture.”',
     href: data.liveUrl,
   },
-  choon: {
-    type: 'article',
-    href: data.blogUrl ?? 'https://www.vibeset.ai/blog/vibeset-choon-protect-your-musical-assets',
-    headline: 'Protect Your Musical Assets with Vibeset Choon',
-    excerpt:
-      'How Choon fingerprints tracks, stems, and motifs to protect catalogs when generic audio matching falls short.',
-  },
 }
 const m = media[slug] ?? { type: 'gradient' }
 ---
@@ -160,11 +153,6 @@ const m = media[slug] ?? { type: 'gradient' }
             <a class="btn-pill" href={data.liveUrl} rel="noopener">
               {data.liveLabel ?? 'Open'} ↳
             </a>
-            {slug === 'choon' && (
-              <a class="vbp-note-link" href="/notes/choon">
-                The 66k-track case note ↳
-              </a>
-            )}
           </p>
         )
       }
@@ -240,26 +228,6 @@ const m = media[slug] ?? { type: 'gradient' }
           </div>
         )
       }
-
-      {
-        slug === 'choon' && (
-          <div class="vbp-demo">
-            <h2 class="vbp-demo-label label-mono">Try breaking it</h2>
-            <p class="vbp-demo-note">
-              The distortion runs in your browser, and the same settings go to the real matcher. So it
-              identifies what you just heard. Watch the two channels. Clean audio goes to the fast one;
-              anything mangled falls to the model. Full numbers in the
-              <a href="/notes/choon">case note</a>.
-            </p>
-            <ChoonStressTest client:visible />
-          </div>
-        )
-      }
-
-      {/* The demo shows it working; this shows where it stands. Below the
-          stress test on purpose — a benchmark table means more once you have
-          watched the thing survive something. */}
-      {slug === 'choon' && <ChoonBenchmark />}
 
       {
         capabilities.length > 0 && (

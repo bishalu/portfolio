@@ -110,8 +110,12 @@ for (const p of products) {
   // marketing description and the headline stats and nothing underneath, which
   // is how it ended up inventing mechanisms when a prospect pushed.
   const proven = (p.claims || []).filter((c) => (c.status || 'shipped') === 'shipped' && c.evidence)
+  // Choon has no page on this site — it ships its own at choon.vibeset.ai.
+  // Handing Balgo a `page:` it cannot link is how a confident 404 gets built.
+  const PRODUCT_PAGES = new Set(['curation', 'cue'])
+  const page = PRODUCT_PAGES.has(p.slug) ? `, page: /vibeset/${p.slug}` : ''
   const bits = [
-    `*   ${p.name} (${p.eyebrow}, Anchor: #work, page: /vibeset/${p.slug}${p.liveUrl ? `, live: ${p.liveUrl}` : ''}): ${p.tagline}.`,
+    `*   ${p.name} (${p.eyebrow}, Anchor: #work${page}${p.liveUrl ? `, live: ${p.liveUrl}` : ''}): ${p.tagline}.`,
     p.description,
     stats && `Measured: ${stats}.`,
     caps.length && `Capabilities: ${caps.join(', ')}.`,

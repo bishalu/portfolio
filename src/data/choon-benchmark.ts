@@ -75,9 +75,9 @@ export const BENCH: readonly BenchRow[] = [
  *   MERT       the nearest larger model it beats — 3.4× the parameters
  *   NAFP       the nearest model of comparable size, 8 points below
  *
- * The five omitted rows are all below MERT and change no conclusion; the full
- * table is on /vibeset/choon. Picking four is an editorial choice and the panel
- * links the rest rather than pretending these are all of them.
+ * The five omitted rows are all below MERT and change no conclusion. They used
+ * to be one link away on /vibeset/choon; that page is gone, so these four are
+ * the published table. BENCH above stays the record of the full run.
  */
 export const BENCH_HOME: readonly BenchRow[] = BENCH.filter((r) =>
   ['MuQ-Large, unfrozen', 'Choon — neural channel only', 'MERT, unfrozen', 'NAFP'].includes(r.model),

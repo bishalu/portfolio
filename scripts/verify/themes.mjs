@@ -24,7 +24,6 @@ const ROUTES = [
   '/research',
   '/vibeset/curation',
   '/vibeset/cue',
-  '/vibeset/choon',
   '/notes/choon',
   '/accessibility-statement',
   '/thank-you',

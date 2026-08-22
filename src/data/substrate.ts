@@ -50,7 +50,7 @@ export interface Capability {
 export const PRODUCTS = [
   { id: 'curation', name: 'Curation', href: '/vibeset/curation' },
   { id: 'cue', name: 'Cue', href: '/vibeset/cue' },
-  { id: 'choon', name: 'Choon', href: '/vibeset/choon' },
+  { id: 'choon', name: 'Choon', href: 'https://choon.vibeset.ai' },
 ] as const
 
 export const CAPABILITIES: readonly Capability[] = [

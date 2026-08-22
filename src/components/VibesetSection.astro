@@ -84,7 +84,7 @@ const choon = bySlug['choon']
     <article class="vs-station" data-reveal="settle">
       <div class="vs-copy">
         <p class="vs-eyebrow label-mono"><span class="vs-eyebrow-stage">{choon.eyebrow}</span> · {choon.name}</p>
-        <h3 class="vs-name"><a href="/vibeset/choon">{choon.tagline}</a></h3>
+        <h3 class="vs-name"><a href={choon.liveUrl} rel="noopener">{choon.tagline}</a></h3>
         <p class="vs-desc">{choon.description}</p>
         <p class="vs-stats label-mono">
           {choon.stats.map((s, i) => <span>{i > 0 && <span class="vs-stat-dot"> · </span>}{s.label} {s.value}</span>)}
@@ -97,7 +97,7 @@ const choon = bySlug['choon']
         <!-- Real eval numbers only. Both figures are published with their full
              protocol at /notes/choon; the weak row is the whole point of
              showing this rather than a staged identification. The workbench
-             itself lives on /vibeset/choon — the landing page is an index
+             itself lives at choon.vibeset.ai — the landing page is an index
              (docs/design/DESIGN.md §2). -->
         <!-- The comparison, not the confession.
              This panel used to publish three internal numbers and the line
@@ -110,8 +110,10 @@ const choon = bySlug['choon']
 
              Four rows, not nine. Three stat tiles could not show a comparison
              at all, and the full nine-row table does not fit a station on the
-             landing page. Each row here answers a different question; the rest
-             are one link away. -->
+             landing page. Each row here answers a different question. The other
+             five rows had a page to live on; that page is gone and Choon's own
+             site is the destination now, so these four are the published
+             table. The full run stays in src/data/choon-benchmark.ts. -->
         <figure class="vs-bench">
           <figcaption class="vs-bench-head label-mono">
             <span class="vs-frozen-badge">benchmark</span>
@@ -120,8 +122,7 @@ const choon = bySlug['choon']
 
           <table class="vs-bench-table">
             <caption class="sr-only">
-              Recall@1 and parameter count for Choon's neural channel against three published models. The full
-              table, including performance on re-encoded audio, is on the Choon page.
+              Recall@1 and parameter count for Choon's neural channel against three published models.
             </caption>
             <thead>
               <tr>
@@ -151,7 +152,6 @@ const choon = bySlug['choon']
           </p>
         </figure>
         <p class="vs-frozen-cta">
-          <a class="vs-cta-quiet" href="/vibeset/choon">All nine models ↳</a>
           <a class="vs-cta-quiet" href="/notes/choon">Where it fails ↳</a>
         </p>
       </div>
